@@ -1,0 +1,226 @@
+kotlin version: 2.4.10
+error message: java.lang.RuntimeException: Exception while generating code for:
+FUN name:ScannerEffect visibility:public modality:FINAL returnType:kotlin.Unit
+  VALUE_PARAMETER kind:Regular name:onScan index:0 type:kotlin.Function1<kotlin.String, kotlin.Unit>
+  annotations:
+    Composable
+  BLOCK_BODY
+    VAR name:scanner type:net.gbs.honeywellscanner.ScannerManager [val]
+      CALL 'public final fun remember <T> (calculation: @[DisallowComposableCalls] kotlin.Function0<T of androidx.compose.runtime.ComposablesKt.remember>): T of androidx.compose.runtime.ComposablesKt.remember [inline] declared in androidx.compose.runtime.ComposablesKt' type=net.gbs.honeywellscanner.ScannerManager origin=null
+        TYPE_ARG T: net.gbs.honeywellscanner.ScannerManager
+        ARG calculation: RICH_FUNCTION_REFERENCE type=kotlin.Function0<net.gbs.honeywellscanner.ScannerManager> origin=INLINE_LAMBDA reflectionTarget='null'
+          overriddenFunctionSymbol: public abstract fun invoke (): R of kotlin.Function0 [operator] declared in kotlin.Function0
+          invoke: FUN INLINE_LAMBDA name:ScannerEffect$lambda$0 visibility:private modality:FINAL returnType:net.gbs.honeywellscanner.ScannerManager
+            BLOCK_BODY
+              VAR name:$i$a$-remember-ScannerEffectKt$ScannerEffect$scanner$1 type:kotlin.Int [val]
+                CONST Int type=kotlin.Int value=0
+              RETURN type=kotlin.Nothing from='private final fun ScannerEffect$lambda$0 (): net.gbs.honeywellscanner.ScannerManager declared in net.gbs.honeywellscanner.ScannerEffectKt.ScannerEffect'
+                CALL 'public final fun createScannerManager (): net.gbs.honeywellscanner.ScannerManager declared in net.gbs.honeywellscanner.HoneywellScanner' type=net.gbs.honeywellscanner.ScannerManager origin=null
+                  ARG <this>: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:net.gbs.honeywellscanner.HoneywellScanner visibility:public [final,static] declared in net.gbs.honeywellscanner.HoneywellScanner' type=net.gbs.honeywellscanner.HoneywellScanner origin=null
+    CALL 'public final fun DisposableEffect (key1: kotlin.Any?, effect: @[ExtensionFunctionType] kotlin.Function1<androidx.compose.runtime.DisposableEffectScope, androidx.compose.runtime.DisposableEffectResult>): kotlin.Unit declared in androidx.compose.runtime.EffectsKt' type=kotlin.Unit origin=null
+      ARG key1: GET_VAR 'val scanner: net.gbs.honeywellscanner.ScannerManager [val] declared in net.gbs.honeywellscanner.ScannerEffectKt.ScannerEffect' type=net.gbs.honeywellscanner.ScannerManager origin=null
+      ARG effect: CALL 'public final fun <jvm-indy> <T> (dynamicCall: T of kotlin.jvm.internal.<jvm-indy>, bootstrapMethodHandle: kotlin.Any, vararg bootstrapMethodArguments: kotlin.Any): T of kotlin.jvm.internal.<jvm-indy> declared in kotlin.jvm.internal' type=@[ExtensionFunctionType] kotlin.Function1<androidx.compose.runtime.DisposableEffectScope, androidx.compose.runtime.DisposableEffectResult> origin=null
+        TYPE_ARG T: @[ExtensionFunctionType] kotlin.Function1<androidx.compose.runtime.DisposableEffectScope, androidx.compose.runtime.DisposableEffectResult>
+        ARG dynamicCall: CALL 'public final fun invoke (p0: net.gbs.honeywellscanner.ScannerManager, p1: kotlin.Function1<kotlin.String, kotlin.Unit>): @[ExtensionFunctionType] kotlin.Function1<androidx.compose.runtime.DisposableEffectScope, androidx.compose.runtime.DisposableEffectResult> declared in kotlin.jvm.internal.invokeDynamic' type=@[ExtensionFunctionType] kotlin.Function1<androidx.compose.runtime.DisposableEffectScope, androidx.compose.runtime.DisposableEffectResult> origin=null
+          ARG p0: GET_VAR 'val scanner: net.gbs.honeywellscanner.ScannerManager [val] declared in net.gbs.honeywellscanner.ScannerEffectKt.ScannerEffect' type=net.gbs.honeywellscanner.ScannerManager origin=null
+          ARG p1: GET_VAR 'onScan: kotlin.Function1<kotlin.String, kotlin.Unit> declared in net.gbs.honeywellscanner.ScannerEffectKt.ScannerEffect' type=kotlin.Function1<kotlin.String, kotlin.Unit> origin=null
+        ARG bootstrapMethodHandle: CALL 'public final fun <jvm-method-handle> (tag: kotlin.Int, owner: kotlin.String, name: kotlin.String, descriptor: kotlin.String, isInterface: kotlin.Boolean): kotlin.Any declared in kotlin.jvm.internal' type=kotlin.Any origin=null
+          ARG tag: CONST Int type=kotlin.Int value=6
+          ARG owner: CONST String type=kotlin.String value="java/lang/invoke/LambdaMetafactory"
+          ARG name: CONST String type=kotlin.String value="metafactory"
+          ARG descriptor: CONST String type=kotlin.String value="(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
+          ARG isInterface: CONST Boolean type=kotlin.Boolean value=false
+        ARG bootstrapMethodArguments: VARARG type=kotlin.Array<kotlin.Any> varargElementType=kotlin.Any
+          CALL 'public final fun <jvm-original-method-type> (method: kotlin.Any): kotlin.Any declared in kotlin.jvm.internal' type=kotlin.Any origin=null
+            ARG method: RAW_FUNCTION_REFERENCE 'public abstract fun invoke (p1: P1 of kotlin.Function1): R of kotlin.Function1 [operator] declared in kotlin.Function1' type=kotlin.Any
+          RAW_FUNCTION_REFERENCE 'private final fun ScannerEffect$lambda$1 ($scanner: net.gbs.honeywellscanner.ScannerManager, $onScan: kotlin.Function1<kotlin.String, kotlin.Unit>, $this$DisposableEffect: androidx.compose.runtime.DisposableEffectScope): androidx.compose.runtime.DisposableEffectResult declared in net.gbs.honeywellscanner.ScannerEffectKt' type=kotlin.Any
+          CALL 'public final fun <jvm-original-method-type> (method: kotlin.Any): kotlin.Any declared in kotlin.jvm.internal' type=kotlin.Any origin=null
+            ARG method: RAW_FUNCTION_REFERENCE 'public abstract fun invoke (p1: androidx.compose.runtime.DisposableEffectScope): androidx.compose.runtime.DisposableEffectResult [fake_override,operator] declared in kotlin.jvm.internal.invokeDynamic.<fake>' type=kotlin.Any
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:61)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate$default(FunctionCodegen.kt:54)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethodNode(ClassCodegen.kt:422)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:439)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:168)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateFile(JvmIrCodegenFactory.kt:465)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:431)
+	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinToJVMBytecodeCompiler.runCodegen$org_jetbrains_kotlin_cli_jvm(KotlinToJVMBytecodeCompiler.kt:387)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:91)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:28)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:63)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:53)
+	at org.jetbrains.kotlin.config.phaser.NamedCompilerPhase.invoke(CompilerPhase.kt:102)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:22)
+	at org.jetbrains.kotlin.config.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:53)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.runPhasedPipeline(AbstractCliPipeline.kt:135)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.executeAndReturnPipeLineArtifact(AbstractCliPipeline.kt:89)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.executeAndReturnPipeLineArtifact$default(AbstractCliPipeline.kt:49)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.execute(AbstractCliPipeline.kt:40)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:54)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:45)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:94)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.exec(CLICompiler.kt:366)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:211)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:53)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:539)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:451)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:327)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:139)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:782)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:108)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:2046)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(Unknown Source)
+	at java.base/java.lang.reflect.Method.invoke(Unknown Source)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Unknown Source)
+	at java.base/java.security.AccessController.doPrivileged(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(Unknown Source)
+	at java.base/java.security.AccessController.doPrivileged(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.base/java.lang.Thread.run(Unknown Source)
+Caused by: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't inline method call: CALL 'public final fun remember <T> (calculation: @[DisallowComposableCalls] kotlin.Function0<T of androidx.compose.runtime.ComposablesKt.remember>): T of androidx.compose.runtime.ComposablesKt.remember [inline] declared in androidx.compose.runtime.ComposablesKt' type=net.gbs.honeywellscanner.ScannerManager origin=null
+Method: null
+File is unknown
+The root cause java.lang.IllegalStateException was thrown at: org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.getMethodNode(SourceCompilerForInline.kt:129)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.genInlineCall(IrInlineCodegen.kt:85)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCallGenerator.genCall(IrInlineCallGenerator.kt:36)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:579)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:141)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitVariable(ExpressionCodegen.kt:725)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitVariable(ExpressionCodegen.kt:141)
+	at org.jetbrains.kotlin.ir.declarations.IrVariable.accept(IrVariable.kt:36)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:492)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:497)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:141)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:234)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:134)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:58)
+	... 46 more
+Caused by: java.lang.IllegalStateException: couldn't find inline method Landroidx/compose/runtime/ComposablesKt;.remember(Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	at org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.getMethodNode(SourceCompilerForInline.kt:129)
+	at org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.loadCompiledInlineFunction$lambda$0(SourceCompilerForInline.kt:98)
+	at org.jetbrains.kotlin.codegen.inline.InlineCache.computeMethodBytes(InlineCache.kt:90)
+	at org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.loadCompiledInlineFunction(SourceCompilerForInline.kt:93)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrSourceCompilerForInline.compileInlineFunction(IrSourceCompilerForInline.kt:96)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.genInlineCall(IrInlineCodegen.kt:68)
+	... 60 more
+
+
+error message: java.lang.RuntimeException: Exception while generating code for:
+FUN name:ScannerEffect visibility:public modality:FINAL returnType:kotlin.Unit
+  VALUE_PARAMETER kind:Regular name:onScan index:0 type:kotlin.Function1<kotlin.String, kotlin.Unit>
+  annotations:
+    Composable
+  BLOCK_BODY
+    VAR name:scanner type:net.gbs.honeywellscanner.ScannerManager [val]
+      CALL 'public final fun remember <T> (calculation: @[DisallowComposableCalls] kotlin.Function0<T of androidx.compose.runtime.ComposablesKt.remember>): T of androidx.compose.runtime.ComposablesKt.remember [inline] declared in androidx.compose.runtime.ComposablesKt' type=net.gbs.honeywellscanner.ScannerManager origin=null
+        TYPE_ARG T: net.gbs.honeywellscanner.ScannerManager
+        ARG calculation: RICH_FUNCTION_REFERENCE type=kotlin.Function0<net.gbs.honeywellscanner.ScannerManager> origin=INLINE_LAMBDA reflectionTarget='null'
+          overriddenFunctionSymbol: public abstract fun invoke (): R of kotlin.Function0 [operator] declared in kotlin.Function0
+          invoke: FUN INLINE_LAMBDA name:ScannerEffect$lambda$0 visibility:private modality:FINAL returnType:net.gbs.honeywellscanner.ScannerManager
+            BLOCK_BODY
+              VAR name:$i$a$-remember-ScannerEffectKt$ScannerEffect$scanner$1 type:kotlin.Int [val]
+                CONST Int type=kotlin.Int value=0
+              RETURN type=kotlin.Nothing from='private final fun ScannerEffect$lambda$0 (): net.gbs.honeywellscanner.ScannerManager declared in net.gbs.honeywellscanner.ScannerEffectKt.ScannerEffect'
+                CALL 'public final fun createScannerManager (): net.gbs.honeywellscanner.ScannerManager declared in net.gbs.honeywellscanner.HoneywellScanner' type=net.gbs.honeywellscanner.ScannerManager origin=null
+                  ARG <this>: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:net.gbs.honeywellscanner.HoneywellScanner visibility:public [final,static] declared in net.gbs.honeywellscanner.HoneywellScanner' type=net.gbs.honeywellscanner.HoneywellScanner origin=null
+    CALL 'public final fun DisposableEffect (key1: kotlin.Any?, effect: @[ExtensionFunctionType] kotlin.Function1<androidx.compose.runtime.DisposableEffectScope, androidx.compose.runtime.DisposableEffectResult>): kotlin.Unit declared in androidx.compose.runtime.EffectsKt' type=kotlin.Unit origin=null
+      ARG key1: GET_VAR 'val scanner: net.gbs.honeywellscanner.ScannerManager [val] declared in net.gbs.honeywellscanner.ScannerEffectKt.ScannerEffect' type=net.gbs.honeywellscanner.ScannerManager origin=null
+      ARG effect: CALL 'public final fun <jvm-indy> <T> (dynamicCall: T of kotlin.jvm.internal.<jvm-indy>, bootstrapMethodHandle: kotlin.Any, vararg bootstrapMethodArguments: kotlin.Any): T of kotlin.jvm.internal.<jvm-indy> declared in kotlin.jvm.internal' type=@[ExtensionFunctionType] kotlin.Function1<androidx.compose.runtime.DisposableEffectScope, androidx.compose.runtime.DisposableEffectResult> origin=null
+        TYPE_ARG T: @[ExtensionFunctionType] kotlin.Function1<androidx.compose.runtime.DisposableEffectScope, androidx.compose.runtime.DisposableEffectResult>
+        ARG dynamicCall: CALL 'public final fun invoke (p0: net.gbs.honeywellscanner.ScannerManager, p1: kotlin.Function1<kotlin.String, kotlin.Unit>): @[ExtensionFunctionType] kotlin.Function1<androidx.compose.runtime.DisposableEffectScope, androidx.compose.runtime.DisposableEffectResult> declared in kotlin.jvm.internal.invokeDynamic' type=@[ExtensionFunctionType] kotlin.Function1<androidx.compose.runtime.DisposableEffectScope, androidx.compose.runtime.DisposableEffectResult> origin=null
+          ARG p0: GET_VAR 'val scanner: net.gbs.honeywellscanner.ScannerManager [val] declared in net.gbs.honeywellscanner.ScannerEffectKt.ScannerEffect' type=net.gbs.honeywellscanner.ScannerManager origin=null
+          ARG p1: GET_VAR 'onScan: kotlin.Function1<kotlin.String, kotlin.Unit> declared in net.gbs.honeywellscanner.ScannerEffectKt.ScannerEffect' type=kotlin.Function1<kotlin.String, kotlin.Unit> origin=null
+        ARG bootstrapMethodHandle: CALL 'public final fun <jvm-method-handle> (tag: kotlin.Int, owner: kotlin.String, name: kotlin.String, descriptor: kotlin.String, isInterface: kotlin.Boolean): kotlin.Any declared in kotlin.jvm.internal' type=kotlin.Any origin=null
+          ARG tag: CONST Int type=kotlin.Int value=6
+          ARG owner: CONST String type=kotlin.String value="java/lang/invoke/LambdaMetafactory"
+          ARG name: CONST String type=kotlin.String value="metafactory"
+          ARG descriptor: CONST String type=kotlin.String value="(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
+          ARG isInterface: CONST Boolean type=kotlin.Boolean value=false
+        ARG bootstrapMethodArguments: VARARG type=kotlin.Array<kotlin.Any> varargElementType=kotlin.Any
+          CALL 'public final fun <jvm-original-method-type> (method: kotlin.Any): kotlin.Any declared in kotlin.jvm.internal' type=kotlin.Any origin=null
+            ARG method: RAW_FUNCTION_REFERENCE 'public abstract fun invoke (p1: P1 of kotlin.Function1): R of kotlin.Function1 [operator] declared in kotlin.Function1' type=kotlin.Any
+          RAW_FUNCTION_REFERENCE 'private final fun ScannerEffect$lambda$1 ($scanner: net.gbs.honeywellscanner.ScannerManager, $onScan: kotlin.Function1<kotlin.String, kotlin.Unit>, $this$DisposableEffect: androidx.compose.runtime.DisposableEffectScope): androidx.compose.runtime.DisposableEffectResult declared in net.gbs.honeywellscanner.ScannerEffectKt' type=kotlin.Any
+          CALL 'public final fun <jvm-original-method-type> (method: kotlin.Any): kotlin.Any declared in kotlin.jvm.internal' type=kotlin.Any origin=null
+            ARG method: RAW_FUNCTION_REFERENCE 'public abstract fun invoke (p1: androidx.compose.runtime.DisposableEffectScope): androidx.compose.runtime.DisposableEffectResult [fake_override,operator] declared in kotlin.jvm.internal.invokeDynamic.<fake>' type=kotlin.Any
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:61)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate$default(FunctionCodegen.kt:54)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethodNode(ClassCodegen.kt:422)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:439)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:168)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateFile(JvmIrCodegenFactory.kt:465)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:431)
+	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinToJVMBytecodeCompiler.runCodegen$org_jetbrains_kotlin_cli_jvm(KotlinToJVMBytecodeCompiler.kt:387)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:91)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:28)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:63)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:53)
+	at org.jetbrains.kotlin.config.phaser.NamedCompilerPhase.invoke(CompilerPhase.kt:102)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:22)
+	at org.jetbrains.kotlin.config.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:53)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.runPhasedPipeline(AbstractCliPipeline.kt:135)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.executeAndReturnPipeLineArtifact(AbstractCliPipeline.kt:89)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.executeAndReturnPipeLineArtifact$default(AbstractCliPipeline.kt:49)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.execute(AbstractCliPipeline.kt:40)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:54)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:45)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:94)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.exec(CLICompiler.kt:366)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:211)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:53)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:539)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:451)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:327)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:139)
+	at org.jetbrains.kotlin.buildtools.internal.jvm.operations.JvmCompilationOperationImpl.compileIncrementallyInProcess(JvmCompilationOperationImpl.kt:289)
+	at org.jetbrains.kotlin.buildtools.internal.jvm.operations.JvmCompilationOperationImpl.compileIncrementallyInProcess(JvmCompilationOperationImpl.kt:55)
+	at org.jetbrains.kotlin.buildtools.internal.BaseCompilationOperationImpl.compileInProcess(BaseCompilationOperationImpl.kt:261)
+	at org.jetbrains.kotlin.buildtools.internal.jvm.operations.JvmCompilationOperationImpl.compileInProcess(JvmCompilationOperationImpl.kt:222)
+	at org.jetbrains.kotlin.buildtools.internal.BaseCompilationOperationImpl.executeCancellableImpl(BaseCompilationOperationImpl.kt:88)
+	at org.jetbrains.kotlin.buildtools.internal.BaseCompilationOperationImpl.executeCancellableImpl(BaseCompilationOperationImpl.kt:55)
+	at org.jetbrains.kotlin.buildtools.internal.CancellableBuildOperationImpl.executeImpl(CancellableBuildOperationImpl.kt:58)
+	at org.jetbrains.kotlin.buildtools.internal.BuildOperationImpl.execute(BuildOperationImpl.kt:33)
+	at org.jetbrains.kotlin.buildtools.internal.KotlinToolchainsImpl$BuildSessionImpl.executeOperation$lambda$1(KotlinToolchainsImpl.kt:74)
+	at java.base/java.util.concurrent.FutureTask.run(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.base/java.lang.Thread.run(Unknown Source)
+Caused by: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't inline method call: CALL 'public final fun remember <T> (calculation: @[DisallowComposableCalls] kotlin.Function0<T of androidx.compose.runtime.ComposablesKt.remember>): T of androidx.compose.runtime.ComposablesKt.remember [inline] declared in androidx.compose.runtime.ComposablesKt' type=net.gbs.honeywellscanner.ScannerManager origin=null
+Method: null
+File is unknown
+The root cause java.lang.IllegalStateException was thrown at: org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.getMethodNode(SourceCompilerForInline.kt:129)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.genInlineCall(IrInlineCodegen.kt:85)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCallGenerator.genCall(IrInlineCallGenerator.kt:36)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:579)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:141)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitVariable(ExpressionCodegen.kt:725)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitVariable(ExpressionCodegen.kt:141)
+	at org.jetbrains.kotlin.ir.declarations.IrVariable.accept(IrVariable.kt:36)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:492)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:497)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:141)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:234)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:134)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:58)
+	... 41 more
+Caused by: java.lang.IllegalStateException: couldn't find inline method Landroidx/compose/runtime/ComposablesKt;.remember(Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	at org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.getMethodNode(SourceCompilerForInline.kt:129)
+	at org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.loadCompiledInlineFunction$lambda$0(SourceCompilerForInline.kt:98)
+	at org.jetbrains.kotlin.codegen.inline.InlineCache.computeMethodBytes(InlineCache.kt:90)
+	at org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.loadCompiledInlineFunction(SourceCompilerForInline.kt:93)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrSourceCompilerForInline.compileInlineFunction(IrSourceCompilerForInline.kt:96)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.genInlineCall(IrInlineCodegen.kt:68)
+	... 55 more
+
+

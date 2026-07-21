@@ -1,0 +1,1122 @@
+package net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.details_screen
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import net.gbs.gbswarehouse.ui.theme.AppTheme
+import net.gbs.gbswarehouse.Bin
+import net.gbs.gbswarehouse.CarCodeInput
+import net.gbs.gbswarehouse.CarSourceSpinner
+import net.gbs.gbswarehouse.CarTypeSpinner
+import net.gbs.gbswarehouse.DatePickerField
+import net.gbs.gbswarehouse.Field
+import net.gbs.gbswarehouse.FullBtn
+import net.gbs.gbswarehouse.InfoCell
+import net.gbs.gbswarehouse.InspectionSelectedMaterialCard
+import net.gbs.gbswarehouse.LoadTypeSpinner
+import net.gbs.gbswarehouse.MarginTenDp
+import net.gbs.gbswarehouse.Material
+import net.gbs.gbswarehouse.ORDERS
+import net.gbs.gbswarehouse.Order
+import net.gbs.gbswarehouse.OutlineBtn
+import net.gbs.gbswarehouse.QualityDecisionSpinner
+import net.gbs.gbswarehouse.Screens
+import net.gbs.gbswarehouse.SearchBox
+import net.gbs.gbswarehouse.Section
+import net.gbs.gbswarehouse.SuccessCard
+import net.gbs.gbswarehouse.TopBar
+import net.gbs.gbswarehouse.domain.model.ValuationType
+import net.gbs.gbswarehouse.ValuationTypeSpinner
+import net.gbs.gbswarehouse.WarehousesSpinner
+import net.gbs.gbswarehouse.WorksGroupSpinner
+import net.gbs.gbswarehouse.carSources
+import net.gbs.gbswarehouse.carTypes
+import net.gbs.gbswarehouse.loadTypes
+import net.gbs.gbswarehouse.qualityDecisions
+import net.gbs.gbswarehouse.valuationTypes
+import net.gbs.gbswarehouse.warehouses
+import net.gbs.gbswarehouse.workersGroup
+import kotlin.text.ifEmpty
+
+@Composable
+fun ReceivingProductFromBranchDetailsScreen(
+    navController: NavController,
+    orderId: String
+){
+    val viewModel: DetailsViewModel = viewModel()
+    val colors = AppTheme.colors
+    val accent = colors.green
+    val doneLabel = "الكمية المستلمة"
+    val order = ORDERS["TRANSFER"]?.find { it.id == orderId }!!
+    Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
+        Column(Modifier.fillMaxSize()) {
+            TopBar(title = "استلام", subtitle = "تحويلات مخزنية بين المواقع",
+                accent = accent, onBack = {
+                    navController.popBackStack()
+                })
+
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    start = 14.dp, end = 14.dp,
+                    top = 10.dp,
+                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
+                )
+            ) {
+
+                // ── Order Info Card (non-blind) ────────────────────────────
+                    item {
+                        Section(label = "بيانات الأمر", accent = colors.green) {
+                            val fields = listOf(
+                                Triple("رقم امر التحويل", order.id, null),
+                                Triple("الحالة",      order.status, order.statusColor),
+                                Triple("الجهة",       order.info,   null),
+                                Triple("التاريخ",     order.date,   null),
+                                Triple("عدد الأصناف","${order.items} أصناف", null),
+                            )
+                            // 2-column grid
+                            for (i in fields.indices step 2) {
+                                Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    val f1 = fields[i]
+                                    val f2 = if (i + 1 < fields.size) fields[i + 1] else null
+                                    // if "الجهة" span full width
+                                    if (f1.first == "الجهة") {
+                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text)
+                                    } else {
+                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
+                                            modifier = Modifier.weight(1f))
+                                        if (f2 != null) {
+                                            InfoCell(f2.first, f2.second, f2.third ?: colors.text,
+                                                modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                
+                item {
+                        WorksGroupSpinner("مجموعة العمال",workersGroup, onItemSelected = {
+                            viewModel.selectedWorkersGroup = it
+                        })
+
+                }
+                item{
+                    Section(label = "بيانات العربة", accent = colors.green) {
+                        Row(Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            CarCodeInput(
+                                value = viewModel.carCode,
+                                onValueChange = { viewModel.carCode = it },
+                                modifier = Modifier.weight(1f),
+                                withLabel = false
+                            )
+                            OutlineBtn("بحث", colors.green) {
+                                if (viewModel.carCode.isNotEmpty())
+                                    viewModel.carCodeEntered = true
+                            }
+                        }
+                        if (viewModel.carCodeEntered) {
+                            Spacer(Modifier.height(8.dp))
+                            Text("856002215", color = colors.text, fontSize = 13.sp)
+                        }
+                    }
+                    // Shipping cost
+                    Section(label = "معلومات الناولون", accent = colors.green) {
+                        Column(Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally) {
+                            CarTypeSpinner(
+                                hint = "نوع العربة",
+                                items = carTypes,
+                                onItemSelected = {
+                                    viewModel.selectedCarType = it
+                                }
+                            )
+                            CarSourceSpinner(
+                                hint = "الجهة",
+                                items = carSources,
+                                onItemSelected = {
+                                    viewModel.selectedCarSource = it
+                                }
+                            )
+                            if (viewModel.shippingCost.isNotEmpty()) {
+                                Spacer(Modifier.height(8.dp))
+                                Text(text = viewModel.shippingCost, color = colors.text)
+                            }
+                        }
+
+
+                    }
+                    // Load type
+                    Spacer(Modifier.height(10.dp))
+                    LoadTypeSpinner("نوع الحمولة", loadTypes, onItemSelected = {viewModel.selectedLoadType = it})
+                    Spacer(Modifier.height(10.dp))
+                }
+                item {
+                    WarehousesSpinner("اختر المخزن", warehouses, onItemSelected = {
+                        viewModel.selectedWarehouse = it
+                    })
+
+                }
+                
+
+                // ── Normal/Issue: Material Section ────────────────────────
+                
+                    item {
+                        Section(label = "بيانات الصنف", accent = accent) {
+                            Row(Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically) {
+                                MatCodeInput(
+                                    value = viewModel.matInput,
+                                    onValueChange = { viewModel.matInput = it },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                OutlineBtn("اختر مادة", accent) { viewModel.matDlg = true }
+                            }
+                            if (viewModel.selMat != null) {
+                                Spacer(Modifier.height(8.dp))
+                                SelectedMaterialCard(
+                                    mat = viewModel.selMat!!,
+                                    accent = accent,
+                                    isQuality = false,
+                                    isIssue = false,
+                                    doneLabel = doneLabel,
+                                    smpQty = viewModel.smpQty,
+                                    onSmpQtyChange = { viewModel.smpQty = it },
+                                    qty = viewModel.qty,
+                                    onQtyChange = { viewModel.qty = it },
+                                    saved = viewModel.saved,
+                                    saving = viewModel.saving,
+                                    onAccept = { viewModel.doSave("accept") },
+                                    onReject = { viewModel.doSave("reject") },
+                                    onClear = { viewModel.clearMaterial() },
+                                    onValuationTypeSelected = {
+                                        viewModel.selectedValuationType = it
+                                    },
+                                    expiryDate = viewModel.expiryDate,
+                                    onExpiryDateSelected = {
+                                        viewModel.expiryDate = it
+                                    },
+                                    productionDate = viewModel.productionDate,
+                                    onProductionDateSelected = {
+                                        viewModel.productionDate = it
+                                    }
+                                )
+                            }
+                        }
+                    
+                }
+
+
+                // ── Success Card ──────────────────────────────────────────
+                if (viewModel.saved) {
+                    item { SuccessCard(kind = viewModel.saveKind, accent = accent) }
+                }
+            }
+        }
+
+        // ── Fixed Save Button ─────────────────────────────────────────────
+        if (viewModel.showFixedSave && !viewModel.saved) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent, 0.35f to colors.bg
+                        )
+                    )
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+            ) {
+                FullBtn(
+                    "حفظ الاستلام", accent, { viewModel.doSave("save") },
+                    saving = viewModel.saving
+                )
+            }
+        }
+    }
+
+    // ── Material Dialog ───────────────────────────────────────────────────
+    if (viewModel.matDlg) {
+        BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
+            SearchBox(viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
+                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    start = 14.dp, end = 14.dp, bottom = 20.dp,
+                )
+            ) {
+                itemsIndexed(viewModel.filteredMaterials) { _, m ->
+                    MaterialDialogItem(m, viewModel.accent, doneLabel) {
+                        viewModel.selectMaterial(m)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+            }
+        }
+    }
+
+    // ── Bin Dialog ────────────────────────────────────────────────────────
+    if (viewModel.binDlg) {
+        BottomSheetDialog(title = "اختيار موقع التسكين", onClose = { viewModel.binDlg = false }) {
+            SearchBox(viewModel.binInput, { viewModel.binInput = it }, "بحث عن Bin...",
+                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+            LazyColumn(contentPadding = PaddingValues(
+                start = 14.dp, end = 14.dp, bottom = 20.dp
+            )) {
+                itemsIndexed(viewModel.filteredBins) { _, b ->
+                    BinDialogItem(b, viewModel.accent) { viewModel.selectBin(b) }
+                    Spacer(Modifier.height(6.dp))
+                }
+            }
+        }
+    }
+}
+@Composable
+fun InspectingProductFromBranchDetailsScreen(
+    navController: NavController,
+    orderId: String
+){
+    val viewModel: DetailsViewModel = viewModel()
+    val colors = AppTheme.colors
+    val accent = colors.purple
+    val order = ORDERS["TRANSFER"]?.find { it.id == orderId }!!
+    val doneLabel = "الكمية المستلمة"
+    Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
+        Column(Modifier.fillMaxSize()) {
+            TopBar(title = "مراجعة الجودة", subtitle = "منتج تام من الانتاج",
+                accent = accent, onBack = {
+                    navController.popBackStack()
+                })
+
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    start = 14.dp, end = 14.dp,
+                    top = 10.dp,
+                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
+                )
+            ) {
+
+            
+                    item {
+                        Section(label = "بيانات الأمر", accent = accent) {
+                            val fields = listOf(
+                                Triple("رقم امر التحويل", order.id, null),
+                                Triple("الحالة",      order.status, order.statusColor),
+                                Triple("الجهة",       order.info,   null),
+                                Triple("التاريخ",     order.date,   null),
+                                Triple("عدد الأصناف","${order.items} أصناف", null),
+                            )
+                            // 2-column grid
+                            for (i in fields.indices step 2) {
+                                Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    val f1 = fields[i]
+                                    val f2 = if (i + 1 < fields.size) fields[i + 1] else null
+                                    // if "الجهة" span full width
+                                    if (f1.first == "الجهة") {
+                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text)
+                                    } else {
+                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
+                                            modifier = Modifier.weight(1f))
+                                        if (f2 != null) {
+                                            InfoCell(f2.first, f2.second, f2.third ?: colors.text,
+                                                modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+
+                item{
+                    Field(
+                        "القائم بالفحص *",
+                        "ادخل الكود الوظيفي أو الاسم ..",
+                        viewModel.qualityDecider,
+                        { viewModel.qualityDecider = it })
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                // ── Normal/Issue: Material Section ────────────────────────
+                    item {
+                        Section(label = "بيانات الصنف", accent = accent) {
+                            Row(Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically) {
+                                MatCodeInput(
+                                    value = viewModel.matInput,
+                                    onValueChange = { viewModel.matInput = it },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                OutlineBtn("اختر مادة", accent) { viewModel.matDlg = true }
+                            }
+                            if (viewModel.selMat != null) {
+                                Spacer(Modifier.height(8.dp))
+                                InspectionSelectedMaterialCard(
+                                    mat = viewModel.selMat!!,
+                                    accent = accent,
+                                    isQuality = true,
+                                    isIssue = false,
+                                    doneLabel = doneLabel,
+                                    smpQty = viewModel.smpQty,
+                                    onSmpQtyChange = { viewModel.smpQty = it },
+                                    qty = viewModel.qty,
+                                    onQtyChange = { viewModel.qty = it },
+                                    saved = viewModel.saved,
+                                    saving = viewModel.saving,
+                                    onAccept = { viewModel.doSave("accept") },
+                                    onReject = { viewModel.doSave("reject") },
+                                    onClear = { viewModel.clearMaterial() },
+                                    onQualityDecisionChange = {viewModel.qualityDecision = it }
+                                )
+                            }
+                        }
+                    }
+//                item {
+//
+//                    Section(label="قرار الجودة",accent= accent){
+//                        QualityDecisionSpinner("قرار الجودة",qualityDecisions, onItemSelected = {
+//                            viewModel.qualityDecision = it
+//                        })
+//                    }
+//
+//
+//                }
+
+                // ── Success Card ──────────────────────────────────────────
+                if (viewModel.saved) {
+                    item { SuccessCard(kind = viewModel.saveKind, accent = accent) }
+                }
+            }
+        }
+
+        // ── Fixed Save Button ─────────────────────────────────────────────
+        if (viewModel.showFixedSave && !viewModel.saved) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent, 0.35f to colors.bg
+                        )
+                    )
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+            ) {
+                FullBtn(viewModel.saveLabel, accent, { viewModel.doSave("save") },
+                    saving = viewModel.saving)
+            }
+        }
+    }
+
+    // ── Material Dialog ───────────────────────────────────────────────────
+    if (viewModel.matDlg) {
+        BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
+            SearchBox(
+                viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
+                Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+            )
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    start = 14.dp, end = 14.dp, bottom = 20.dp,
+                )
+            ) {
+                itemsIndexed(viewModel.filteredMaterials) { _, m ->
+                    MaterialDialogItem(m, viewModel.accent, doneLabel) {
+                        viewModel.selectMaterial(m)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+            }
+        }
+    }
+
+
+}
+
+@Composable
+fun SelectedMaterialCard(
+    mat: Material, accent: Color, isQuality: Boolean, isIssue: Boolean,
+    doneLabel: String, smpQty: String, onSmpQtyChange: (String) -> Unit,
+    qty: String, onQtyChange: (String) -> Unit,
+    saved: Boolean, saving: Boolean,
+    onAccept: () -> Unit, onReject: () -> Unit, onClear: () -> Unit,
+    onValuationTypeSelected:(ValuationType)->Unit,
+    productionDate: String, onProductionDateSelected: (String) -> Unit,
+    expiryDate: String, onExpiryDateSelected: (String) -> Unit
+) {
+    val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
+    val colors = AppTheme.colors
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(accent.copy(0.06f))
+            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
+            .padding(12.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+            Text("✕", color = colors.muted, fontSize = 12.sp,
+                modifier = Modifier.clickable { onClear() }.padding(4.dp))
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(mat.desc, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            lineHeight = 18.sp)
+        Spacer(Modifier.height(8.dp))
+        // Stats row
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
+                "الوحدة" to mat.unit,).forEach { (l, v) ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(l, color = colors.muted, fontSize = 9.sp,
+                        modifier = Modifier.padding(bottom = 2.dp))
+                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        // Progress bar
+        Column {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("التنفيذ", color = colors.muted, fontSize = 9.sp)
+                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
+                    fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(3.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth().height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)).background(colors.dark)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxHeight()
+                        .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
+                        .clip(RoundedCornerShape(2.dp)).background(accent)
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        if (isQuality) {
+            Field("كمية العينة", "0", smpQty, onSmpQtyChange, isNumber = true, center = true)
+            if (!saved) {
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FullBtn("✓  قبول", colors.succ, onAccept, saving, smpQty.isNotEmpty(),
+                        modifier = Modifier.weight(1f))
+                    FullBtn("✕  رفض", colors.danger, onReject, saving, smpQty.isNotEmpty(),
+                        modifier = Modifier.weight(1f))
+                }
+            }
+        } else {
+            val qLabel = "${if (isIssue) "الكمية المصروفة" else "كمية الاستلام"} (${mat.unit})"
+            Field(qLabel, "0", qty, onQtyChange, isNumber = true, center = true)
+        }
+        MarginTenDp()
+        Row(
+            Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(colors.card)
+              //  .border(1.dp, BORDER, RoundedCornerShape(12.dp))
+                .padding(12.dp)
+        ) {
+            Text("نوع التقييم", color = colors.muted, fontSize = 13.sp)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Box(modifier = Modifier.align(Alignment.CenterHorizontally).padding(start = 10.dp)) {
+                    Text("نوع التقييم 1", color = colors.text, fontSize = 13.sp)
+                }
+            }
+        }
+        MarginTenDp()
+        DatePickerField(
+            value = productionDate,
+            onDateSelected = { onProductionDateSelected(it) },
+            modifier = Modifier.fillMaxWidth(),
+            label = "تاريخ الانتاج",
+            hint = "اختر تاريخ الانتاج (اختياري)"
+        )
+        MarginTenDp()
+        DatePickerField(
+            value = expiryDate,
+            onDateSelected = { onExpiryDateSelected(it) },
+            modifier = Modifier.fillMaxWidth(),
+            label = "تاريخ الانتهاء",
+            hint = "اختر تاريخ الانتهاء (اختياري)"
+        )
+//        MarginTenDp()
+//        ValuationTypeSpinner(
+//            hint = "اختر نوع التقييم (اختياري)",
+//            items = valuationTypes,
+//            onItemSelected = {
+//                onValuationTypeSelected(it)
+//            }
+//        )
+    }
+}
+
+@Composable
+fun PutAwayProductFromBranchDetailsScreen(
+    navController: NavController,
+    orderId: String
+){
+    val vm: DetailsViewModel = viewModel()
+    val colors = AppTheme.colors
+    val ord = ORDERS["TRANSFER"]?.find { it.id == orderId }!!
+    val accent = colors.yellow
+    val doneLabel = "الكمية المستلمة"
+
+    Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
+        Column(Modifier.fillMaxSize()) {
+            TopBar(title = "تسكين", subtitle = "منتج تام من الانتاج",
+                accent = accent, onBack = {
+                    //  vm.back()
+                    navController.popBackStack()
+                })
+
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    start = 14.dp, end = 14.dp,
+                    top = 10.dp,
+                    bottom = if (vm.showFixedSave) 90.dp else 20.dp
+                )
+            ) {
+
+                // ── Order Info Card (non-blind) ────────────────────────────
+                    item {
+                        Section(label = "بيانات الأمر", accent = accent) {
+                            val fields = listOf(
+                                Triple("رقم المستند", ord.id, null),
+                                Triple("الحالة",      ord.status, ord.statusColor),
+                                Triple("الجهة",       ord.info,   null),
+                                Triple("التاريخ",     ord.date,   null),
+                                Triple("عدد الأصناف","${ord.items} أصناف", null),
+                            )
+                            // 2-column grid
+                            for (i in fields.indices step 2) {
+                                Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    val f1 = fields[i]
+                                    val f2 = if (i + 1 < fields.size) fields[i + 1] else null
+                                    // if "الجهة" span full width
+                                    if (f1.first == "الجهة") {
+                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text)
+                                    } else {
+                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
+                                            modifier = Modifier.weight(1f))
+                                        if (f2 != null) {
+                                            InfoCell(f2.first, f2.second, f2.third ?: colors.text,
+                                                modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+
+
+
+
+                    item {
+                        Section(label = "بيانات الصنف", accent = accent) {
+                            Row(Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically) {
+                                MatCodeInput(
+                                    value = vm.matInput,
+                                    onValueChange = { vm.matInput = it },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                OutlineBtn("اختر مادة", accent) { vm.matDlg = true }
+                            }
+                            if (vm.selMat != null) {
+                                Spacer(Modifier.height(8.dp))
+                                PutAwaySelectedMaterialCard(
+                                    mat = vm.selMat!!,
+                                    accent = accent,
+                                    isQuality = false,
+                                    isIssue = false,
+                                    doneLabel = doneLabel,
+                                    smpQty = vm.smpQty,
+                                    onSmpQtyChange = { vm.smpQty = it },
+                                    qty = vm.qty,
+                                    onQtyChange = { vm.qty = it },
+                                    saved = vm.saved,
+                                    saving = vm.saving,
+                                    onAccept = { vm.doSave("accept") },
+                                    onReject = { vm.doSave("reject") },
+                                    onClear = { vm.clearMaterial() }
+                                )
+                            }
+                        }
+                    }
+
+
+
+                    item {
+                        Section(label = "بيانات التسكين", accent = accent) {
+                            Row(Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically) {
+                                BinCodeInput(
+                                    value = vm.binInput,
+                                    onValueChange = { vm.binInput = it },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                OutlineBtn("اختر Bin", accent) { vm.binDlg = true }
+                            }
+                            if (vm.selBin != null) {
+                                Spacer(Modifier.height(8.dp))
+                                SelectedBinCard(
+                                    bin = vm.selBin!!,
+                                    accent = accent,
+                                    qty = vm.qty,
+                                    onQtyChange = { vm.qty = it },
+                                    onClear = { vm.clearBin() }
+                                )
+                            }
+                        }
+                    }
+
+
+                // ── Success Card ──────────────────────────────────────────
+                if (vm.saved) {
+                    item { SuccessCard(kind = vm.saveKind, accent = accent) }
+                }
+            }
+        }
+
+        // ── Fixed Save Button ─────────────────────────────────────────────
+        if (vm.showFixedSave && !vm.saved) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent, 0.35f to colors.bg
+                        )
+                    )
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+            ) {
+                FullBtn("تأكيد التسكين", accent, { vm.doSave("save") },
+                    saving = vm.saving)
+            }
+        }
+    }
+
+    // ── Material Dialog ───────────────────────────────────────────────────
+    if (vm.matDlg) {
+        BottomSheetDialog(title = "اختيار الصنف", onClose = { vm.matDlg = false }) {
+            SearchBox(vm.matSearch, { vm.matSearch = it }, "بحث عن صنف...",
+                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    start = 14.dp, end = 14.dp, bottom = 20.dp,
+                )
+            ) {
+                itemsIndexed(vm.filteredMaterials) { _, m ->
+                    MaterialDialogItem(m, vm.accent, doneLabel) {
+                        vm.selectMaterial(m)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+            }
+        }
+    }
+
+    // ── Bin Dialog ────────────────────────────────────────────────────────
+    if (vm.binDlg) {
+        BottomSheetDialog(title = "اختيار موقع التسكين", onClose = { vm.binDlg = false }) {
+            SearchBox(vm.binInput, { vm.binInput = it }, "بحث عن Bin...",
+                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+            LazyColumn(contentPadding = PaddingValues(
+                start = 14.dp, end = 14.dp, bottom = 20.dp
+            )) {
+                itemsIndexed(vm.filteredBins) { _, b ->
+                    BinDialogItem(b, vm.accent) { vm.selectBin(b) }
+                    Spacer(Modifier.height(6.dp))
+                }
+            }
+        }
+    }
+}
+
+
+
+
+// ── Material Card ─────────────────────────────────────────────────────────────
+@Composable
+fun PutAwaySelectedMaterialCard(
+    mat: Material, accent: Color, isQuality: Boolean, isIssue: Boolean,
+    doneLabel: String, smpQty: String, onSmpQtyChange: (String) -> Unit,
+    qty: String, onQtyChange: (String) -> Unit,
+    saved: Boolean, saving: Boolean,
+    onAccept: () -> Unit, onReject: () -> Unit, onClear: () -> Unit
+) {
+    val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
+    val colors = AppTheme.colors
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(accent.copy(0.06f))
+            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
+            .padding(12.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+            Text("✕", color = colors.muted, fontSize = 12.sp,
+                modifier = Modifier.clickable { onClear() }.padding(4.dp))
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(mat.desc, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            lineHeight = 18.sp)
+        Spacer(Modifier.height(8.dp))
+        // Stats row
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
+                "الوحدة" to mat.unit,).forEach { (l, v) ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(l, color = colors.muted, fontSize = 9.sp,
+                        modifier = Modifier.padding(bottom = 2.dp))
+                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        // Progress bar
+        Column {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("التنفيذ", color = colors.muted, fontSize = 9.sp)
+                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
+                    fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(3.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth().height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)).background(colors.dark)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxHeight()
+                        .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
+                        .clip(RoundedCornerShape(2.dp)).background(accent)
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        if (isQuality) {
+            Field("كمية العينة", "0", smpQty, onSmpQtyChange, isNumber = true, center = true)
+            if (!saved) {
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FullBtn("✓  قبول", colors.succ, onAccept, saving, smpQty.isNotEmpty(),
+                        modifier = Modifier.weight(1f))
+                    FullBtn("✕  رفض", colors.danger, onReject, saving, smpQty.isNotEmpty(),
+                        modifier = Modifier.weight(1f))
+                }
+            }
+        } else {
+            val qLabel = "${if (isIssue) "الكمية المصروفة" else "كمية التسكين"} (${mat.unit})"
+            Field(qLabel, "0", qty, onQtyChange, isNumber = true, center = true)
+        }
+    }
+}
+
+// ── Bin Card ──────────────────────────────────────────────────────────────────
+@Composable
+fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) -> Unit,
+                    onClear: () -> Unit) {
+    val colors = AppTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(accent.copy(0.06f))
+            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
+            .padding(12.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Text("📍 ${bin.code}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+            Text("✕", color = colors.muted, fontSize = 12.sp,
+                modifier = Modifier.clickable { onClear() }.padding(4.dp))
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("المنطقة" to bin.zone, "الممر" to bin.aisle,
+                "الرف" to bin.rack, "المتاح" to bin.avail).forEach { (l, v) ->
+                Column(
+                    modifier = Modifier.weight(1f)
+                        .clip(RoundedCornerShape(6.dp)).background(colors.dark).padding(horizontal = 6.dp, vertical = 8.dp)
+                ) {
+                    Text(l, color = colors.muted, fontSize = 9.sp)
+                    Text(v, color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+//        Spacer(Modifier.height(12.dp))
+//        Field("الكمية المراد تسكينها", "0", qty, onQtyChange, isNumber = true, center = true)
+    }
+}
+
+// ── Material Code Input ───────────────────────────────────────────────────────
+@Composable
+fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.dark)
+            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = value, onValueChange = onValueChange, singleLine = true,
+            textStyle = TextStyle(
+                color = colors.text, fontSize = 13.sp,
+                textDirection = TextDirection.Ltr
+            ),
+            cursorBrush = SolidColor(colors.green),
+            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            decorationBox = { inner ->
+                if (value.isEmpty()) Text("كود المادة...", color = colors.muted, fontSize = 13.sp)
+                inner()
+            }
+        )
+    }
+}
+
+@Composable
+fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.dark)
+            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = value, onValueChange = onValueChange, singleLine = true,
+            textStyle = TextStyle(
+                color = colors.text, fontSize = 13.sp,
+                textDirection = TextDirection.Ltr
+            ),
+            cursorBrush = SolidColor(colors.yellow),
+            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            decorationBox = { inner ->
+                if (value.isEmpty()) Text("كود البن (Bin Code)...", color = colors.muted, fontSize = 13.sp)
+                inner()
+            }
+        )
+    }
+}
+
+// ── Dialog items ──────────────────────────────────────────────────────────────
+@Composable
+fun MaterialDialogItem(mat: Material, accent: Color, doneLabel: String, onClick: () -> Unit) {
+    var hovered by remember { mutableStateOf(false) }
+    val colors = AppTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (hovered) colors.card2 else colors.dark)
+            .border(1.dp, if (hovered) accent.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
+            .clickable { onClick(); hovered = false }
+            .padding(all = 11.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(mat.code, color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text(mat.unit, color = colors.muted, fontSize = 10.sp)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(mat.desc, color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+            lineHeight = 18.sp)
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("المطلوب: ", color = colors.muted, fontSize = 10.sp).let {}
+            Text("المطلوب: ${mat.qty}", color = colors.muted, fontSize = 10.sp)
+            Text("$doneLabel: ${mat.done}",
+                color = if (mat.done == mat.qty) colors.succ else colors.muted, fontSize = 10.sp)
+        }
+    }
+}
+
+@Composable
+fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
+    var hovered by remember { mutableStateOf(false) }
+    val colors = AppTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (hovered) colors.card2 else colors.dark)
+            .border(1.dp, if (hovered) colors.yellow.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
+            .clickable { onClick(); hovered = false }
+            .padding(12.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("📍 ${bin.code}", color = colors.yellow, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text("متاح", color = colors.succ, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(Modifier.height(4.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            listOf("المنطقة" to bin.zone, "الممر" to bin.aisle, "المتاح" to bin.avail)
+                .forEach { (l, v) ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(l, color = colors.muted, fontSize = 9.sp)
+                        Text(v, color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+        }
+    }
+}
+
+
+// ── Bottom Sheet Dialog ───────────────────────────────────────────────────────
+@Composable
+fun BottomSheetDialog(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val colors = AppTheme.colors
+    Dialog(
+        onDismissRequest = onClose,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.65f))
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) { onClose() },
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .background(colors.card)
+                    .border(1.dp, colors.border2,
+                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .heightIn(max = 560.dp)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { /* consume */ }
+            ) {
+                // Dialog Header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp, color = colors.border,
+                            shape = RoundedCornerShape(0.dp)
+                        )
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("✕", color = colors.muted, fontSize = 18.sp,
+                        modifier = Modifier.clickable { onClose() }.padding(horizontal = 2.dp))
+                    Text(title, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+                content()
+            }
+        }
+    }
+}
+
+// ── FullBtn overload with Modifier ────────────────────────────────────────────
+@Composable
+fun FullBtn(label: String, color: Color, onClick: () -> Unit,
+            saving: Boolean = false, enabled: Boolean = true, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    val bg     = if (!enabled) colors.dim.copy(0.22f) else color.copy(0.12f)
+    val border = if (!enabled) colors.dim else color.copy(0.35f)
+    val txtCol = if (!enabled) colors.dim else color
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .border(1.dp, border, RoundedCornerShape(10.dp))
+            .clickable(enabled = enabled && !saving) { onClick() }
+            .padding(vertical = 13.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (saving) {
+            CircularProgressIndicator(
+                color = color, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+        } else {
+            Text(label, color = txtCol, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+        }
+    }
+}
+
+// ── InfoCell with Modifier ────────────────────────────────────────────────────
+@Composable
+fun InfoCell(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(colors.dark)
+            .padding(all = 8.dp)
+    ) {
+        Text(label, color = colors.muted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(bottom = 2.dp))
+        Text(value, color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    }
+}
