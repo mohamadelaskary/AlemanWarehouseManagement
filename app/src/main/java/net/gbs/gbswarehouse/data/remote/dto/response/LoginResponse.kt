@@ -6,10 +6,10 @@ data class LoginResponse (
 ) : BaseResponse
 
 data class UserDto(
-    val id: String,
-    val userName: String,
-    val email: String,
-    val companyCodes: List<String>,
+    val id: String?,
+    val userName: String?,
+    val email: String?,
+    val companyCodes: List<String>?,
     val accessToken: String?,
     val refreshToken: String?,
 )

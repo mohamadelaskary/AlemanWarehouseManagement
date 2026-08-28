@@ -11,11 +11,12 @@ import net.gbs.gbswarehouse.ui.theme.GBSWarehouseJetPackComposeTheme
 import net.gbs.gbswarehouse.ui.theme.LocalDarkTheme
 import net.gbs.gbswarehouse.ui.theme.LocalThemeToggle
 import net.gbs.gbswarehouse.core.preferences.SettingsPrefs
+import net.gbs.gbswarehouse.core.session.SessionManager
 import java.util.Locale
+import javax.inject.Inject
 
 val LocalLanguage = staticCompositionLocalOf { "en" }
 val LocalLanguageToggle = staticCompositionLocalOf { { _: String -> } }
-
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

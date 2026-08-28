@@ -10,10 +10,13 @@ import net.gbs.gbswarehouse.core.constants.Constants
 import net.gbs.gbswarehouse.core.preferences.SettingsPrefs
 import net.gbs.gbswarehouse.data.remote.api.ApiService
 import net.gbs.gbswarehouse.data.remote.api.AuthInterceptor
+import net.gbs.gbswarehouse.data.remote.api.AuthenticationApiService
+import net.gbs.gbswarehouse.data.remote.api.TokenAuthenticator
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -39,13 +42,37 @@ object NetworkModule {
     @Singleton
     fun provideOkHttp(
         baseUrlInterceptor: BaseUrlInterceptor,
-        authInterceptor: AuthInterceptor
+        authInterceptor: AuthInterceptor,
+        tokenAuthenticator: TokenAuthenticator
     ): OkHttpClient {
         val logging = HttpLoggingInterceptor()
         logging.level = HttpLoggingInterceptor.Level.BODY
         return OkHttpClient.Builder()
+            .connectTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
             .addInterceptor(baseUrlInterceptor)
             .addInterceptor(authInterceptor)
+            .addInterceptor (logging)
+            .authenticator(tokenAuthenticator)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    @Named("RefreshClient")
+    fun provideRefreshClient(
+        baseUrlInterceptor: BaseUrlInterceptor,
+    ): OkHttpClient {
+        val logging = HttpLoggingInterceptor()
+        logging.level = HttpLoggingInterceptor.Level.BODY
+        return OkHttpClient.Builder()
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .addInterceptor(baseUrlInterceptor).addInterceptor(HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            })
             .addInterceptor (logging)
             .build()
     }
@@ -64,6 +91,21 @@ object NetworkModule {
             )
             .build()
     }
+    @Provides
+    @Singleton
+    @Named("RefreshRetrofit")
+    fun provideRefreshRetrofit(
+        @Named("RefreshClient")
+        client: OkHttpClient
+    ): Retrofit {
+
+        return Retrofit.Builder()
+            .baseUrl(Constants.BASE_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
 
     @Provides
     @Singleton
@@ -72,6 +114,16 @@ object NetworkModule {
     ): ApiService {
         return retrofit.create(
             ApiService::class.java
+        )
+    }
+    @Provides
+    @Singleton
+    fun provideRefreshTokenApi(
+        @Named("RefreshRetrofit")
+        retrofit: Retrofit
+    ): AuthenticationApiService {
+        return retrofit.create(
+            AuthenticationApiService::class.java
         )
     }
 }

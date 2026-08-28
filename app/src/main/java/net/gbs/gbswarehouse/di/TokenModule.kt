@@ -7,6 +7,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import net.gbs.gbswarehouse.data.local.LoginManager
+import net.gbs.gbswarehouse.data.local.LoginManagerImpl
 import net.gbs.gbswarehouse.data.local.TokenManager
 import net.gbs.gbswarehouse.data.local.TokenManagerImpl
 import javax.inject.Singleton
@@ -22,4 +24,11 @@ object TokenModule {
     ): TokenManager {
         return TokenManagerImpl(context)
     }
+
+    @Provides
+    @Singleton
+    fun provideLoginManager(@ApplicationContext context: Context): LoginManager {
+        return LoginManagerImpl(context)
+    }
+
 }

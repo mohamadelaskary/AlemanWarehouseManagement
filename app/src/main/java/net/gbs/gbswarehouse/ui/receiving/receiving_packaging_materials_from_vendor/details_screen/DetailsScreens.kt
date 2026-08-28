@@ -78,7 +78,7 @@ import net.gbs.gbswarehouse.workersGroup
 import kotlin.text.ifEmpty
 
 @Composable
-fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
+fun ReceivingPackagingMaterialsFromVendorDetailsScreenOld(
     navController: NavController,
     orderId: String
 ){
@@ -148,12 +148,13 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
                         hint = "اختر المخزن",
                         items = warehouses,
                         onItemSelected = { viewModel.selectedWarehouse = it },
+                        onSearchTextChanged = {}
                     )
                 }
-                
+
 
                 // ── Normal/Issue: Material Section ────────────────────────
-                
+
                     item {
                         Section(label = "بيانات الصنف", accent = accent) {
                             Row(Modifier.fillMaxWidth(),
@@ -187,7 +188,7 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
                                 )
                             }
                         }
-                    
+
                 }
 
 
@@ -280,7 +281,7 @@ fun InspectingPackagingMaterialsFromVendorDetailsScreen(
                 )
             ) {
 
-            
+
                     item {
                         Section(label = "بيانات الأمر", accent = accent) {
                             val fields = listOf(
@@ -311,7 +312,7 @@ fun InspectingPackagingMaterialsFromVendorDetailsScreen(
                             }
                         }
                     }
-               
+
                     item{
                         Field(
                             "القائم بالفحص *",
@@ -495,6 +496,9 @@ fun SelectedMaterialCard(
             hint = "نوع التقييم (اختياري)",
             items = valuationTypes,
             onItemSelected = { onValuationTypeSelected(it) },
+            searchText = "",
+            onSearchTextChanged = {},
+            accent = accent
         )
     }
 }

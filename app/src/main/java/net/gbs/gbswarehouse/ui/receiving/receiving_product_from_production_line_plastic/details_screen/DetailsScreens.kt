@@ -140,7 +140,8 @@ fun ReceivingFinishedGoodFromProductionPlasticDetailsScreen(
                     WarehousesSpinner(
                         hint = "اختر المخزن",
                         items = warehouses,
-                        onItemSelected = { viewModel.selectedWarehouse = it}
+                        onItemSelected = { viewModel.selectedWarehouse = it},
+                        onSearchTextChanged = {}
                     )
                     Spacer(Modifier.height(5.dp))
                 }

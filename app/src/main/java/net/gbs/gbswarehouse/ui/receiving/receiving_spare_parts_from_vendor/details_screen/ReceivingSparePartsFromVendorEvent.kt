@@ -8,12 +8,14 @@ import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.model.WorkersGroup
 
 sealed interface ReceivingSparePartsFromVendorEvent {
-    data class OnPurchaseOrderNumberEntered(
-        val orderNumber: String
-    ) : ReceivingSparePartsFromVendorEvent
-    data object OnSearchButtonClicked : ReceivingSparePartsFromVendorEvent
+    data class OnScreenLoaded(val poData: String) : ReceivingSparePartsFromVendorEvent
+
+    data class OnDeleteAddedMaterialButtonClicked(val index: Int) : ReceivingSparePartsFromVendorEvent
     data object OnClearButtonClicked : ReceivingSparePartsFromVendorEvent
     data class OnMaterialSelected(
+        val materialCode: String
+    ) : ReceivingSparePartsFromVendorEvent
+    data class OnMaterialCodeInputEntered(
         val materialCode: String
     ) : ReceivingSparePartsFromVendorEvent
     data class OnWarehouseSelected(
@@ -23,7 +25,7 @@ sealed interface ReceivingSparePartsFromVendorEvent {
         val valuationType: ValuationType
     ) : ReceivingSparePartsFromVendorEvent
     data class OnExpiryDateSelected (
-        val expiryDate: String
+        val expiryDate: String?
     ) : ReceivingSparePartsFromVendorEvent
     data class OnQuantityEntered(
         val quantity: String
@@ -40,4 +42,7 @@ sealed interface ReceivingSparePartsFromVendorEvent {
     data object HideSuccessDialog : ReceivingSparePartsFromVendorEvent
     data object ShowErrorDialog : ReceivingSparePartsFromVendorEvent
     data object HideErrorDialog : ReceivingSparePartsFromVendorEvent
+
+    data class OnWarehouseSearchTextChange (val searchText: String) : ReceivingSparePartsFromVendorEvent
+    data class OnValuationSearchTextChange (val searchText: String) : ReceivingSparePartsFromVendorEvent
 }

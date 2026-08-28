@@ -5,13 +5,16 @@ plugins {
 
 android {
     namespace = "net.gbs.honeywellscanner"
-    compileSdk = 36
+    compileSdk {
+        version = release(36) {
+            minorApiLevel = 1
+        }
+    }
 
     defaultConfig {
         minSdk = 24
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -23,12 +26,14 @@ android {
 }
 
 dependencies {
+    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.runtime)
     implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
-    compileOnly(files("libs/DataCollection.aar"))
+    implementation(files("libs/DataCollection.aar"))
+
 }

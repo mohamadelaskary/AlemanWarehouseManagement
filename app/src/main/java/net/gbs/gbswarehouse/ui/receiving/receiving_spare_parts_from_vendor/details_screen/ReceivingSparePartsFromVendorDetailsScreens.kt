@@ -1,7 +1,5 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen
 
-import android.content.ContentValues.TAG
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -33,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,10 +60,8 @@ import net.gbs.gbswarehouse.FullBtn
 import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.MarginTenDp
 import net.gbs.gbswarehouse.ORDERS
-import net.gbs.gbswarehouse.OrderNumberSearchBox
 import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.R
-import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.Section
 import net.gbs.gbswarehouse.SuccessDialog
@@ -73,27 +69,61 @@ import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.ValuationTypeSpinner
 import net.gbs.gbswarehouse.WarehousesSpinner
 import net.gbs.gbswarehouse.domain.model.ValuationType
-import net.gbs.gbswarehouse.domain.model.PurchaseOrder
 import net.gbs.gbswarehouse.domain.model.SparePartsLine
 import net.gbs.gbswarehouse.domain.model.SparePartsMaterial
 import net.gbs.gbswarehouse.domain.model.Warehouse
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.text.input.ImeAction
+import net.gbs.gbswarehouse.MarginVertical
+import net.gbs.gbswarehouse.data.remote.mapper.toLineDto
+import net.gbs.gbswarehouse.domain.model.SparePartsReturnLine
+import net.gbs.gbswarehouse.ui.receiving.ReceivingAddLineButton
+import net.gbs.gbswarehouse.ui.receiving.ReceivingBottomSheetDialog
+import net.gbs.gbswarehouse.ui.receiving.ReceivingChip
+import net.gbs.gbswarehouse.ui.receiving.ReceivingInfoCell
+import net.gbs.gbswarehouse.ui.receiving.ReceivingMatCodeInput
+import net.gbs.gbswarehouse.ui.receiving.ReceivingMaterialDialogItem
 import net.gbs.gbswarehouse.ui.theme.AppTheme
-import net.gbs.honeywellscanner.HoneywellScanner
+import net.gbs.gbswarehouse.ui.theme.DANGER
 import net.gbs.honeywellscanner.ScannerEffect
+
 
 @Composable
 fun ReceivingSparePartsFromVendorDetailsScreen(
     navController: NavController,
+    poNumber: String
 ){
-
     val viewModel: ReceivingSparePartsFromVendorDetailsViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val colors = AppTheme.colors
     val doneLabel = stringResource(R.string.received_qty)
-    var order: PurchaseOrder? = null
+
+//        LaunchedEffect(Unit) {
+//            viewModel.onEvent(ReceivingSparePartsFromVendorEvent.OnPurchaseOrderNumberEntered(poNumber))
+//            viewModel.onEvent(ReceivingSparePartsFromVendorEvent.OnSearchButtonClicked)
+//        }
+
     ScannerEffect(
         onScan = viewModel::onBarcodeScanned
     )
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    LaunchedEffect(state.purchaseOrderGetDataStatus) {
+        if (state.purchaseOrderGetDataStatus is PurchaseOrderGetDataStatus.SUCCESS) {
+            focusManager.clearFocus()
+        }
+    }
+    LaunchedEffect(poNumber) {
+        viewModel.onEvent(ReceivingSparePartsFromVendorEvent.OnScreenLoaded(poNumber))
+    }
+    LaunchedEffect(state.selectedMaterial) {
+        if (state.selectedMaterial != null) {
+            focusManager.clearFocus()
+        }
+    }
     Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
             TopBar(
@@ -102,23 +132,9 @@ fun ReceivingSparePartsFromVendorDetailsScreen(
                 accent = colors.green, onBack = {
                     navController.popBackStack()
                 })
-            OrderNumberSearchBox(
-                value = state.orderNumber,
-                onValueChange = {
-                    viewModel.onEvent(
-                        ReceivingSparePartsFromVendorEvent.OnPurchaseOrderNumberEntered(it)
-                    )
-                },
-                onSearchButtonClicked = {
-                    viewModel.onEvent(
-                        ReceivingSparePartsFromVendorEvent.OnSearchButtonClicked
-                    )
-                },
-                placeholder = stringResource(R.string.search_by_number),
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-            )
-            when (state.purchaseOrderSearchStatus) {
-                PurchaseOrderSearchStatus.LOADING -> {
+
+            when (state.purchaseOrderGetDataStatus) {
+                PurchaseOrderGetDataStatus.LOADING -> {
                     Box(modifier = Modifier.fillMaxSize()) {
                         CircularProgressIndicator(
                             color = colors.green,
@@ -126,181 +142,202 @@ fun ReceivingSparePartsFromVendorDetailsScreen(
                         )
                     }
                 }
-                PurchaseOrderSearchStatus.ERROR -> {
+                is PurchaseOrderGetDataStatus.ERROR -> {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        Text(state.searchError,
-                            color = colors.text,
-                            modifier = Modifier.align(Alignment.Center))
+                        Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(state.searchError, color = colors.text)
+                            Spacer(Modifier.height(10.dp))
+                            OutlineBtn(stringResource(R.string.retry), colors.green) {
+                                viewModel.onEvent(ReceivingSparePartsFromVendorEvent.OnScreenLoaded(poNumber))
+                            }
+                        }
                     }
                 }
-                PurchaseOrderSearchStatus.IDLE -> {
-
-                }
                 else -> {
-                    order = state.purchaseOrder
-                    LazyColumn(
-                        contentPadding = PaddingValues(
-                            start = 14.dp, end = 14.dp,
-                            top = 10.dp,
-                            bottom =  20.dp
-                        )
-                    ) {
+                    val order = state.purchaseOrder
+                    if (order != null) {
+                        LazyColumn(
+                            contentPadding = PaddingValues(
+                                start = 14.dp, end = 14.dp,
+                                top = 10.dp,
+                                bottom = if (state.addedItems.isNotEmpty()) 90.dp else 20.dp
+                            )
+                        ) {
 
-                        // ── Order Info Card (non-blind) ────────────────────────────
-                        item {
-                            Section(label = stringResource(R.string.order_data), accent = colors.green) {
-                                val fields = listOf(
-                                    Triple(stringResource(R.string.po_number), order?.poNumber!!, null),
-                                    Triple(stringResource(R.string.vendor), order?.vendorName!!, null),
-                                    Triple(stringResource(R.string.items_count), "${order?.purchaseOrderItems!!.size} ${stringResource(R.string.items)}", null),
-                                )
-                                // 2-column grid
-                                for (i in fields.indices step 2) {
-                                    Row(
-                                        Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        val f1 = fields[i]
-                                        val f2 = if (i + 1 < fields.size) fields[i + 1] else null
-                                        if (f1.first == stringResource(R.string.vendor)) {
-                                            InfoCell(
-                                                f1.first, f1.second, f1.third ?: colors.text,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        } else {
-                                            InfoCell(
-                                                f1.first, f1.second, f1.third ?: colors.text,
-                                                modifier = Modifier.weight(1f)
-                                            )
+                            // ── Order Info Card ────────────────────────────
+                            item {
+                                Section(label = stringResource(R.string.order_data), accent = colors.green) {
+                                    val fields = listOf(
+                                        Triple(stringResource(R.string.po_number), order.poNumber, null),
+                                        Triple(stringResource(R.string.vendor), order.vendorName, null),
+//                                        Triple(stringResource(R.string.items_count), "${order.purchaseOrderItems.size} ${stringResource(R.string.items)}", null),
+                                    )
+                                    for (i in fields.indices step 2) {
+                                        Row(
+                                            Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            val f1 = fields[i]
+                                            val f2 = if (i + 1 < fields.size) fields[i + 1] else null
+                                            ReceivingInfoCell(f1.first, f1.second, f1.third ?: colors.text, Modifier.weight(1f))
                                             if (f2 != null) {
-                                                InfoCell(
-                                                    f2.first, f2.second, f2.third ?: colors.text,
-                                                    modifier = Modifier.weight(1f)
-                                                )
+                                                ReceivingInfoCell(f2.first, f2.second, f2.third ?: colors.text, Modifier.weight(1f))
+                                            } else {
+                                                Spacer(Modifier.weight(1f))
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
 
-
-                        // ── Normal/Issue: Material Section ────────────────────────
-
-                        item {
-                            Section(label = stringResource(R.string.item_data), accent = colors.green) {
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    MatCodeInput(
-                                        value = state.selectedMaterial?.materialCode?:"",
-                                        onValueChange = {
-                                            viewModel.onEvent(
-                                                ReceivingSparePartsFromVendorEvent.OnMaterialSelected(it)
-                                            )
-                                                        },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    OutlineBtn(stringResource(R.string.select_item), colors.green) { viewModel.matDlg = true }
-                                }
-                                if (state.selectedMaterial != null) {
-                                    Spacer(Modifier.height(8.dp))
-                                    SelectedMaterialCard(
-                                        mat = state.selectedMaterial!!,
-                                        accent = colors.green,
-                                        doneLabel = doneLabel,
-                                        qty = state.quantity,
-                                        onQtyChange = {
-                                            viewModel.onEvent(ReceivingSparePartsFromVendorEvent.OnQuantityEntered(it))
-                                                      },
-                                        saved = viewModel.saved,
-                                        saving = viewModel.saving,
-                                        onClear = { viewModel.onEvent(
-                                            ReceivingSparePartsFromVendorEvent.OnClearMaterialButtonClicked
-                                        ) },
-                                        onValuationTypeChange = {
-                                            viewModel.onEvent(ReceivingSparePartsFromVendorEvent.OnValuationTypeSelected(it))
-                                        },
-                                        expiryDate = state.selectedExpiryDate,
-                                        onExpiryDateChange = {
-                                            viewModel.onEvent(
-                                                ReceivingSparePartsFromVendorEvent.OnExpiryDateSelected(it)
-                                            )
-                                        },
-                                        warehouses = state.warehouses,
-                                        onWarehouseSelected = {
-                                            viewModel.onEvent(
-                                                ReceivingSparePartsFromVendorEvent.OnWarehouseSelected(it)
-                                            )
-                                        },
-                                        quantityError = state.quantityError,
-                                        warehouseError = state.warehouseError,
-                                        valuationTypeError = state.valuationTypeError
-                                    )
-                                }
-                            }
-                        }
-                        val material = state.selectedMaterial
-
-                        val isReadyToAddMaterial =
-                            material != null && state.quantity.isNotEmpty()
-                        Log.d("ReceivingSparePartsFromVendorDetailsScreen", "isReadyToAddMaterial: $isReadyToAddMaterial")
-                        if (isReadyToAddMaterial){
+                            // ── Material Section ────────────────────────
                             item {
-                                Spacer(Modifier.height(10.dp))
-                                AddSparePartsLineButton(
-                                    enabled = true,
-                                    onClick = {
-                                        viewModel.onEvent(
-                                            ReceivingSparePartsFromVendorEvent.OnAddButtonClicked
+                                Section(label = stringResource(R.string.item_data), accent = colors.green) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        ReceivingMatCodeInput(
+                                            value = state.materialCodeInput,
+                                            onValueChange = {
+                                                viewModel.onEvent(
+                                                    ReceivingSparePartsFromVendorEvent.OnMaterialCodeInputEntered(
+                                                        it
+                                                    )
+                                                )
+                                            },
+                                            onKeyboardAction = {
+                                                viewModel.onEvent(
+                                                    ReceivingSparePartsFromVendorEvent.OnMaterialSelected(
+                                                        state.materialCodeInput
+                                                    )
+                                                )
+                                            },
                                         )
-                                    },
-                                )
-                            }
-                        }
-                        if(state.addedItems.isNotEmpty()){
-                            itemsIndexed(state.addedItems){_,item->
-                                ReceivingSparePartsFromVendorLineItem(item)
-                            }
-                        }
-
-                        // ── Success Card ──────────────────────────────────────────
-                       if(state.showSuccessDialog){
-                           item {
-                               SuccessDialog(
-                                   net.gbs.gbswarehouse.ui.theme.GREEN,
-                                   state.savingSuccessStatusMessage,
-                                   onClose = {
-                                       viewModel.onEvent(
-                                           ReceivingSparePartsFromVendorEvent.HideSuccessDialog
-                                       )
-                                   }
-                               )
-                           }
-                       }
-                        if(state.showErrorDialog){
-                            item {
-                                ErrorDialog(
-                                    net.gbs.gbswarehouse.ui.theme.DANGER,
-                                    state.savingErrorStatusMessage,
-                                    onClose = {
-                                        viewModel.onEvent(
-                                            ReceivingSparePartsFromVendorEvent.HideErrorDialog
+                                        if (state.materialCodeError.isNotEmpty()){
+                                            Text(state.materialCodeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
+                                        }
+                                    }
+                                        OutlineBtn(stringResource(R.string.select_item), colors.green) { viewModel.matDlg = true }
+                                    }
+                                    if (state.selectedMaterial != null) {
+                                        Spacer(Modifier.height(8.dp))
+                                        SelectedMaterialCard(
+                                            mat = state.selectedMaterial!!,
+                                            accent = colors.green,
+                                            doneLabel = doneLabel,
+                                            qty = state.quantity,
+                                            onQtyChange = {
+                                                viewModel.onEvent(ReceivingSparePartsFromVendorEvent.OnQuantityEntered(it))
+                                            },
+                                            saved = viewModel.saved,
+                                            saving = viewModel.saving,
+                                            onClear = { viewModel.onEvent(
+                                                ReceivingSparePartsFromVendorEvent.OnClearMaterialButtonClicked
+                                            ) },
+                                            onValuationTypeChange = {
+                                                viewModel.onEvent(ReceivingSparePartsFromVendorEvent.OnValuationTypeSelected(it))
+                                            },
+                                            expiryDate = state.selectedExpiryDate,
+                                            onExpiryDateChange = {
+                                                viewModel.onEvent(
+                                                    ReceivingSparePartsFromVendorEvent.OnExpiryDateSelected(it)
+                                                )
+                                            },
+                                            warehouses = state.warehouses,
+                                            onWarehouseSelected = {
+                                                viewModel.onEvent(
+                                                    ReceivingSparePartsFromVendorEvent.OnWarehouseSelected(it)
+                                                )
+                                            },
+                                            quantityError = state.quantityError,
+                                            warehouseError = state.warehouseError,
+                                            valuationTypeError = state.valuationTypeError,
+                                            warehouseSearchText = state.warehouseSearchText,
+                                            onWarehouseSearchTextChanged = {
+                                                viewModel.onEvent(
+                                                    ReceivingSparePartsFromVendorEvent.OnWarehouseSearchTextChange(
+                                                        it
+                                                    )
+                                                )
+                                            },
+                                            valuationTypeSearchText = state.valuationSearchText,
+                                            onValuationTypeSearchTextChanged = {
+                                                viewModel.onEvent(
+                                                    ReceivingSparePartsFromVendorEvent.OnValuationSearchTextChange(
+                                                        it
+                                                    )
+                                                )
+                                            },
                                         )
                                     }
-                                )
+                                }
+                            }
+
+                            if (state.selectedMaterial != null && state.quantity.isNotEmpty()){
+                                item {
+                                    Spacer(Modifier.height(10.dp))
+                                    ReceivingAddLineButton(
+                                        enabled = true,
+                                        onClick = {
+                                            viewModel.onEvent(
+                                                ReceivingSparePartsFromVendorEvent.OnAddButtonClicked
+                                            )
+                                        },
+                                    )
+                                }
+                            }
+
+                            if(state.addedItems.isNotEmpty()){
+                                itemsIndexed(state.addedItems){index,item->
+                                    ReceivingSparePartsFromVendorLineItem(item) {
+                                        viewModel.onEvent(
+                                            ReceivingSparePartsFromVendorEvent.OnDeleteAddedMaterialButtonClicked(
+                                                index
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+
+                            // ── Dialogs ──────────────────────────────────────────
+                            if(state.showSuccessDialog){
+                                item {
+                                    SuccessDialog(
+                                        net.gbs.gbswarehouse.ui.theme.GREEN,
+                                        state.savingSuccessStatusMessage,
+                                        onClose = {
+                                            viewModel.onEvent(
+                                                ReceivingSparePartsFromVendorEvent.HideSuccessDialog
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                            if(state.showErrorDialog){
+                                item {
+                                    ErrorDialog(
+                                        DANGER,
+                                        state.savingErrorStatusMessage,
+                                        onClose = {
+                                            viewModel.onEvent(
+                                                ReceivingSparePartsFromVendorEvent.HideErrorDialog
+                                            )
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
-
         }
 
         // ── Fixed Save Button ─────────────────────────────────────────────
-        Log.d(TAG, "ReceivingSparePartsFromVendorDetailsScreen: ${state.addedItems}")
         if (state.addedItems.isNotEmpty()) {
             Box(
                 modifier = Modifier
@@ -322,14 +359,12 @@ fun ReceivingSparePartsFromVendorDetailsScreen(
                     saving = state.isSavingLoading
                 )
             }
-
         }
-
     }
 
     // ── Material Dialog ───────────────────────────────────────────────────
     if (viewModel.matDlg) {
-        BottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
+        ReceivingBottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
             SearchBox(state.materialSearch, {
                 viewModel.onEvent(
                     ReceivingSparePartsFromVendorEvent.OnMaterialSearchTextEntered(it)
@@ -342,7 +377,15 @@ fun ReceivingSparePartsFromVendorDetailsScreen(
                 )
             ) {
                 itemsIndexed(state.filteredMaterials) { _, m ->
-                    MaterialDialogItem(m, viewModel.accent, doneLabel) {
+                    ReceivingMaterialDialogItem(
+                        materialCode = m.materialCode,
+                        materialDescription = m.materialDescription,
+                        uom = m.uom,
+                        orderedQty = m.orderedQuantity.toString(),
+                        receivedQty = m.receivedQuantity.toString(),
+                        doneLabel = doneLabel,
+                        accent = viewModel.accent
+                    ) {
                         viewModel.onEvent(
                             ReceivingSparePartsFromVendorEvent.OnMaterialSelected(m.materialCode)
                         )
@@ -353,12 +396,12 @@ fun ReceivingSparePartsFromVendorDetailsScreen(
             }
         }
     }
-
-
 }
+
 @Composable
 fun ReceivingSparePartsFromVendorLineItem(
-    item: SparePartsLine
+    item: SparePartsLine,
+    onDeleteAddedMaterialButtonClicked: () -> Unit
 ) {
     val colors = AppTheme.colors
     val accent = GREEN
@@ -371,11 +414,9 @@ fun ReceivingSparePartsFromVendorLineItem(
         ),
         elevation = CardDefaults.cardElevation(3.dp)
     ) {
-
         Column(
             modifier = Modifier.padding(14.dp)
         ) {
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -401,11 +442,10 @@ fun ReceivingSparePartsFromVendorLineItem(
                     )
                 }
             }
-            MarginTenDp()
+            MarginVertical(5.dp)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
-
             ) {
                 Text(
                     text = item.materialDescription,
@@ -414,36 +454,54 @@ fun ReceivingSparePartsFromVendorLineItem(
                     color = colors.text
                 )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "${stringResource(R.string.warehouse)} : ${item.warehouseCode}",
-                    color = colors.muted,
-                    fontSize = 13.sp
-                )
-            }
-            if (item.valuationType.isNotBlank() || item.expiryDate.isNotBlank()) {
-
-                Spacer(Modifier.height(12.dp))
-
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+//            Row(
+//                modifier = Modifier.fillMaxWidth()
+//            ) {
+//                Text(
+//                    text = "${stringResource(R.string.warehouse)} : ${item.warehouseCode}",
+//                    color = colors.muted,
+//                    fontSize = 13.sp
+//                )
+//            }
+            if (item.warehouseCode.isNotEmpty()||item.valuationType.isNullOrEmpty()) {
+                MarginVertical(5.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    FlowRow(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ReceivingChip(
+                            stringResource(R.string.warehouse) + ": " + item.warehouseCode
+                        )
 
-                    if (item.valuationType.isNotBlank()) {
-                        Chip("🏷 ${item.valuationType}")
+                        if (!item.valuationType.isNullOrEmpty()) {
+                            ReceivingChip(
+                                stringResource(R.string.valuation_type_) + " ${item.valuationType}"
+                            )
+                        }
+
+                        if (item.expiryDate!=null){
+                            ReceivingChip(
+                                stringResource(R.string.expiry_date) + " ${item.expiryDate.substring(0,10)}"
+                            )
+                        }
                     }
 
-                    if (item.expiryDate.isNotBlank()) {
-                        Chip("📅 ${item.expiryDate}")
+                    IconButton(
+                        onClick = onDeleteAddedMaterialButtonClicked
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete"
+                        )
                     }
                 }
             }
-
-            }
-
+        }
     }
     MarginTenDp()
 }
@@ -455,63 +513,14 @@ private fun Info(
     modifier: Modifier = Modifier
 ) {
     val colors = AppTheme.colors
-
     Column(modifier) {
-        Text(
-            title,
-            color = colors.muted,
-            fontSize = 11.sp
-        )
-
+        Text(title, color = colors.muted, fontSize = 11.sp)
         Spacer(Modifier.height(3.dp))
-
-        Text(
-            value,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 15.sp,
-            color = colors.text
-        )
+        Text(value, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = colors.text)
     }
 }
 
-@Composable
-private fun Chip(text: String) {
 
-    Surface(
-        shape = RoundedCornerShape(50),
-        color = GREEN.copy(.10f)
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(
-                horizontal = 12.dp,
-                vertical = 7.dp
-            ),
-            fontSize = 12.sp,
-            color = GREEN,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-@Composable
-fun AddSparePartsLineButton (
-    enabled: Boolean,
-    onClick: () -> Unit
-){
-    val colors = AppTheme.colors
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(colors.addMaterialButtonBackground)
-            .border(1.dp, colors.border, RoundedCornerShape(10.dp))
-            .clickable(enabled = enabled) { onClick() }
-            .padding(vertical = 13.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(stringResource(R.string.add), color = colors.addMaterialButtonTextColor, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-    }
-}
 
 @Composable
 fun SelectedMaterialCard(
@@ -522,11 +531,15 @@ fun SelectedMaterialCard(
     onValuationTypeChange: (ValuationType) -> Unit,
     warehouses: List<Warehouse>,
     onWarehouseSelected: (Warehouse) -> Unit,
-    expiryDate: String,
-    onExpiryDateChange: (String) -> Unit,
+    expiryDate: String?,
+    onExpiryDateChange: (String?) -> Unit,
     quantityError: String = "",
     warehouseError: String = "",
     valuationTypeError: String = "",
+    warehouseSearchText:String,
+    onWarehouseSearchTextChanged: (String) -> Unit,
+    valuationTypeSearchText:String,
+    onValuationTypeSearchTextChanged: (String) -> Unit,
 ) {
     val progress = if (mat.orderedQuantity > 0) mat.receivedQuantity / mat.orderedQuantity else 0f
     val colors = AppTheme.colors
@@ -585,16 +598,20 @@ fun SelectedMaterialCard(
         Field(qLabel, hint="", value = qty, {
             onQtyChange(it)}, isNumber = true, center = true)
         if (quantityError.isNotEmpty()) {
-            Text(quantityError, color = net.gbs.gbswarehouse.ui.theme.DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+            Text(quantityError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         }
         Spacer(Modifier.height(10.dp))
         WarehousesSpinner(
             hint = stringResource(R.string.warehouse),
             items = warehouses,
-            onItemSelected = { onWarehouseSelected(it) }
+            onItemSelected = onWarehouseSelected,
+            accent = accent,
+            searchText = warehouseSearchText,
+            onSearchTextChanged = onWarehouseSearchTextChanged
         )
+
         if (warehouseError.isNotEmpty()) {
-            Text(warehouseError, color = net.gbs.gbswarehouse.ui.theme.DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+            Text(warehouseError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         }
         if (mat.valuationTypes.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
@@ -603,22 +620,30 @@ fun SelectedMaterialCard(
                 items = mat.valuationTypes,
                 onItemSelected = {
                     onValuationTypeChange(it)
+                },
+                accent = accent,
+                searchText = valuationTypeSearchText,
+                onSearchTextChanged = {
+                    onValuationTypeSearchTextChanged(it)
                 }
             )
             if (valuationTypeError.isNotEmpty()) {
-                Text(valuationTypeError, color = net.gbs.gbswarehouse.ui.theme.DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+                Text(valuationTypeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
             }
         }
         Spacer(Modifier.height(10.dp))
-        DatePickerField(
-            value = expiryDate,
-            onDateSelected = { onExpiryDateChange(it) },
-            modifier = Modifier.fillMaxWidth(),
-            label = stringResource(R.string.expiry_date),
-            hint = stringResource(R.string.enter_expiry_date_optional)
-        )
+        if (mat.isBatchManaged) {
+            DatePickerField(
+                value = expiryDate,
+                onDateSelected = { onExpiryDateChange(it) },
+                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(R.string.expiry_date),
+                hint = stringResource(R.string.enter_expiry_date_optional)
+            )
+        }
     }
 }
+
 @Composable
 fun PutAwaySparePartsFromVendorDetailsScreen(
     navController: NavController,
@@ -634,7 +659,6 @@ fun PutAwaySparePartsFromVendorDetailsScreen(
         Column(Modifier.fillMaxSize()) {
             TopBar(title = stringResource(R.string.putaway), subtitle = stringResource(R.string.spare_parts_from_vendor),
                 accent = accent, onBack = {
-                    //  vm.back()
                     navController.popBackStack()
                 })
 
@@ -645,8 +669,6 @@ fun PutAwaySparePartsFromVendorDetailsScreen(
                     bottom = if (vm.showFixedSave) 90.dp else 20.dp
                 )
             ) {
-
-                // ── Order Info Card (non-blind) ────────────────────────────
                     item {
                         Section(label = stringResource(R.string.order_data), accent = accent) {
                             val fields = listOf(
@@ -656,38 +678,28 @@ fun PutAwaySparePartsFromVendorDetailsScreen(
                                 Triple(stringResource(R.string.date),     ord.date,   null),
                                 Triple(stringResource(R.string.items_count),"${ord.items} ${stringResource(R.string.items)}", null),
                             )
-                            // 2-column grid
                             for (i in fields.indices step 2) {
                                 Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     val f1 = fields[i]
                                     val f2 = if (i + 1 < fields.size) fields[i + 1] else null
-                                    if (f1.first == stringResource(R.string.info)) {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
-                                            modifier = Modifier.weight(1f))
+                                    ReceivingInfoCell(f1.first, f1.second, f1.third ?: colors.text, modifier = Modifier.weight(1f))
+                                    if (f2 != null) {
+                                        ReceivingInfoCell(f2.first, f2.second, f2.third ?: colors.text, modifier = Modifier.weight(1f))
                                     } else {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
-                                            modifier = Modifier.weight(1f))
-                                        if (f2 != null) {
-                                            InfoCell(f2.first, f2.second, f2.third ?: colors.text,
-                                                modifier = Modifier.weight(1f))
-                                        }
+                                        Spacer(Modifier.weight(1f))
                                     }
                                 }
                             }
                         }
                     }
 
-
-
-
-
                     item {
                         Section(label = stringResource(R.string.item_data), accent = accent) {
                             Row(Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically) {
-                                MatCodeInput(
+                                ReceivingMatCodeInput(
                                     value = vm.matInput,
                                     onValueChange = { vm.matInput = it },
                                     modifier = Modifier.weight(1f)
@@ -718,8 +730,6 @@ fun PutAwaySparePartsFromVendorDetailsScreen(
                         }
                     }
 
-
-
                     item {
                         Section(label = stringResource(R.string.putaway_data), accent = accent) {
                             Row(Modifier.fillMaxWidth(),
@@ -744,16 +754,9 @@ fun PutAwaySparePartsFromVendorDetailsScreen(
                             }
                         }
                     }
-
-
-                // ── Success Card ──────────────────────────────────────────
-//                if (vm.saved) {
-//                    item { SuccessCard(kind = vm.saveKind, accent = accent) }
-//                }
             }
         }
 
-        // ── Fixed Save Button ─────────────────────────────────────────────
         if (vm.showFixedSave && !vm.saved) {
             Box(
                 modifier = Modifier
@@ -772,9 +775,8 @@ fun PutAwaySparePartsFromVendorDetailsScreen(
         }
     }
 
-    // ── Material Dialog ───────────────────────────────────────────────────
     if (vm.matDlg) {
-        BottomSheetDialog(title = stringResource(R.string.select_item), onClose = { vm.matDlg = false }) {
+        ReceivingBottomSheetDialog(title = stringResource(R.string.select_item), onClose = { vm.matDlg = false }) {
             SearchBox(vm.matSearch, { vm.matSearch = it }, stringResource(R.string.search_for_item),
                 Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
             LazyColumn(
@@ -783,8 +785,16 @@ fun PutAwaySparePartsFromVendorDetailsScreen(
                 )
             ) {
                 itemsIndexed(vm.filteredMaterials) { _, m ->
-                    MaterialDialogItem(m, vm.accent, doneLabel) {
-                        vm.selectMaterial(m)
+                    ReceivingMaterialDialogItem(
+                        materialCode = m.materialCode,
+                        materialDescription = m.materialDescription,
+                        uom = m.uom,
+                        orderedQty = m.orderedQuantity.toString(),
+                        receivedQty = m.receivedQuantity.toString(),
+                        doneLabel = doneLabel,
+                        accent = vm.accent
+                    ) {
+                    //    vm.selectMaterial(m)
                     }
                     Spacer(Modifier.height(6.dp))
                 }
@@ -792,9 +802,8 @@ fun PutAwaySparePartsFromVendorDetailsScreen(
         }
     }
 
-    // ── Bin Dialog ────────────────────────────────────────────────────────
     if (vm.binDlg) {
-        BottomSheetDialog(title = stringResource(R.string.select_bin), onClose = { vm.binDlg = false }) {
+        ReceivingBottomSheetDialog(title = stringResource(R.string.select_bin), onClose = { vm.binDlg = false }) {
             SearchBox(vm.binInput, { vm.binInput = it }, stringResource(R.string.search_for_bin),
                 Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
             LazyColumn(contentPadding = PaddingValues(
@@ -809,10 +818,6 @@ fun PutAwaySparePartsFromVendorDetailsScreen(
     }
 }
 
-
-
-
-// ── Material Card ─────────────────────────────────────────────────────────────
 @Composable
 fun PutAwaySelectedMaterialCard(
     mat: SparePartsMaterial, accent: Color, isQuality: Boolean, isIssue: Boolean,
@@ -842,7 +847,6 @@ fun PutAwaySelectedMaterialCard(
         Text(mat.materialDescription, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
         Spacer(Modifier.height(8.dp))
-        // Stats row
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             listOf( doneLabel to mat.receivedQuantity.toString(),stringResource(R.string.required) to mat.orderedQuantity.toString(),
                 stringResource(R.string.unit) to mat.uom,).forEach { (l, v) ->
@@ -854,7 +858,6 @@ fun PutAwaySelectedMaterialCard(
             }
         }
         Spacer(Modifier.height(10.dp))
-        // Progress bar
         Column {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(stringResource(R.string.execution), color = colors.muted, fontSize = 9.sp)
@@ -880,9 +883,9 @@ fun PutAwaySelectedMaterialCard(
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FullBtn("✓  ${stringResource(R.string.accept)}", colors.succ, onAccept, saving, smpQty.isNotEmpty(),
-                        modifier = Modifier.weight(1f))
+                        )
                     FullBtn("✕  ${stringResource(R.string.reject)}", colors.danger, onReject, saving, smpQty.isNotEmpty(),
-                        modifier = Modifier.weight(1f))
+                       )
                 }
             }
         } else {
@@ -892,7 +895,6 @@ fun PutAwaySelectedMaterialCard(
     }
 }
 
-// ── Bin Card ──────────────────────────────────────────────────────────────────
 @Composable
 fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) -> Unit,
                     onClear: () -> Unit) {
@@ -927,33 +929,6 @@ fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) 
     }
 }
 
-// ── Material Code Input ───────────────────────────────────────────────────────
-@Composable
-fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(colors.dark)
-            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = true,
-            textStyle = TextStyle(
-                color = colors.text, fontSize = 13.sp,
-                textDirection = TextDirection.Ltr
-            ),
-            cursorBrush = SolidColor(colors.green),
-            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
-            decorationBox = { inner ->
-                if (value.isEmpty()) Text(stringResource(R.string.item_code_hint), color = colors.muted, fontSize = 13.sp)
-                inner()
-            }
-        )
-    }
-}
 
 @Composable
 fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
@@ -982,36 +957,6 @@ fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
     }
 }
 
-// ── Dialog items ──────────────────────────────────────────────────────────────
-@Composable
-fun MaterialDialogItem(mat: SparePartsMaterial, accent: Color, doneLabel: String, onClick: () -> Unit) {
-    var hovered by remember { mutableStateOf(false) }
-    val colors = AppTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (hovered) colors.card2 else colors.dark)
-            .border(1.dp, if (hovered) accent.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
-            .clickable { onClick(); hovered = false }
-            .padding(all = 11.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(mat.materialCode, color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text(mat.uom, color = colors.muted, fontSize = 10.sp)
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(mat.materialDescription, color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-            lineHeight = 18.sp)
-        Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("${stringResource(R.string.required)}: ${mat.orderedQuantity}", color = colors.muted, fontSize = 10.sp)
-            Text("$doneLabel: ${mat.receivedQuantity}",
-                color = if (mat.receivedQuantity == mat.orderedQuantity) colors.succ else colors.muted, fontSize = 10.sp)
-        }
-    }
-}
-
 @Composable
 fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
     var hovered by remember { mutableStateOf(false) }
@@ -1021,13 +966,12 @@ fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(if (hovered) colors.card2 else colors.dark)
-            .border(1.dp, if (hovered) colors.yellow.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
+            .border(1.dp, if (hovered) accent.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
             .clickable { onClick(); hovered = false }
             .padding(12.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("📍 ${bin.code}", color = colors.yellow, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text(stringResource(R.string.available), color = colors.succ, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+            Text("📍 ${bin.code}", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(4.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -1042,98 +986,3 @@ fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
     }
 }
 
-// ── Bottom Sheet Dialog ───────────────────────────────────────────────────────
-@Composable
-fun BottomSheetDialog(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    val colors = AppTheme.colors
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.65f))
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { onClose() },
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(colors.card)
-                    .border(1.dp, colors.border2,
-                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .heightIn(max = 560.dp)
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { /* consume */ }
-            ) {
-                // Dialog Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(
-                            width = 1.dp, color = colors.border,
-                            shape = RoundedCornerShape(0.dp)
-                        )
-                        .padding(horizontal = 14.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("✕", color = colors.muted, fontSize = 18.sp,
-                        modifier = Modifier.clickable { onClose() }.padding(horizontal = 2.dp))
-                    Text(title, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-                content()
-            }
-        }
-    }
-}
-
-// ── FullBtn overload with Modifier ────────────────────────────────────────────
-@Composable
-fun FullBtn(label: String, color: Color, onClick: () -> Unit,
-            saving: Boolean = false, enabled: Boolean = true, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    val bg     = if (!enabled) colors.dim.copy(0.22f) else color.copy(0.12f)
-    val border = if (!enabled) colors.dim else color.copy(0.35f)
-    val txtCol = if (!enabled) colors.dim else color
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .border(1.dp, border, RoundedCornerShape(10.dp))
-            .clickable(enabled = enabled && !saving) { onClick() }
-            .padding(vertical = 13.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (saving) {
-            CircularProgressIndicator(
-                color = color, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-        } else {
-            Text(label, color = txtCol, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-        }
-    }
-}
-
-// ── InfoCell with Modifier ────────────────────────────────────────────────────
-@Composable
-fun InfoCell(label: String, value: String, color: Color = Color.Unspecified, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    val textColor = if (color == Color.Unspecified) colors.text else color
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(colors.dark)
-            .padding(all = 8.dp)
-    ) {
-        Text(label, color = colors.muted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 2.dp))
-        Text(value, color = textColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-    }
-}

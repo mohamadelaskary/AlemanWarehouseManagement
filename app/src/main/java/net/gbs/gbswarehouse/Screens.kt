@@ -55,6 +55,10 @@ sealed class Screens(val route: String) {
         ) =
             "put_away_raw_materials_from_vendor_details_screen/$orderId"
     }
+    object ReceivingSparePartsFromVendorPOsList : Screens("receiving_spare_parts_from_vendor_pos_list"){
+        fun createRoute() =
+            "receiving_spare_parts_from_vendor_pos_list"
+    }
     object ReceivingSparePartsFromVendor : Screens("receiving_spare_parts_from_vendor"){
         fun createRoute() =
             "receiving_spare_parts_from_vendor"
@@ -71,10 +75,11 @@ sealed class Screens(val route: String) {
 
     
 
-    object ReceivingSparePartsFromVendorDetailsScreen : Screens("receiving_spare_parts_from_vendor_details_screen"){
+    object ReceivingSparePartsFromVendorDetailsScreen : Screens("receiving_spare_parts_from_vendor_details_screen/{poNumber}"){
         fun createRoute(
+            poNumber: String
         ) =
-            "receiving_spare_parts_from_vendor_details_screen"
+            "receiving_spare_parts_from_vendor_details_screen/$poNumber"
     }
 
     object InspectingSparePartsFromVendorDetailsScreen : Screens("inspecting_spare_parts_from_vendor_details_screen/{orderId}"){
@@ -103,9 +108,17 @@ sealed class Screens(val route: String) {
         fun createRoute() =
             "put_away_packaging_materials_from_vendor"
     }
+    object ReceivingPoultryFromVendorOrdersListScreen : Screens("receiving_poultry_from_vendor"){
+        fun createRoute() =
+            "receiving_poultry_from_vendor"
+    }
 
-
-
+    object ReceivingPoultryFromVendorDetailsScreen : Screens("receiving_poultry_from_vendor_details_screen/{orderId}"){
+        fun createRoute(
+            orderId: String
+        ) =
+            "receiving_poultry_from_vendor_details_screen/$orderId"
+    }
     object ReceivingPackagingMaterialsFromVendorDetailsScreen : Screens("receiving_packaging_materials_from_vendor_details_screen/{orderId}"){
         fun createRoute(
             orderId: String
@@ -218,11 +231,12 @@ sealed class Screens(val route: String) {
 
 
 
-    object ReceivingSparePartsFromProductionDetailsScreen : Screens("receiving_spare_parts_from_production_details_screen/{orderId}"){
+    object ReceivingSparePartsFromProductionDetailsScreen : Screens("receiving_spare_parts_from_production_details_screen/{orderData}/{returnReason}"){
         fun createRoute(
-            orderId: String
+            orderData: String,
+            returnReason:String
         ) =
-            "receiving_spare_parts_from_production_details_screen/$orderId"
+            "receiving_spare_parts_from_production_details_screen/$orderData/$returnReason"
     }
 
     object InspectingSparePartsFromProductionDetailsScreen : Screens("inspecting_spare_parts_from_production_details_screen/{orderId}"){
@@ -443,6 +457,14 @@ sealed class Screens(val route: String) {
     object LoginScreen : Screens("login"){
         fun createRoute() =
             "login"
+    }
+
+    object PutAwayOrders : Screens("put_away_orders/{receiptType}") {
+        fun createRoute(receiptType: String) = "put_away_orders/$receiptType"
+    }
+
+    object PutAwayDetails : Screens("put_away_details/{receiptType}/{orderNumber}") {
+        fun createRoute(receiptType: String, orderNumber: String) = "put_away_details/$receiptType/$orderNumber"
     }
 
 }

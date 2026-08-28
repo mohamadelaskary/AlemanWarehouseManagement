@@ -9,6 +9,7 @@ data class SparePartsLine(
     val purchaseOrderItem: String,
     val uom: String,
     val receivedQuantity: Float,
-    val valuationType: String,
-    val expiryDate: String,
+    val valuationType: String?=null,
+    val isBatchManaged: Boolean,
+    val expiryDate: String?=null,
 )

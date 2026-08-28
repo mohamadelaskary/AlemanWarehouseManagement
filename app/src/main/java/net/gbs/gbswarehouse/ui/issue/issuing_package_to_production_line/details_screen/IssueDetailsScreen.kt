@@ -76,8 +76,7 @@ import net.gbs.gbswarehouse.partialIssueReasons
 import net.gbs.gbswarehouse.productionLines
 import net.gbs.gbswarehouse.shifts
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.BinCodeInput
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.BottomSheetDialog
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.MatCodeInput
+
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.SelectedBinCard
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import kotlin.collections.find
@@ -128,12 +127,12 @@ fun IssuePackagingMaterialsToProductionDetailsScreen(
                                 if (f1.first == "الجهة") {
                                     InfoCell(f1.first, f1.second, f1.third ?: colors.text, Modifier.weight(1f))
                                 } else {
-                                    net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.InfoCell(
+                                    InfoCell(
                                         f1.first, f1.second, f1.third ?: colors.text,
                                         modifier = Modifier.weight(1f)
                                     )
                                     if (f2 != null) {
-                                        net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.InfoCell(
+                                        InfoCell(
                                             f2.first, f2.second, f2.third ?: colors.text,
                                             modifier = Modifier.weight(1f)
                                         )

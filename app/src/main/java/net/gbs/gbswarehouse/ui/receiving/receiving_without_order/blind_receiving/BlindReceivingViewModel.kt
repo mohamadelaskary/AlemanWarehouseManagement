@@ -121,7 +121,13 @@ class BlindReceivingViewModel: ViewModel() {
             selMat = mat; matInput = mat.code; matDlg = false; matSearch = ""
         }
 
-        fun clearMaterial() { selMat = null; matInput = ""; qty = ""; smpQty = "" }
+        fun clearMaterial() {
+            selMat = null; matInput = ""; qty = ""; smpQty = ""
+            matSearch = ""; binInput = ""; selBin = null
+            selectedUOM = null; selectedMaterial = null; selectedQualityDecision = null
+            selectedWorkersGroup = null; qualityDecider = ""
+            bCode = ""; bDesc = ""; vendorName = ""; bQty = ""
+        }
 
         fun selectBin(bin: Bin) { selBin = bin; binInput = bin.code; binDlg = false }
 

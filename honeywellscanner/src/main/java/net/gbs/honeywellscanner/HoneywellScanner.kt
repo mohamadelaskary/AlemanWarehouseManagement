@@ -19,7 +19,7 @@ object HoneywellScanner {
         val reader = barcodeReader
             ?: throw ScannerNotInitializedException()
 
-        return ScannerManager(reader)
+        return ScannerManager()
     }
     /**
      * Initializes Honeywell AIDC SDK.

@@ -2,14 +2,28 @@ package net.gbs.gbswarehouse
 
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import net.gbs.gbswarehouse.ui.HomeScreen
+import dagger.hilt.android.lifecycle.HiltViewModel
+import net.gbs.gbswarehouse.core.session.SessionManager
+import net.gbs.gbswarehouse.core.session.SessionState
+import net.gbs.gbswarehouse.ui.HomeScreen.HomeScreen
 import net.gbs.gbswarehouse.ui.OpTypeScreen
 import net.gbs.gbswarehouse.ui.SubMenu
 import net.gbs.gbswarehouse.ui.audit.details_screen.AuditDetailsScreen
@@ -35,30 +49,31 @@ import net.gbs.gbswarehouse.ui.issue.issuing_spare_parts_for_maintainance.orders
 import net.gbs.gbswarehouse.ui.issue.issuing_to_vendor.details_screen.IssueToVendorDetailsScreen
 import net.gbs.gbswarehouse.ui.issue.issuing_to_vendor.orders_list.IssuingToVendorScreen
 import net.gbs.gbswarehouse.ui.login.LoginScreen
+import net.gbs.gbswarehouse.ui.receiving.put_away.details_screen.PutAwayDetailsScreen
+import net.gbs.gbswarehouse.ui.receiving.put_away.orders_list.PutAwayOrdersScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_packaging_materials_from_vendor.details_screen.InspectingPackagingMaterialsFromVendorDetailsScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_packaging_materials_from_vendor.details_screen.PutAwayPackagingMaterialsFromVendorDetailsScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_packaging_materials_from_vendor.details_screen.ReceivingPackagingMaterialsFromVendorDetailsScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_packaging_materials_from_vendor.orders_list.InspectingPackagingMaterialsFromVendorListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_packaging_materials_from_vendor.orders_list.PutAwayPackagingMaterialsFromVendorListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_packaging_materials_from_vendor.orders_list.ReceivingPackagingMaterialsFromVendorListScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.details_screen.InspectingProductFromBranchDetailsScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.details_screen.PutAwayProductFromBranchDetailsScreen
+import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.ReceivingPoultryFromVendorDetailsScreen
+import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.orders_list.ReceivingPoultryFromVendorListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.details_screen.ReceivingProductFromBranchDetailsScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.orders_list.InspectingProductFromBranchListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.orders_list.PutAwayProductFromBranchListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.orders_list.ReceivingProductFromBranchListScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.details_screen.InspectingFinishedGoodFromProductionDetailsScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.details_screen.PutAwayFinishedGoodFromProductionDetailsScreen
+// import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.details_screen.InspectingFinishedGoodFromProductionDetailsScreen
+// import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.details_screen.PutAwayFinishedGoodFromProductionDetailsScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.details_screen.ReceivingFinishedGoodFromProductionDetailsScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.orders_list.InspectingFinishedGoodFromProductionListScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.orders_list.PutAwayFinishedGoodFromProductionListScreen
+// import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.orders_list.InspectingFinishedGoodFromProductionListScreen
+// import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.orders_list.PutAwayFinishedGoodFromProductionListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.orders_list.ReceivingFinishedGoodFromProductionListScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.details_screen.InspectingFinishedGoodFromProductionPlasticDetailsScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.details_screen.PutAwayFinishedGoodFromProductionPlasticDetailsScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.details_screen.ReceivingFinishedGoodFromProductionPlasticDetailsScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.orders_list.InspectingFinishedGoodFromProductionPlasticListScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.orders_list.PutAwayFinishedGoodFromProductionPlasticListScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.orders_list.ReceivingFinishedGoodFromProductionPlasticListScreen
+// import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.details_screen.InspectingFinishedGoodFromProductionPlasticDetailsScreen
+// import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.details_screen.PutAwayFinishedGoodFromProductionPlasticDetailsScreen
+import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.details_screen.ReceivingFinishedGoodsPlasticDetailsScreen
+// import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.orders_list.InspectingFinishedGoodFromProductionPlasticListScreen
+// import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.orders_list.PutAwayFinishedGoodFromProductionPlasticListScreen
+import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.orders_list.ReceivingFinishedGoodsPlasticListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_raw_materials_from_vendor.details_screen.InspectingRawMaterialsFromVendorDetailsScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_raw_materials_from_vendor.details_screen.PutAwayRawMaterialsFromVendorDetailsScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_raw_materials_from_vendor.details_screen.ReceivingRawMaterialsFromVendorDetailsScreen
@@ -73,10 +88,10 @@ import net.gbs.gbswarehouse.ui.receiving.receiving_returned_product.orders_list.
 import net.gbs.gbswarehouse.ui.receiving.receiving_returned_product.orders_list.ReceivingReturnedProductListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_production_line.details_screen.InspectingSparePartsFromProductionDetailsScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_production_line.details_screen.PutAwaySparePartsFromProductionDetailsScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_production_line.details_screen.ReceivingSparePartsFromProductionDetailsScreen
+import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_production.details_screen.ReceivingSparePartsFromProductionDetailsScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_production_line.orders_list.InspectingSparePartsFromProductionListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_production_line.orders_list.PutAwaySparePartsFromProductionListScreen
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_production_line.orders_list.ReceivingSparePartsFromProductionListScreen
+import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_production.orders_list.ReceivingSparePartsFromProductionListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.PutAwaySparePartsFromVendorDetailsScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.ReceivingSparePartsFromVendorDetailsScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.orders_list.InspectingSparePartsFromVendorListScreen
@@ -84,13 +99,73 @@ import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.order
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.orders_list.ReceivingSparePartsFromVendorListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_without_order.blind_receiving.BlindReceivingScreen
 import net.gbs.gbswarehouse.ui.settings.SettingsScreen
+import javax.inject.Inject
 
 val LocalNavController = staticCompositionLocalOf<NavController> { error("No NavController provided") }
 
 @Composable
-fun WarehouseApp() {
+fun WarehouseApp () {
     val navController = rememberNavController()
+    var showSessionDialog by remember {
+        mutableStateOf(false)
+    }
+    val appViewModel: AppViewModel = hiltViewModel()
+    val sessionState by appViewModel.sessionManager
+        .sessionState
+        .collectAsState()
+    LaunchedEffect(Unit) {
+        when(sessionState){
 
+            SessionState.Expired -> {
+                showSessionDialog = true
+            }
+
+            else -> {}
+        }
+    }
+
+    if(showSessionDialog){
+
+        AlertDialog(
+
+            onDismissRequest = {},
+
+            confirmButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        showSessionDialog = false
+
+                        navController.navigate(Screens
+                            .LoginScreen.route) {
+
+                            popUpTo(0)
+
+                        }
+
+                    }
+
+                ) {
+
+                    Text("OK")
+
+                }
+
+            },
+
+            title = {
+                Text("Session Expired")
+            },
+
+            text = {
+                Text("Please login again.")
+            }
+
+        )
+
+    }
     CompositionLocalProvider(LocalNavController provides navController) {
         NavHost(
             navController = navController,
@@ -201,10 +276,15 @@ fun WarehouseApp() {
                     navController = navController,
                 )
             }
-
+            composable(Screens.ReceivingSparePartsFromVendorPOsList.route){
+                ReceivingSparePartsFromVendorListScreen(
+                    navController = navController,
+                )
+            }
             composable(Screens.ReceivingSparePartsFromVendorDetailsScreen.route) {
                 ReceivingSparePartsFromVendorDetailsScreen(
                     navController = navController,
+                    poNumber = it.arguments?.getString("poNumber")!!
                 )
             }
 
@@ -267,12 +347,12 @@ fun WarehouseApp() {
             }
 
             composable(Screens.InspectingFinishedGoodFromProduction.route) {
-                InspectingFinishedGoodFromProductionListScreen(
+                net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.orders_list.InspectingFinishedGoodFromProductionListScreenOld(
                     navController = navController,
                 )
             }
             composable(Screens.PutAwayFinishedGoodFromProduction.route) {
-                PutAwayFinishedGoodFromProductionListScreen(
+                net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.orders_list.PutAwayFinishedGoodFromProductionListScreenOld(
                     navController = navController,
                 )
             }
@@ -285,43 +365,42 @@ fun WarehouseApp() {
             }
 
             composable(Screens.InspectingFinishedGoodFromProductionDetailsScreen.route) {
-                InspectingFinishedGoodFromProductionDetailsScreen(
+                net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.details_screen.InspectingFinishedGoodFromProductionDetailsScreenOld(
                     navController = navController,
                     orderId = it.arguments?.getString("orderId")!!
                 )
             }
             composable(Screens.PutAwayFinishedGoodFromProductionDetailsScreen.route) {
-                PutAwayFinishedGoodFromProductionDetailsScreen(
+                net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.details_screen.PutAwayFinishedGoodFromProductionDetailsScreenOld(
                     navController = navController,
                     orderId = it.arguments?.getString("orderId")!!
                 )
             }
 
             composable(Screens.ReceivingFinishedGoodFromProductionPlastic.route) { backStackEntry ->
-
-                ReceivingFinishedGoodFromProductionPlasticListScreen(
+                ReceivingFinishedGoodsPlasticListScreen(
                     navController = navController,
                 )
             }
 
             composable(Screens.PutAwayFinishedGoodFromProductionPlastic.route) {
-                PutAwayFinishedGoodFromProductionPlasticListScreen(
-                    navController = navController,
-                )
+//                PutAwayFinishedGoodFromProductionPlasticListScreen(
+//                    navController = navController,
+//                )
             }
 
             composable(Screens.ReceivingFinishedGoodFromProductionPlasticDetailsScreen.route) {
-                ReceivingFinishedGoodFromProductionPlasticDetailsScreen(
+                ReceivingFinishedGoodsPlasticDetailsScreen(
                     navController = navController,
                     orderId = it.arguments?.getString("orderId")!!
                 )
             }
 
             composable(Screens.PutAwayFinishedGoodFromProductionPlasticDetailsScreen.route) {
-                PutAwayFinishedGoodFromProductionPlasticDetailsScreen(
-                    navController = navController,
-                    orderId = it.arguments?.getString("orderId")!!
-                )
+//                PutAwayFinishedGoodFromProductionPlasticDetailsScreen(
+//                    navController = navController,
+//                    orderId = it.arguments?.getString("orderId")!!
+//                )
             }
 
             composable(Screens.ReceivingSparePartsFromProduction.route) { backStackEntry ->
@@ -345,7 +424,8 @@ fun WarehouseApp() {
             composable(Screens.ReceivingSparePartsFromProductionDetailsScreen.route) {
                 ReceivingSparePartsFromProductionDetailsScreen(
                     navController = navController,
-                    orderId = it.arguments?.getString("orderId")!!
+                    orderData = it.arguments?.getString("orderData")!!,
+                    returnReason = it.arguments?.getString("returnReason")!!
                 )
             }
 
@@ -369,11 +449,7 @@ fun WarehouseApp() {
                 )
             }
 
-            composable(Screens.InspectingProductFromBranch.route) {
-                InspectingProductFromBranchListScreen(
-                    navController = navController,
-                )
-            }
+
             composable(Screens.PutAwayProductFromBranch.route) {
                 PutAwayProductFromBranchListScreen(
                     navController = navController,
@@ -387,18 +463,6 @@ fun WarehouseApp() {
                 )
             }
 
-            composable(Screens.InspectingProductFromBranchDetailsScreen.route) {
-                InspectingProductFromBranchDetailsScreen(
-                    navController = navController,
-                    orderId = it.arguments?.getString("orderId")!!
-                )
-            }
-            composable(Screens.PutAwayProductFromBranchDetailsScreen.route) {
-                PutAwayProductFromBranchDetailsScreen(
-                    navController = navController,
-                    orderId = it.arguments?.getString("orderId")!!
-                )
-            }
 
             composable(Screens.ReceivingReturnedProduct.route) { backStackEntry ->
 
@@ -572,6 +636,36 @@ fun WarehouseApp() {
                     navController = navController,
                 )
             }
+            composable(Screens.ReceivingPoultryFromVendorOrdersListScreen.route) {
+                ReceivingPoultryFromVendorListScreen(
+                    navController = navController,
+                )
+            }
+            composable(Screens.ReceivingPoultryFromVendorDetailsScreen.route) {
+                ReceivingPoultryFromVendorDetailsScreen(
+                    navController = navController,
+                    orderId = it.arguments?.getString("orderId")!!
+                )
+            }
+
+            composable(Screens.PutAwayOrders.route) {
+                PutAwayOrdersScreen(
+                    navController = navController,
+                    receiptType = it.arguments?.getString("receiptType")!!
+                )
+            }
+
+            composable(Screens.PutAwayDetails.route) {
+                PutAwayDetailsScreen(
+                    navController = navController,
+                    receiptType = it.arguments?.getString("receiptType")!!,
+                    orderNumber = it.arguments?.getString("orderNumber")!!
+                )
+            }
         }
     }
 }
+@HiltViewModel
+class AppViewModel @Inject constructor(
+    val sessionManager: SessionManager
+) : ViewModel()

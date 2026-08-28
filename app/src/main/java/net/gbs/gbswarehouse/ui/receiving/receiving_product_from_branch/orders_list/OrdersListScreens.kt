@@ -1,8 +1,7 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.orders_list
 
-import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,11 +13,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,243 +31,274 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import net.gbs.gbswarehouse.ui.theme.AppTheme
-import net.gbs.gbswarehouse.MarginTenDp
-import net.gbs.gbswarehouse.Order
 import net.gbs.gbswarehouse.OutlineBtn
-import net.gbs.gbswarehouse.Pill
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.TopBar
-import net.gbs.gbswarehouse.WarehouseViewModel
+import net.gbs.gbswarehouse.domain.model.TransitOrderMaterialPurchaseOrder
+import net.gbs.gbswarehouse.domain.model.TransitOrderMaterialPurchaseOrderItem
+import net.gbs.gbswarehouse.ui.theme.AppTheme
 
 @Composable
 fun ReceivingProductFromBranchListScreen(
     navController: NavController,
 ) {
-    val viewModel: OrdersListViewModel = viewModel()
-    val orders = viewModel.filteredOrders
+    val viewModel: OrdersListViewModel = hiltViewModel()
+    val state by viewModel.uiState.collectAsState()
     val colors = AppTheme.colors
     val accent = colors.green
 
-
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
-        TopBar(title = "استلام", subtitle = "تحويلات مخزنية بين المواقع", accent = accent,
-            onBack = { navController.popBackStack() })
+        TopBar(
+            title = stringResource(R.string.receiving),
+            subtitle = stringResource(R.string.product_from_branch),
+            accent = accent,
+            onBack = { navController.popBackStack() }
+        )
 
-        // Search
         SearchBox(
-            value = viewModel.orderSearch,
-            onValueChange = { viewModel.orderSearch = it },
-            placeholder = "بحث بالرقم أو الاسم...",
+            value = state.purchaseOrderSearch,
+            onValueChange = { viewModel.onSearchTextEntered(it) },
+            placeholder = stringResource(R.string.search_by_number),
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
         )
 
-        // Count
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("${orders.size} نتيجة", color = colors.muted, fontSize = 11.sp)
-            Text("TRANSFER" ?: "", color = accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+            Text("${state.filteredPurchaseOrders.size} ${stringResource(R.string.items)}", color = colors.muted, fontSize = 11.sp)
+            Text("PO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         }
 
-        if (orders.isEmpty()) {
+        if (state.isAllPurchaseOrdersLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📂", fontSize = 36.sp)
-                    Spacer(Modifier.height(10.dp))
-                    Text("لا توجد نتائج", color = colors.muted, fontSize = 13.sp)
-                }
+                CircularProgressIndicator(color = accent)
             }
         } else {
-            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
-                itemsIndexed(orders) { index, ord ->
-                    OrderCard(order = ord, accent = accent,
-                        onClick = {
-                          //  viewModel.navigate(Screens.DETAIL, order = ord)
-                            navController.navigate(Screens.ReceivingProductFromBranchDetailsScreen.createRoute(ord.id))
-                        },
-                        isMaterialsShowed = viewModel.showMaterials && viewModel.currentClickedOrderIndex == index,
-                        showMaterialsClicked = {
-                            if (viewModel.currentClickedOrderIndex == index && viewModel.showMaterials) {
-                                viewModel.showMaterials = false
-                            } else {
-                                viewModel.currentClickedOrderIndex = index
-                                viewModel.showMaterials = true
-                            }
-                        })
-                    Spacer(Modifier.height(8.dp))
+            val list = state.filteredPurchaseOrders
+            if (list.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("📂", fontSize = 36.sp)
+                        Spacer(Modifier.height(10.dp))
+                        Text(stringResource(R.string.no_results), color = colors.muted, fontSize = 13.sp)
+                        Spacer(Modifier.height(10.dp))
+                        OutlineBtn(stringResource(R.string.reload), accent) {
+                            viewModel.loadOrders()
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
+                    itemsIndexed(list) { index, ord ->
+                        TransitPurchaseOrderCard(order = ord, accent = accent,
+                            onClick = {
+                                navController.navigate(Screens.ReceivingProductFromBranchDetailsScreen.createRoute(ord.poNumber))
+                            }, onMaterialsNumberButtonClicked = {
+                                viewModel.onShowMaterialsClicked(index)
+                            },
+                            isMaterialsShowed = state.isMaterialsShowed && state.showMaterialsClickedCardIndex == index
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
                 }
             }
         }
     }
 }
+
 @Composable
 fun InspectingProductFromBranchListScreen(
     navController: NavController,
 ) {
-    val viewModel: OrdersListViewModel = viewModel()
-    val orders = viewModel.filteredOrders
+    val viewModel: OrdersListViewModel = hiltViewModel()
+    val state by viewModel.uiState.collectAsState()
     val colors = AppTheme.colors
     val accent = colors.purple
 
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
-        TopBar(title = "مراجعة الجودة", subtitle = "منتج تام من فرع آخر", accent = accent,
-            onBack = {
-              //  viewModel.back()
-                navController.popBackStack()
-            })
-
-        // Search
-        SearchBox(
-            value = viewModel.orderSearch,
-            onValueChange = { viewModel.orderSearch = it },
-            placeholder = "بحث بالرقم أو الاسم...",
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+        TopBar(
+            title = stringResource(R.string.quality_decision),
+            subtitle = stringResource(R.string.product_from_branch),
+            accent = accent,
+            onBack = { navController.popBackStack() }
         )
 
-        // Count
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("${orders.size} نتيجة", color = colors.muted, fontSize = 11.sp)
-            Text("TRANSFER" ?: "", color = accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-        }
-
-        if (orders.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📂", fontSize = 36.sp)
-                    Spacer(Modifier.height(10.dp))
-                    Text("لا توجد نتائج", color = colors.muted, fontSize = 13.sp)
-                }
+        if (state.isAllPurchaseOrdersLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = accent)
             }
         } else {
-            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
-                itemsIndexed(orders) { index, ord ->
-                    OrderCard(order = ord, accent = accent,
-                        onClick = {
-                       //     viewModel.navigate(Screens.DETAIL, order = ord)
-                            navController.navigate(Screens.InspectingProductFromBranchDetailsScreen.createRoute(ord.id))
-                        },
-                        isMaterialsShowed = viewModel.showMaterials && viewModel.currentClickedOrderIndex == index,
-                        showMaterialsClicked = {
-                            if (viewModel.currentClickedOrderIndex == index && viewModel.showMaterials) {
-                                viewModel.showMaterials = false
-                            } else {
-                                viewModel.currentClickedOrderIndex = index
-                                viewModel.showMaterials = true
-                            }
-                        })
-                    Spacer(Modifier.height(8.dp))
+            LazyColumn(
+                contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                itemsIndexed(state.filteredPurchaseOrders) { _, it ->
+                    TransitPurchaseOrderCard(it, accent, onClick = {})
                 }
             }
         }
     }
 }
+
 @Composable
 fun PutAwayProductFromBranchListScreen(
     navController: NavController,
 ) {
-    val viewModel: OrdersListViewModel = viewModel()
-    val orders = viewModel.filteredOrders
+    val viewModel: OrdersListViewModel = hiltViewModel()
+    val state by viewModel.uiState.collectAsState()
     val colors = AppTheme.colors
     val accent = colors.yellow
 
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
-        TopBar(title = "تسكين", subtitle = "منتج تام من فرع آخر", accent = accent,
-            onBack = {
-               // viewModel.back()
-                navController.popBackStack()
-            })
-
-        // Search
-        SearchBox(
-            value = viewModel.orderSearch,
-            onValueChange = { viewModel.orderSearch = it },
-            placeholder = "بحث بالرقم أو الاسم...",
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+        TopBar(
+            title = stringResource(R.string.putaway),
+            subtitle = stringResource(R.string.product_from_branch),
+            accent = accent,
+            onBack = { navController.popBackStack() }
         )
 
-        // Count
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("${orders.size} نتيجة", color = colors.muted, fontSize = 11.sp)
-            Text("TRANSFER" ?: "", color = accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-        }
-
-        if (orders.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📂", fontSize = 36.sp)
-                    Spacer(Modifier.height(10.dp))
-                    Text("لا توجد نتائج", color = colors.muted, fontSize = 13.sp)
-                }
+        if (state.isAllPurchaseOrdersLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = accent)
             }
         } else {
-            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
-                itemsIndexed(orders) { index, ord ->
-                    OrderCard(order = ord, accent = accent,
-                        onClick = {
-                        //    viewModel.navigate(Screens.DETAIL, order = ord)
-                            navController.navigate(Screens.PutAwayProductFromBranchDetailsScreen.createRoute(ord.id))
-                        },
-                        isMaterialsShowed = viewModel.showMaterials && viewModel.currentClickedOrderIndex == index,
-                        showMaterialsClicked = {
-                            if (viewModel.currentClickedOrderIndex == index && viewModel.showMaterials) {
-                                viewModel.showMaterials = false
-                            } else {
-                                viewModel.currentClickedOrderIndex = index
-                                viewModel.showMaterials = true
-                            }
-                        })
-                    Spacer(Modifier.height(8.dp))
+            LazyColumn(
+                contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                itemsIndexed(state.filteredPurchaseOrders) { _, it ->
+                    TransitPurchaseOrderCard(it, accent, onClick =  {
+                        navController.navigate(Screens.PutAwayProductFromBranchDetailsScreen.createRoute(it.poNumber))
+                    })
                 }
             }
         }
     }
 }
 
-
 @Composable
-fun OrderCard(order: Order, accent: Color, onClick: () -> Unit,isMaterialsShowed : Boolean = false,showMaterialsClicked:()->Unit) {
+fun TransitPurchaseOrderCard(
+    order: TransitOrderMaterialPurchaseOrder,
+    accent: Color,
+    isMaterialsShowed: Boolean = false,
+    onClick: () -> Unit,
+    onMaterialsNumberButtonClicked: () -> Unit = {}
+) {
     var hovered by remember { mutableStateOf(false) }
     val colors = AppTheme.colors
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(if (hovered) colors.card2 else colors.card)
-            .border(1.dp, if (hovered) colors.border2 else colors.border, RoundedCornerShape(12.dp))
-            .clickable { onClick(); hovered = false }
-            .padding(14.dp)
+            .clickable { onClick(); hovered = false },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (hovered) colors.card2 else colors.card
+        ),
+        border = BorderStroke(1.dp, if (hovered) colors.border2 else colors.border)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text("#${order.id}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Pill(order.status, order.statusColor)
+        Column(modifier = Modifier.padding(14.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "#${order.poNumber}",
+                color = accent,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Spacer(Modifier.height(6.dp))
+            if (!order.warehouseCode.isNullOrEmpty()){
+                Text(
+                    text = "${order.warehouseCode} - ${order.warehouseDescription}",
+                    color = colors.text,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(6.dp))
+            }
+            if (isMaterialsShowed) {
+                order.purchaseOrderItems.forEach { material ->
+                    TransitOrderMaterialInfoCard(material)
+                }
+            }
+            if (!isMaterialsShowed) {
+                OutlineBtn(
+                    "${order.purchaseOrderItems.size} ${stringResource(R.string.items)}",
+                    accent
+                ) {
+                    onMaterialsNumberButtonClicked()
+                }
+            }
         }
-        Spacer(Modifier.height(6.dp))
-        Text(order.info, color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)
-        Spacer(Modifier.height(6.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(order.date, color = colors.muted, fontSize = 10.sp)
-            //    Text("${order.items} أصناف", color = MUTED, fontSize = 10.sp)
-            OutlineBtn("${order.items}أصناف", accent) { showMaterialsClicked() }
-        }
-        if (isMaterialsShowed) {
-            MarginTenDp()
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                Text(order.materialsToString(), color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)
+    }
+}
+
+@Composable
+fun TransitOrderMaterialInfoCard(
+    materialInfo: TransitOrderMaterialPurchaseOrderItem
+) {
+    val colors = AppTheme.colors
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.dark)
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = materialInfo.materialCode ?: "",
+                    color = colors.text,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = stringResource(R.string.remaining_quantity_) + " ${materialInfo.remainingQuantity} ${materialInfo.uom}",
+                    color = colors.muted,
+                    fontSize = 10.sp,
+                    maxLines = 1
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = materialInfo.materialDescription ?: "",
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    textAlign = TextAlign.Center,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 10.sp
+                )
+                if (!materialInfo.carNo.isNullOrEmpty()) {
+                    Row {
+                        Text(
+                            text = "🚛",
+                            fontSize = 14.sp
+                        )
+                        Spacer(Modifier.width(2.dp))
+                        Text(
+                            text = materialInfo.carNo,
+                            color = colors.text,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
             }
         }
     }

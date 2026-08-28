@@ -37,17 +37,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.DANGER
 import net.gbs.gbswarehouse.FullBtn
 import net.gbs.gbswarehouse.GREEN
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.SUCC
 import net.gbs.gbswarehouse.Section
 import net.gbs.gbswarehouse.TopBar
@@ -59,10 +62,9 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun SettingsScreen(
     navController : NavController,
-    vm: SettingsViewModel = viewModel()
+    vm: SettingsViewModel = hiltViewModel()
 ) {
     val uiState = vm.uiState
-    val vm = viewModel<SettingsViewModel>()
     // auto-reset Idle after showing success/error
     LaunchedEffect(uiState) {
         if (uiState is SettingsUiState.Success || uiState is SettingsUiState.Error) {
@@ -78,8 +80,8 @@ fun SettingsScreen(
     ) {
         // ── TopBar ────────────────────────────────────────────────────────
         TopBar(
-            title    = "إعدادات الاتصال",
-            subtitle = "بيانات السيرفر",
+            title    = stringResource(R.string.connection_settings),
+            subtitle = stringResource(R.string.server_information),
             accent   = GREEN,
             onBack   = {navController.popBackStack()}
         )
@@ -93,7 +95,7 @@ fun SettingsScreen(
         ) {
 
             // ── Protocol toggle ───────────────────────────────────────────
-            Section(label = "البروتوكول", accent = GREEN) {
+            Section(label = stringResource(R.string.protocol), accent = GREEN) {
                 val options = listOf("http", "https")
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     options.forEachIndexed { index, option ->
@@ -127,11 +129,11 @@ fun SettingsScreen(
             }
 
             // ── IP Address ────────────────────────────────────────────────
-            Section(label = "عنوان IP", accent = GREEN) {
+            Section(label = stringResource(R.string.ip_address), accent = GREEN) {
                 SettingsInputField(
                     value         = vm.ip,
                     onValueChange = { vm.ip = it; vm.ipError = null },
-                    hint          = "مثال: 192.168.1.100",
+                    hint          = stringResource(R.string.example) +"192.168.1.100",
                     error         = vm.ipError,
                     keyboardType  = KeyboardType.Ascii,
                     ltr           = true
@@ -139,11 +141,11 @@ fun SettingsScreen(
             }
 
             // ── Port ──────────────────────────────────────────────────────
-            Section(label = "البورت", accent = GREEN) {
+            Section(label = stringResource(R.string.port), accent = GREEN) {
                 SettingsInputField(
                     value         = vm.port,
                     onValueChange = { vm.port = it; vm.portError = null },
-                    hint          = "مثال: 8080",
+                    hint          = stringResource(R.string.example)+" 8080",
                     error         = vm.portError,
                     keyboardType  = KeyboardType.Number,
                     ltr           = true
@@ -161,7 +163,8 @@ fun SettingsScreen(
                         .padding(12.dp)
                 ) {
                     Column {
-                        Text("معاينة الرابط", color = colors.muted, fontSize = 10.sp,
+                        Text(
+                            stringResource(R.string.check_url), color = colors.muted, fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -215,7 +218,9 @@ fun SettingsScreen(
             FullBtn(
                 label   = if (uiState is SettingsUiState.Loading) "" else "↓  حفظ الإعدادات",
                 color   = GREEN,
-                onClick = { vm.onSaveButtonClicked() },
+                onClick = {
+                    vm.onSaveButtonClicked()
+                          },
                 saving  = uiState is SettingsUiState.Loading
             )
         }

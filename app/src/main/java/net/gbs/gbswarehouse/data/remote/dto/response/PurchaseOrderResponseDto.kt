@@ -24,6 +24,7 @@ data class SparePartsMaterialDto(
     val uom: String?,
     val plantCode: String?,
     val valuationTypes: List<ValuationTypeDto>?,
+    val isBatchManaged : Boolean,
 )
 
 data class ValuationTypeDto(

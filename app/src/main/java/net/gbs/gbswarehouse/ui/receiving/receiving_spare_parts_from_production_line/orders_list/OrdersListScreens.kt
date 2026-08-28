@@ -87,7 +87,7 @@ fun ReceivingSparePartsFromProductionListScreen(
                     OrderCard(order = ord, accent = accent,
                         onClick = {
                           //  viewModel.navigate(Screens.DETAIL, order = ord)
-                            navController.navigate(Screens.ReceivingSparePartsFromProductionDetailsScreen.createRoute(ord.id))
+                            navController.navigate(Screens.ReceivingSparePartsFromProductionDetailsScreen.createRoute(ord.id,""))
                         },
                         isMaterialsShowed = viewModel.showMaterials && viewModel.currentClickedOrderIndex == index,
                         showMaterialsClicked = {

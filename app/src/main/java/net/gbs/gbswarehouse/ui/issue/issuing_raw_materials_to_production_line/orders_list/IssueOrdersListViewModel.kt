@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.gbs.gbswarehouse.BINS
@@ -18,8 +19,51 @@ import net.gbs.gbswarehouse.Operation
 import net.gbs.gbswarehouse.Order
 import net.gbs.gbswarehouse.RAW_MATERIALS
 import net.gbs.gbswarehouse.Screens
+import net.gbs.gbswarehouse.core.network.NetworkResult
+import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationOrder
+import net.gbs.gbswarehouse.domain.usecase.issuing.GetTransferToProductionReservationsUseCase
+import javax.inject.Inject
 
-class IssueOrdersListViewModel: ViewModel() {
+@HiltViewModel
+class IssueOrdersListViewModel @Inject constructor(
+    private val getTransferToProductionReservationsUseCase: GetTransferToProductionReservationsUseCase
+): ViewModel() {
+    var orders by mutableStateOf<List<SparePartsReturnReservationOrder>>(emptyList())
+    var isLoading by mutableStateOf(false)
+    var errorMessage by mutableStateOf<String?>(null)
+
+    init {
+        loadOrders()
+    }
+
+    fun loadOrders() {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            when (val result = getTransferToProductionReservationsUseCase()) {
+                is NetworkResult.Success -> {
+                    orders = result.data
+                }
+                is NetworkResult.BusinessError -> {
+                    errorMessage = result.message
+                }
+                is NetworkResult.HttpError -> {
+                    errorMessage = result.message
+                }
+                is NetworkResult.NetworkError -> {
+                    errorMessage = result.message
+                }
+                is NetworkResult.UnknownError -> {
+                    errorMessage = result.message
+                }
+                else -> {
+                    errorMessage = "Unknown error"
+                }
+            }
+            isLoading = false
+        }
+    }
+
     var currentClickedOrderIndex by mutableStateOf(-1)
     var showMaterials by mutableStateOf(false)
     var screen    by mutableStateOf(Screens.Home)
@@ -65,10 +109,12 @@ class IssueOrdersListViewModel: ViewModel() {
     val accent: androidx.compose.ui.graphics.Color get() =
         if (mainCat == "issue") ORANGE else selOpType?.accent ?: GREEN
 
-    val filteredOrders: List<Order> get() {
-        val list = ORDERS["PROD"] ?: emptyList()
-        return if (orderSearch.isBlank()) list
-        else list.filter { it.id.contains(orderSearch) || it.info.contains(orderSearch) }
+    val filteredOrders: List<SparePartsReturnReservationOrder> get() {
+        return if (orderSearch.isBlank()) orders
+        else orders.filter { 
+            it.reservationNumber?.contains(orderSearch) == true || 
+            it.orderDescription?.contains(orderSearch, ignoreCase = true) == true 
+        }
     }
 
     val filteredMaterials: List<Material> get() {

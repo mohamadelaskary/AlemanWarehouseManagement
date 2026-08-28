@@ -67,7 +67,7 @@ import net.gbs.gbswarehouse.workersGroup
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 
 @Composable
-fun ReceivingFinishedGoodFromProductionDetailsScreen(
+fun ReceivingFinishedGoodFromProductionDetailsScreenOld(
     navController: NavController,
     orderId: String
 ){
@@ -130,7 +130,8 @@ fun ReceivingFinishedGoodFromProductionDetailsScreen(
                         WarehousesSpinner(
                             hint = "المخزن",
                             items = warehouses,
-                            onItemSelected = { viewModel.selectedWarehouse = it }
+                            onItemSelected = { viewModel.selectedWarehouse = it },
+                            onSearchTextChanged = {}
                         )
                     }
                 
@@ -238,7 +239,7 @@ fun ReceivingFinishedGoodFromProductionDetailsScreen(
     }
 }
 @Composable
-fun InspectingFinishedGoodFromProductionDetailsScreen(
+fun InspectingFinishedGoodFromProductionDetailsScreenOld(
     navController: NavController,
     orderId: String
 ){
@@ -482,7 +483,7 @@ fun SelectedMaterialCard(
     }
 }
 @Composable
-fun PutAwayFinishedGoodFromProductionDetailsScreen(
+fun PutAwayFinishedGoodFromProductionDetailsScreenOld(
     navController: NavController,
     orderId: String
 ){

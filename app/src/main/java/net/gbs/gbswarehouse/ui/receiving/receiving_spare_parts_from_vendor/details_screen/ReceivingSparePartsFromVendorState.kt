@@ -10,11 +10,12 @@ import net.gbs.gbswarehouse.domain.model.WorkersGroup
 data class ReceivingSparePartsFromVendorState (
     val orderNumber:String="",
 
-    val purchaseOrderSearchStatus: PurchaseOrderSearchStatus = PurchaseOrderSearchStatus.IDLE,
+    val purchaseOrderGetDataStatus: PurchaseOrderGetDataStatus = PurchaseOrderGetDataStatus.IDLE,
 
     val isWarehousesLoading:Boolean=false,
 
     val purchaseOrder: PurchaseOrder?=null,
+    val materialCodeInput: String = "",
     val materialSearch:String="",
     val filteredMaterials:List<SparePartsMaterial> = emptyList(),
     val materials:List<SparePartsMaterial> = emptyList(),
@@ -22,7 +23,7 @@ data class ReceivingSparePartsFromVendorState (
     val selectedMaterial:SparePartsMaterial?=null,
 
     val warehouses:List<Warehouse> = emptyList(),
-    val selectedExpiryDate : String = "",
+    val selectedExpiryDate : String? = null,
     val selectedWarehouse: Warehouse?=null,
     val selectedValuationType: ValuationType? = null,
     val quantity:String = "",
@@ -39,8 +40,13 @@ data class ReceivingSparePartsFromVendorState (
     val isSavingLoading:Boolean = false,
     val showSuccessDialog:Boolean = false,
     val showErrorDialog:Boolean = false,
+    val warehouseSearchText: String = "",
+    val valuationSearchText: String = "",
 )
 
-enum class PurchaseOrderSearchStatus {
-    IDLE, LOADING, SUCCESS, ERROR
+sealed class PurchaseOrderGetDataStatus {
+    data object IDLE : PurchaseOrderGetDataStatus()
+    data object LOADING : PurchaseOrderGetDataStatus()
+    data class SUCCESS(val po: PurchaseOrder) : PurchaseOrderGetDataStatus()
+    data class ERROR(val error: String) : PurchaseOrderGetDataStatus()
 }

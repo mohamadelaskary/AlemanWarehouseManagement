@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -95,18 +96,22 @@ fun LoginScreen(
             Box(
                 modifier = Modifier
                     .size(76.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(colors.card)
-                    .border(
-                        width = 1.5.dp,
-                        brush = Brush.linearGradient(
-                            listOf(colors.green.copy(.55f), colors.green.copy(.15f))
-                        ),
-                        shape = RoundedCornerShape(22.dp)
-                    ),
+                    .clip(RoundedCornerShape(22.dp)),
+//                    .background(colors.card)
+//                    .border(
+//                        width = 1.5.dp,
+//                        brush = Brush.linearGradient(
+//                            listOf(colors.green.copy(.55f), colors.green.copy(.15f))
+//                        ),
+//                        shape = RoundedCornerShape(22.dp)
+//                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Text("🏭", fontSize = 36.sp)
+                Image(
+                    painter = painterResource(R.drawable.gbs_logo),
+                    contentDescription = "GBS Logo"
+                    , modifier = Modifier.size(76.dp)
+                )
             }
 
             Spacer(Modifier.height(18.dp))
@@ -214,11 +219,6 @@ fun LoginScreen(
                     LoginApiState.Idle -> {
                     }
                     LoginApiState.Loading -> {
-                        CircularProgressIndicator(
-                            color       = colors.green,
-                            modifier    = Modifier.size(22.dp),
-                            strokeWidth = 2.dp
-                        )
                     }
                     is LoginApiState.Success -> {
                         LaunchedEffect(Unit) {

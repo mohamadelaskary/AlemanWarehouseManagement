@@ -1,5 +1,6 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_raw_materials_from_vendor.details_screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,23 +9,35 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
@@ -42,204 +56,186 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import net.gbs.gbswarehouse.Bin
-import net.gbs.gbswarehouse.CarCodeInput
-import net.gbs.gbswarehouse.CarSourceSpinner
-import net.gbs.gbswarehouse.CarTypeSpinner
-import net.gbs.gbswarehouse.DatePickerField
+import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.Field
 import net.gbs.gbswarehouse.FullBtn
-import net.gbs.gbswarehouse.InfoCell
-import net.gbs.gbswarehouse.InspectionSelectedMaterialCard
-import net.gbs.gbswarehouse.LoadTypeSpinner
-import net.gbs.gbswarehouse.MarginTenDp
-import net.gbs.gbswarehouse.Material
-import net.gbs.gbswarehouse.ORDERS
-import net.gbs.gbswarehouse.Order
+import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.OutlineBtn
-import net.gbs.gbswarehouse.QualityDecisionSpinner
-import net.gbs.gbswarehouse.Screens
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.SearchBox
+import net.gbs.gbswarehouse.SearchableSpinner
 import net.gbs.gbswarehouse.Section
-import net.gbs.gbswarehouse.SuccessCard
+import net.gbs.gbswarehouse.SuccessDialog
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.TransportationType
-import net.gbs.gbswarehouse.TransportationTypeSelector
-import net.gbs.gbswarehouse.TransportingVendorSpinner
+import net.gbs.gbswarehouse.TransportingVendor
 import net.gbs.gbswarehouse.WarehousesSpinner
-import net.gbs.gbswarehouse.WorksGroupSpinner
-import net.gbs.gbswarehouse.carSources
-import net.gbs.gbswarehouse.carTypes
-import net.gbs.gbswarehouse.loadTypes
-import net.gbs.gbswarehouse.qualityDecisions
+import net.gbs.gbswarehouse.WorkersGroupsSpinner
+import net.gbs.gbswarehouse.data.remote.dto.response.RawMaterialsLineDto
+import net.gbs.gbswarehouse.domain.model.CarNumber
+import net.gbs.gbswarehouse.domain.model.CarType
+import net.gbs.gbswarehouse.domain.model.LoadingVendor
+import net.gbs.gbswarehouse.domain.model.NaolonDescription
+import net.gbs.gbswarehouse.domain.model.PackageType
+import net.gbs.gbswarehouse.domain.model.RawMaterialsPurchaseOrderItem
 import net.gbs.gbswarehouse.transportationTypes
-import net.gbs.gbswarehouse.transportingVendors
+import net.gbs.gbswarehouse.ui.receiving.ReceivingAddLineButton
+import net.gbs.gbswarehouse.ui.receiving.ReceivingBottomSheetDialog
+import net.gbs.gbswarehouse.ui.receiving.ReceivingChip
+import net.gbs.gbswarehouse.ui.receiving.ReceivingInfoCell
+import net.gbs.gbswarehouse.ui.receiving.ReceivingMatCodeInput
+import net.gbs.gbswarehouse.ui.receiving.ReceivingMaterialDialogItem
 import net.gbs.gbswarehouse.ui.theme.AppTheme
-import net.gbs.gbswarehouse.warehouses
-import net.gbs.gbswarehouse.workersGroup
+import net.gbs.honeywellscanner.ScannerEffect
 
 @Composable
 fun ReceivingRawMaterialsFromVendorDetailsScreen(
     navController: NavController,
     orderId: String
 ){
-    val viewModel: DetailsViewModel = viewModel()
+    val viewModel: DetailsViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = AppTheme.colors
     val accent = colors.green
-    val doneLabel = "الكمية المستلمة"
-    val order = ORDERS["PO"]?.find { it.id == orderId }!!
+    var showMatDlg by remember { mutableStateOf(false) }
+
+    LaunchedEffect(orderId) {
+        viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.LoadOrder(orderId))
+    }
+
+    ScannerEffect(onScan = viewModel::onBarcodeScanned)
+
+    if (state.showSuccessDialog) {
+        SuccessDialog(
+            accent = accent,
+            message = stringResource(R.string.save_success_message),
+            onClose = {
+                viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnDismissDialogs)
+                navController.popBackStack()
+            }
+        )
+    }
+
+    if (state.showErrorDialog) {
+        ErrorDialog(
+            accent = accent,
+            message = state.saveError,
+            onClose = { viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnDismissDialogs) }
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
-            TopBar(title = "استلام", subtitle = "مواد خام من مورد",
+            TopBar(title = stringResource(R.string.receiving), subtitle = stringResource(R.string.raw_materials_from_vendor),
                 accent = accent, onBack = {
                     navController.popBackStack()
                 })
 
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
-                    top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
-                )
-            ) {
-
-                // ── Order Info Card (non-blind) ────────────────────────────
-                    item {
-                        Section(label = "بيانات الأمر", accent = colors.green) {
-                            val fields = listOf(
-                                Triple("رقم امر الشراء", order.id, null),
-                                Triple("الحالة",      order.status, order.statusColor),
-                                Triple("الجهة",       order.info,   null),
-                                Triple("التاريخ",     order.date,   null),
-                                Triple("عدد الأصناف","${order.items} أصناف", null),
-                            )
-                            // 2-column grid
-                            for (i in fields.indices step 2) {
-                                Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    val f1 = fields[i]
-                                    val f2 = if (i + 1 < fields.size) fields[i + 1] else null
-                                    // if "الجهة" span full width
-                                    if (f1.first == "الجهة") {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text, modifier = Modifier.weight(1f))
-                                    } else {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
-                                            modifier = Modifier.weight(1f))
+            when (val status = state.getDataStatus) {
+                is RawMaterialsPurchaseOrderGetDataStatus.LOADING -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = accent)
+                    }
+                }
+                is RawMaterialsPurchaseOrderGetDataStatus.ERROR -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(status.message, color = colors.text)
+                    }
+                }
+                is RawMaterialsPurchaseOrderGetDataStatus.SUCCESS, RawMaterialsPurchaseOrderGetDataStatus.IDLE -> {
+                    LazyColumn(
+                        contentPadding = PaddingValues(
+                            start = 14.dp, end = 14.dp,
+                            top = 10.dp,
+                            bottom = if (state.addedItems.isNotEmpty()) 90.dp else 20.dp
+                        )
+                    ) {
+                        item {
+                            Section(label = stringResource(R.string.order_data), accent = colors.green) {
+                                val po = state.purchaseOrder
+                                val fields = listOf(
+                                    Triple(stringResource(R.string.po_number), po?.poNumber ?: "", null),
+                                    Triple(stringResource(R.string.vendor), po?.vendorName ?: "", null),
+                                    Triple(stringResource(R.string.vendor_code), po?.vendorCode ?: "", null),
+                                    Triple(stringResource(R.string.items_count), "${po?.purchaseOrderItems?.size ?: 0} " + stringResource(R.string.items), null),
+                                )
+                                for (i in fields.indices step 2) {
+                                    Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        val f1 = fields[i]
+                                        val f2 = if (i + 1 < fields.size) fields[i + 1] else null
+                                        ReceivingInfoCell(f1.first, f1.second, f1.third ?: colors.text, modifier = Modifier.weight(1f))
                                         if (f2 != null) {
-                                            InfoCell(f2.first, f2.second, f2.third ?: colors.text,
-                                                modifier = Modifier.weight(1f))
+                                            ReceivingInfoCell(f2.first, f2.second, f2.third ?: colors.text, modifier = Modifier.weight(1f))
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                    item {
-                        MarginTenDp()
-                        TransportationTypeSelector(
-                            options = transportationTypes,
-                            onItemSelected = { viewModel.selectedTransportationType = it }
-                        )
-                        Spacer(Modifier.height(10.dp))
-                    }
-                item {
-                    CarTypeSpinner(
-                        hint = "نوع السيارة",
-                        items = carTypes,
-                        onItemSelected = { viewModel.selectedCarType = it }
-                    )
-                    Spacer(Modifier.height(10.dp))
-                }
-                item {
-                    CarSourceSpinner(
-                        hint = "مصدر السيارة",
-                        items = carSources,
-                        onItemSelected = { viewModel.selectedCarSource = it }
-                    )
-                    Spacer(Modifier.height(10.dp))
-                }
-                item {
-                    CarCodeInput(
-                        value = viewModel.carCode,
-                        onValueChange = { viewModel.carCode = it }
-                    )
-                    Spacer(Modifier.height(10.dp))
-                }
-                item {
-                    LoadTypeSpinner(
-                        hint = "نوع الحمولة",
-                        items = loadTypes,
-                        onItemSelected = { viewModel.selectedLoadType = it }
-                    )
-                    Spacer(Modifier.height(10.dp))
-                }
-                item {
-                    TransportingVendorSpinner(
-                        hint = "مورد النقل",
-                        items = transportingVendors,
-                        onItemSelected = { viewModel.selectedTransportingVendor = it }
-                    )
-                    Spacer(Modifier.height(10.dp))
-                }
-                item {
-                    WarehousesSpinner(
-                        hint = "المخزن",
-                        items = warehouses,
-                        onItemSelected = { viewModel.selectedWarehouse = it }
-                    )
-                    Spacer(Modifier.height(10.dp))
-                }
-                
 
-                // ── Normal/Issue: Material Section ────────────────────────
-                
-                    item {
-                        Section(label = "بيانات الصنف", accent = accent) {
-                            Row(Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                MatCodeInput(
-                                    value = viewModel.matInput,
-                                    onValueChange = { viewModel.matInput = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlineBtn("اختر مادة", accent) { viewModel.matDlg = true }
-                            }
-                            if (viewModel.selMat != null) {
-                                Spacer(Modifier.height(8.dp))
-                                SelectedMaterialCard(
-                                    mat = viewModel.selMat!!,
-                                    accent = accent,
-                                    isQuality = false,
-                                    isIssue = false,
-                                    doneLabel = doneLabel,
-                                    smpQty = viewModel.smpQty,
-                                    onSmpQtyChange = { viewModel.smpQty = it },
-                                    qty = viewModel.qty,
-                                    onQtyChange = { viewModel.qty = it },
-                                    saved = viewModel.saved,
-                                    saving = viewModel.saving,
-                                    onAccept = { viewModel.doSave("accept") },
-                                    onReject = { viewModel.doSave("reject") },
-                                    onClear = { viewModel.clearMaterial() }
-                                )
+                        item {
+                            Section(label = stringResource(R.string.item_data), accent = accent) {
+                                Column {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        ReceivingMatCodeInput(
+                                            value = state.selectedMaterial?.materialCode ?: "",
+                                            onValueChange = { /* handled by dialog */ },
+                                            modifier = Modifier.weight(1f),
+                                            enabled = false
+                                        )
+                                        OutlineBtn(stringResource(R.string.select_material), accent) {
+                                            showMatDlg = true
+                                        }
+                                    }
+                                    if (state.materialCodeError.isNotEmpty()) {
+                                        Text(
+                                            state.materialCodeError,
+                                            color = Color.Red,
+                                            fontSize = 10.sp,
+                                            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                                        )
+                                    }
+                                }
+                                
+                                if (state.selectedMaterial != null) {
+                                    Spacer(Modifier.height(8.dp))
+                                    SelectedRawMaterialToVendorMaterialCard(
+                                        mat = state.selectedMaterial!!,
+                                        state = state,
+                                        onEvent = viewModel::onEvent,
+                                        accent = accent,
+                                        onTransportationVendorChanged = {
+                                            viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnTransportationVendorChanged(it))
+                                        }
+                                    )
+                                }
                             }
                         }
-                    
-                }
 
-
-                // ── Success Card ──────────────────────────────────────────
-                if (viewModel.saved) {
-                    item { SuccessCard(kind = viewModel.saveKind, accent = accent) }
+                        if (state.addedItems.isNotEmpty()) {
+                            item {
+                                Section(label = stringResource(R.string.added_items), accent = accent) {
+                                    state.addedItems.forEachIndexed { index, item ->
+                                        ReceivingRawMaterialsLineItem(item = item, onDelete = {
+                                            viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnRemoveItem(index))
+                                        })
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        // ── Fixed Save Button ─────────────────────────────────────────────
-        if (viewModel.showFixedSave && !viewModel.saved) {
+        if (state.addedItems.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -252,417 +248,66 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
                     .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
                 FullBtn(
-                    "حفظ الاستلام", accent, { viewModel.doSave("save") },
-                    saving = viewModel.saving
+                    stringResource(R.string.save_receiving) + " (${state.addedItems.size})", accent, {
+                        viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnSave)
+                    },
+                    saving = state.isSaving
                 )
             }
         }
-    }
 
-    // ── Material Dialog ───────────────────────────────────────────────────
-    if (viewModel.matDlg) {
-        BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
-            SearchBox(viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
-                )
-            ) {
-                itemsIndexed(viewModel.filteredMaterials) { _, m ->
-                    MaterialDialogItem(m, viewModel.accent, doneLabel) {
-                        viewModel.selectMaterial(m)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-    }
-
-    // ── Bin Dialog ────────────────────────────────────────────────────────
-    if (viewModel.binDlg) {
-        BottomSheetDialog(title = "اختيار موقع التسكين", onClose = { viewModel.binDlg = false }) {
-            SearchBox(viewModel.binInput, { viewModel.binInput = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(contentPadding = PaddingValues(
-                start = 14.dp, end = 14.dp, bottom = 20.dp
-            )) {
-                itemsIndexed(viewModel.filteredBins) { _, b ->
-                    BinDialogItem(b, viewModel.accent) { viewModel.selectBin(b) }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-    }
-}
-@Composable
-fun InspectingRawMaterialsFromVendorDetailsScreen(
-    navController: NavController,
-    orderId: String
-){
-    val viewModel: DetailsViewModel = viewModel()
-    val colors = AppTheme.colors
-    val accent = colors.purple
-    val order = ORDERS["PO"]?.find { it.id == orderId }!!
-    val doneLabel = "الكمية المستلمة"
-    Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
-        Column(Modifier.fillMaxSize()) {
-            TopBar(title = "مراجعة الجودة", subtitle = "مواد خام من مورد",
-                accent = accent, onBack = {
-                    navController.popBackStack()
-                })
-
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
-                    top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
-                )
-            ) {
-
-            
-                    item {
-                        Section(label = "بيانات الأمر", accent = accent) {
-                            val fields = listOf(
-                                Triple("رقم امر الشراء", order.id, null),
-                                Triple("الحالة",      order.status, order.statusColor),
-                                Triple("الجهة",       order.info,   null),
-                                Triple("التاريخ",     order.date,   null),
-                                Triple("عدد الأصناف","${order.items} أصناف", null),
-                            )
-                            // 2-column grid
-                            for (i in fields.indices step 2) {
-                                Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    val f1 = fields[i]
-                                    val f2 = if (i + 1 < fields.size) fields[i + 1] else null
-                                    // if "الجهة" span full width
-                                    if (f1.first == "الجهة") {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
-                                            modifier = Modifier.weight(1f))
-                                    } else {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
-                                            modifier = Modifier.weight(1f))
-                                        if (f2 != null) {
-                                            InfoCell(f2.first, f2.second, f2.third ?: colors.text,
-                                                modifier = Modifier.weight(1f))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                item{
-                    Field(
-                        "القائم بالفحص *",
-                        "ادخل الكود الوظيفي أو الاسم ..",
-                        viewModel.qualityDecider,
-                        { viewModel.qualityDecider = it })
-                    Spacer(Modifier.height(10.dp))
-                }
-
-
-                // ── Normal/Issue: Material Section ────────────────────────
-                    item {
-                        Section(label = "بيانات الصنف", accent = accent) {
-                            Row(Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                MatCodeInput(
-                                    value = viewModel.matInput,
-                                    onValueChange = { viewModel.matInput = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlineBtn("اختر مادة", accent) { viewModel.matDlg = true }
-                            }
-                            if (viewModel.selMat != null) {
-                                Spacer(Modifier.height(8.dp))
-                                InspectionSelectedMaterialCard(
-                                    mat = viewModel.selMat!!,
-                                    accent = accent,
-                                    isQuality = true,
-                                    isIssue = false,
-                                    doneLabel = doneLabel,
-                                    smpQty = viewModel.smpQty,
-                                    onSmpQtyChange = { viewModel.smpQty = it },
-                                    qty = viewModel.qty,
-                                    onQtyChange = { viewModel.qty = it },
-                                    saved = viewModel.saved,
-                                    saving = viewModel.saving,
-                                    onAccept = { viewModel.doSave("accept") },
-                                    onReject = { viewModel.doSave("reject") },
-                                    onClear = { viewModel.clearMaterial() },
-                                    onQualityDecisionChange = {viewModel.qualityDecision = it}
-                                )
-                            }
-                        }
-                    }
-//                item {
-//
-//                    Section(label="قرار الجودة",accent= accent){
-//                        QualityDecisionSpinner("قرار الجودة",qualityDecisions, onItemSelected = {
-//                            viewModel.qualityDecision = it
-//                        })
-//                    }
-//
-//
-//                }
-
-                // ── Success Card ──────────────────────────────────────────
-                if (viewModel.saved) {
-                    item { SuccessCard(kind = viewModel.saveKind, accent = accent) }
-                }
-            }
-        }
-
-        // ── Fixed Save Button ─────────────────────────────────────────────
-        if (viewModel.showFixedSave && !viewModel.saved) {
+        if (state.isSaving) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent, 0.35f to colors.bg
-                        )
-                    )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+                    .clickable(enabled = false) { },
+                contentAlignment = Alignment.Center
             ) {
-                FullBtn(viewModel.saveLabel, accent, { viewModel.doSave("save") },
-                    saving = viewModel.saving)
+                CircularProgressIndicator(color = accent)
             }
         }
     }
 
-    // ── Material Dialog ───────────────────────────────────────────────────
-    if (viewModel.matDlg) {
-        BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
-            SearchBox(
-                viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-            )
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
-                )
-            ) {
-                itemsIndexed(viewModel.filteredMaterials) { _, m ->
-                    MaterialDialogItem(m, viewModel.accent, doneLabel) {
-                        viewModel.selectMaterial(m)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-    }
-
-
-}
-
-@Composable
-fun PutAwayRawMaterialsFromVendorDetailsScreen(
-    navController: NavController,
-    orderId: String
-){
-    val viewModel: DetailsViewModel = viewModel()
-    val colors = AppTheme.colors
-    val accent = colors.yellow
-    val order = ORDERS["PO"]?.find { it.id == orderId }!!
-    val doneLabel = "الكمية المستلمة"
-    Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
-        Column(Modifier.fillMaxSize()) {
-            TopBar(title = "تسكين", subtitle = "مواد خام من مورد",
-                accent = accent, onBack = {
-                    navController.popBackStack()
-                })
-
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
-                    top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
-                )
-            ) {
-
-            
-                    item {
-                        Section(label = "بيانات الأمر", accent = accent) {
-                            val fields = listOf(
-                                Triple("رقم امر الشراء", order.id, null),
-                                Triple("الحالة",      order.status, order.statusColor),
-                                Triple("الجهة",       order.info,   null),
-                                Triple("التاريخ",     order.date,   null),
-                                Triple("عدد الأصناف","${order.items} أصناف", null),
-                            )
-                            // 2-column grid
-                            for (i in fields.indices step 2) {
-                                Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    val f1 = fields[i]
-                                    val f2 = if (i + 1 < fields.size) fields[i + 1] else null
-                                    // if "الجهة" span full width
-                                    if (f1.first == "الجهة") {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
-                                            modifier = Modifier.weight(1f))
-                                    } else {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
-                                            modifier = Modifier.weight(1f))
-                                        if (f2 != null) {
-                                            InfoCell(f2.first, f2.second, f2.third ?: colors.text,
-                                                modifier = Modifier.weight(1f))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    item {
-                        Section(label = "بيانات الصنف", accent = accent) {
-                            Row(Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                MatCodeInput(
-                                    value = viewModel.matInput,
-                                    onValueChange = { viewModel.matInput = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlineBtn("اختر مادة", accent) { viewModel.matDlg = true }
-                            }
-                            if (viewModel.selMat != null) {
-                                Spacer(Modifier.height(8.dp))
-                                PutAwaySelectedMaterialCard(
-                                    mat = viewModel.selMat!!,
-                                    accent = accent,
-                                    isQuality = false,
-                                    isIssue = false,
-                                    doneLabel = doneLabel,
-                                    smpQty = viewModel.smpQty,
-                                    onSmpQtyChange = { viewModel.smpQty = it },
-                                    qty = viewModel.qty,
-                                    onQtyChange = { viewModel.qty = it },
-                                    saved = viewModel.saved,
-                                    saving = viewModel.saving,
-                                    onAccept = { viewModel.doSave("accept") },
-                                    onReject = { viewModel.doSave("reject") },
-                                    onClear = { viewModel.clearMaterial() }
-                                )
-                            }
-                        }
-                    }
-
-                    item {
-                        Section(label = "بيانات التسكين", accent = accent) {
-                            Row(Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                BinCodeInput(
-                                    value = viewModel.binInput,
-                                    onValueChange = { viewModel.binInput = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlineBtn("اختر Bin", accent) { viewModel.binDlg = true }
-                            }
-                            if (viewModel.selBin != null) {
-                                Spacer(Modifier.height(8.dp))
-                                SelectedBinCard(
-                                    bin = viewModel.selBin!!,
-                                    accent = accent,
-                                    qty = viewModel.qty,
-                                    onQtyChange = { viewModel.qty = it },
-                                    onClear = { viewModel.clearBin() }
-                                )
-                            }
-                        }
-                    }
-
-
-                // ── Success Card ──────────────────────────────────────────
-                if (viewModel.saved) {
-                    item { SuccessCard(kind = viewModel.saveKind, accent = accent) }
-                }
-            }
-        }
-
-        // ── Fixed Save Button ─────────────────────────────────────────────
-        if (viewModel.showFixedSave && !viewModel.saved) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent, 0.35f to colors.bg
-                        )
-                    )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
-            ) {
-                FullBtn("تأكيد التسكين", accent, { viewModel.doSave("save") },
-                    saving = viewModel.saving)
-            }
-        }
-    }
-
-    // ── Material Dialog ───────────────────────────────────────────────────
-    if (viewModel.matDlg) {
-        BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
-            SearchBox(viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
+    if (showMatDlg) {
+        ReceivingBottomSheetDialog(title = stringResource(R.string.select_item), onClose = { showMatDlg = false }) {
+            SearchBox(state.materialSearchText, { viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnMaterialSearchTextChanged(it)) }, stringResource(R.string.search_for_item),
                 Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
             LazyColumn(
                 contentPadding = PaddingValues(
                     start = 14.dp, end = 14.dp, bottom = 20.dp,
                 )
             ) {
-                itemsIndexed(viewModel.filteredMaterials) { _, m ->
-                    MaterialDialogItem(m, viewModel.accent, doneLabel) {
-                        viewModel.selectMaterial(m)
+                val list = if (state.materialSearchText.isEmpty()) state.purchaseOrder?.purchaseOrderItems ?: emptyList() else state.filteredMaterials
+                itemsIndexed(list) { _, m ->
+                    ReceivingMaterialDialogItem(
+                        materialCode = m.materialCode ?: "",
+                        materialDescription = m.materialDescription ?: "",
+                        uom = m.uom ?: "",
+                        orderedQty = m.orderedQuantity.toString(),
+                        receivedQty = m.receivedQuantity.toString(),
+                        doneLabel = stringResource(R.string.received_qty),
+                        accent = accent
+                    ) {
+                        viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnMaterialSelected(m))
+                        showMatDlg = false
                     }
                     Spacer(Modifier.height(6.dp))
                 }
             }
         }
     }
-
-    // ── Bin Dialog ────────────────────────────────────────────────────────
-    if (viewModel.binDlg) {
-        BottomSheetDialog(title = "اختيار موقع التسكين", onClose = { viewModel.binDlg = false }) {
-            SearchBox(viewModel.binInput, { viewModel.binInput = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(contentPadding = PaddingValues(
-                start = 14.dp, end = 14.dp, bottom = 20.dp
-            )) {
-                itemsIndexed(viewModel.filteredBins) { _, b ->
-                    BinDialogItem(b, viewModel.accent) { viewModel.selectBin(b) }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-    }
-
-
 }
 
 @Composable
-fun SelectedMaterialCard(
-    mat: Material,
+fun SelectedRawMaterialToVendorMaterialCard(
+    mat: RawMaterialsPurchaseOrderItem,
+    state: ReceivingRawMaterialsFromVendorDetailsState,
+    onEvent: (ReceivingRawMaterialsFromVendorDetailsEvent) -> Unit,
     accent: Color,
-    isQuality: Boolean,
-    isIssue: Boolean,
-    doneLabel: String,
-    smpQty: String,
-    onSmpQtyChange: (String) -> Unit,
-    qty: String,
-    onQtyChange: (String) -> Unit,
-    saved: Boolean,
-    saving: Boolean,
-    onAccept: () -> Unit,
-    onReject: () -> Unit,
-    onClear: () -> Unit
+    onTransportationVendorChanged: (TransportationType) -> Unit
 ) {
-    val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
     val colors = AppTheme.colors
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -673,384 +318,349 @@ fun SelectedMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+            Text(mat.materialCode ?: "", color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
             Text("✕", color = colors.muted, fontSize = 12.sp,
-                modifier = Modifier.clickable { onClear() }.padding(4.dp))
+                modifier = Modifier.clickable { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnClearMaterial) }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        Text(mat.materialDescription ?: "", color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
         Spacer(Modifier.height(8.dp))
-        // Stats row
+        
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
-                "الوحدة" to mat.unit,).forEach { (l, v) ->
+            listOf( stringResource(R.string.required) to mat.orderedQuantity.toString(), stringResource(R.string.received_qty) to mat.receivedQuantity.toString(), stringResource(R.string.unit) to (mat.uom ?: "")).forEach { (l, v) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(l, color = colors.muted, fontSize = 9.sp,
-                        modifier = Modifier.padding(bottom = 2.dp))
-                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        // Progress bar
-        Column {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("التنفيذ", color = colors.muted, fontSize = 9.sp)
-                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
-                    fontWeight = FontWeight.SemiBold)
-            }
-            Spacer(Modifier.height(3.dp))
-            Box(
-                modifier = Modifier.fillMaxWidth().height(4.dp)
-                    .clip(RoundedCornerShape(2.dp)).background(colors.dark)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxHeight()
-                        .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
-                        .clip(RoundedCornerShape(2.dp)).background(accent)
-                )
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        if (isQuality) {
-            Field("كمية العينة", "0", smpQty, onSmpQtyChange, isNumber = true, center = true)
-            if (!saved) {
-                Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FullBtn("✓  قبول", colors.succ, onAccept, saving, smpQty.isNotEmpty(),
-                        modifier = Modifier.weight(1f))
-                    FullBtn("✕  رفض", colors.danger, onReject, saving, smpQty.isNotEmpty(),
-                        modifier = Modifier.weight(1f))
-                }
-            }
-        } else {
-            val qLabel = "${if (isIssue) "الكمية المصروفة" else "كمية الاستلام"} (${mat.unit})"
-            Field(qLabel, "0", qty, onQtyChange, isNumber = true, center = true)
-        }
-    }
-}
-@Composable
-fun PutAwaySelectedMaterialCard(
-    mat: Material, accent: Color, isQuality: Boolean, isIssue: Boolean,
-    doneLabel: String, smpQty: String, onSmpQtyChange: (String) -> Unit,
-    qty: String, onQtyChange: (String) -> Unit,
-    saved: Boolean, saving: Boolean,
-    onAccept: () -> Unit, onReject: () -> Unit, onClear: () -> Unit
-) {
-    val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
-    val colors = AppTheme.colors
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(accent.copy(0.06f))
-            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
-            .padding(12.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
-                modifier = Modifier.clickable { onClear() }.padding(4.dp))
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-            lineHeight = 18.sp)
-        Spacer(Modifier.height(8.dp))
-        // Stats row
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
-                "الوحدة" to mat.unit,).forEach { (l, v) ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(l, color = colors.muted, fontSize = 9.sp,
-                        modifier = Modifier.padding(bottom = 2.dp))
-                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        // Progress bar
-        Column {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("التنفيذ", color = colors.muted, fontSize = 9.sp)
-                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
-                    fontWeight = FontWeight.SemiBold)
-            }
-            Spacer(Modifier.height(3.dp))
-            Box(
-                modifier = Modifier.fillMaxWidth().height(4.dp)
-                    .clip(RoundedCornerShape(2.dp)).background(colors.dark)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxHeight()
-                        .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
-                        .clip(RoundedCornerShape(2.dp)).background(accent)
-                )
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        if (isQuality) {
-            Field("كمية العينة", "0", smpQty, onSmpQtyChange, isNumber = true, center = true)
-            if (!saved) {
-                Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FullBtn("✓  قبول", colors.succ, onAccept, saving, smpQty.isNotEmpty(),
-                        modifier = Modifier.weight(1f))
-                    FullBtn("✕  رفض", colors.danger, onReject, saving, smpQty.isNotEmpty(),
-                        modifier = Modifier.weight(1f))
-                }
-            }
-        } else {
-            val qLabel = "${if (isIssue) "الكمية المصروفة" else "كمية التسكين"} (${mat.unit})"
-            Field(qLabel, "0", qty, onQtyChange, isNumber = true, center = true)
-        }
-    }
-}
-
-// ── Bin Card ──────────────────────────────────────────────────────────────────
-@Composable
-fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) -> Unit,
-                    onClear: () -> Unit) {
-    val colors = AppTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(accent.copy(0.06f))
-            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
-            .padding(12.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text("📍 ${bin.code}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
-                modifier = Modifier.clickable { onClear() }.padding(4.dp))
-        }
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("المنطقة" to bin.zone, "الممر" to bin.aisle,
-                "الرف" to bin.rack, "المتاح" to bin.avail).forEach { (l, v) ->
-                Column(
-                    modifier = Modifier.weight(1f)
-                        .clip(RoundedCornerShape(6.dp)).background(colors.dark).padding(horizontal = 6.dp, vertical = 8.dp)
-                ) {
                     Text(l, color = colors.muted, fontSize = 9.sp)
-                    Text(v, color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
-    }
-}
-
-// ── Material Code Input ───────────────────────────────────────────────────────
-@Composable
-fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(colors.dark)
-            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = true,
-            textStyle = TextStyle(
-                color = colors.text, fontSize = 13.sp,
-                textDirection = TextDirection.Ltr
-            ),
-            cursorBrush = SolidColor(colors.green),
-            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
-            decorationBox = { inner ->
-                if (value.isEmpty()) Text("كود المادة...", color = colors.muted, fontSize = 13.sp)
-                inner()
-            }
-        )
-    }
-}
-
-@Composable
-fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(colors.dark)
-            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = true,
-            textStyle = TextStyle(
-                color = colors.text, fontSize = 13.sp,
-                textDirection = TextDirection.Ltr
-            ),
-            cursorBrush = SolidColor(colors.yellow),
-            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
-            decorationBox = { inner ->
-                if (value.isEmpty()) Text("كود البن (Bin Code)...", color = colors.muted, fontSize = 13.sp)
-                inner()
-            }
-        )
-    }
-}
-
-// ── Dialog items ──────────────────────────────────────────────────────────────
-@Composable
-fun MaterialDialogItem(mat: Material, accent: Color, doneLabel: String, onClick: () -> Unit) {
-    var hovered by remember { mutableStateOf(false) }
-    val colors = AppTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (hovered) colors.card2 else colors.dark)
-            .border(1.dp, if (hovered) accent.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
-            .clickable { onClick(); hovered = false }
-            .padding(all = 11.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(mat.code, color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text(mat.unit, color = colors.muted, fontSize = 10.sp)
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-            lineHeight = 18.sp)
-        Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("المطلوب: ${mat.qty}", color = colors.muted, fontSize = 10.sp)
-            Text("$doneLabel: ${mat.done}",
-                color = if (mat.done == mat.qty) colors.succ else colors.muted, fontSize = 10.sp)
-        }
-    }
-}
-
-@Composable
-fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
-    var hovered by remember { mutableStateOf(false) }
-    val colors = AppTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (hovered) colors.card2 else colors.dark)
-            .border(1.dp, if (hovered) colors.yellow.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
-            .clickable { onClick(); hovered = false }
-            .padding(12.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("📍 ${bin.code}", color = colors.yellow, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text("متاح", color = colors.succ, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-        }
-        Spacer(Modifier.height(4.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            listOf("المنطقة" to bin.zone, "الممر" to bin.aisle, "المتاح" to bin.avail)
-                .forEach { (l, v) ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(l, color = colors.muted, fontSize = 9.sp)
-                        Text(v, color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            transportationTypes.forEachIndexed { index, option ->
+                SegmentedButton(
+                    shape = SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = transportationTypes.size
+                    ),
+                    selected = state.transportationVendor == option,
+                    onClick  = { onTransportationVendorChanged(option) },
+                    colors   = SegmentedButtonDefaults.colors(
+                        activeContainerColor   = GREEN.copy(alpha = 0.15f),
+                        activeContentColor     = GREEN,
+                        activeBorderColor      = GREEN.copy(alpha = 0.60f),
+                        inactiveContainerColor = colors.card,
+                        inactiveContentColor   = colors.muted,
+                        inactiveBorderColor    = colors.border2,
+                    ),
+                    icon = {},
+                    label = {
+                        Text(
+                            text = option.arName,
+                            fontSize = 13.sp,
+                            fontWeight = if (state.transportationVendor == option) FontWeight.Bold
+                            else FontWeight.Normal
+                        )
                     }
-                }
+                )
+            }
         }
+        Spacer(Modifier.height(16.dp))
+        
+        WarehousesSpinner(
+            items = state.warehouses,
+            onItemSelected = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnWarehouseSelected(it)) },
+            searchText = state.warehouseSearchText,
+            onSearchTextChanged = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnWarehouseSearchTextChanged(it)) }
+        )
+        if (state.warehouseError.isNotEmpty()) Text(state.warehouseError, color = Color.Red, fontSize = 10.sp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.bg.copy(alpha = 0.65f)).padding(10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.car_number),color = colors.muted)
+                Text(state.selectedMaterial?.carNo?:"", color = accent, fontWeight = FontWeight.Bold)
+            }
+        }
+//        CarNumberSpinner(
+//            items = state.carNumbers,
+//            onItemSelected = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnCarNumberSelected(it)) },
+//            searchText = state.carNumberSearchText,
+//            onSearchTextChanged = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnCarNumberSearchTextChanged(it)) }
+//        )
+//        if (state.carNumberError.isNotEmpty()) Text(state.carNumberError, color = Color.Red, fontSize = 10.sp)
+
+        Field(stringResource(R.string.unloading_point) + " *", stringResource(R.string.enter_unloading_point), state.unloadingPoint, { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnUnloadingPointChanged(it)) })
+        if (state.unloadingPointError.isNotEmpty()) Text(state.unloadingPointError, color = Color.Red, fontSize = 10.sp)
+
+        WorkersGroupsSpinner(
+            items = state.workerGroups,
+            onItemSelected = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnWorkerGroupSelected(it)) },
+            searchText = state.workerGroupSearchText,
+            onSearchTextChanged = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnWorkerGroupSearchTextChanged(it)) }
+        )
+        if (state.workerGroupError.isNotEmpty()) Text(state.workerGroupError, color = Color.Red, fontSize = 10.sp)
+        if (state.transportationVendor==transportationTypes.first()) {
+            NaolonDescriptionSpinner(
+                items = state.naolonDescriptions,
+                onItemSelected = {
+                    onEvent(
+                        ReceivingRawMaterialsFromVendorDetailsEvent.OnNaolonDescriptionSelected(
+                            it
+                        )
+                    )
+                },
+                searchText = state.naolonDescriptionSearchText,
+                onSearchTextChanged = {
+                    onEvent(
+                        ReceivingRawMaterialsFromVendorDetailsEvent.OnNaolonDescriptionSearchTextChanged(
+                            it
+                        )
+                    )
+                }
+            )
+            if (state.naolonDescriptionError.isNotEmpty()) Text(
+                state.naolonDescriptionError,
+                color = Color.Red,
+                fontSize = 10.sp
+            )
+        }
+        CarTypeSpinner(
+            items = state.carTypes,
+            onItemSelected = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnCarTypeSelected(it)) },
+            searchText = state.carTypeSearchText,
+            onSearchTextChanged = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnCarTypeSearchTextChanged(it)) }
+        )
+        if (state.carTypeError.isNotEmpty()) Text(state.carTypeError, color = Color.Red, fontSize = 10.sp)
+        if (state.transportationVendor==transportationTypes.first()) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    .clip(RoundedCornerShape(8.dp)).background(colors.dark).padding(12.dp)
+            ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        stringResource(R.string.naolon_cost) + ":",
+                        color = colors.muted,
+                        fontSize = 12.sp
+                    )
+                    Text(state.naolonValue?:"", color = accent, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Field(stringResource(R.string.cont_no) + " *", stringResource(R.string.enter_cont_no), state.contNo, { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnContNoChanged(it)) })
+        if (state.contNoError.isNotEmpty()) Text(state.contNoError, color = Color.Red, fontSize = 10.sp)
+        if (state.transportationVendor==transportationTypes.first()){
+            Spacer(Modifier.height(5.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(colors.bg.copy(alpha = 0.65f)).padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(stringResource(R.string.loading_vendor),color = colors.muted)
+                    Text(state.selectedLoadingVendor?.vendorName?:"", color = accent, fontWeight = FontWeight.Bold)
+                }
+            }
+        } else {
+            LoadingVendorSpinner(
+                items = state.loadingVendors,
+                onItemSelected = {
+                    onEvent(
+                        ReceivingRawMaterialsFromVendorDetailsEvent.OnLoadingVendorSelected(
+                            it
+                        )
+                    )
+                },
+                searchText = state.loadingVendorSearchText,
+                onSearchTextChanged = {
+                    onEvent(
+                        ReceivingRawMaterialsFromVendorDetailsEvent.OnLoadingVendorSearchTextChanged(
+                            it
+                        )
+                    )
+                }
+            )
+            if (state.loadingVendorError.isNotEmpty()) Text(
+                state.loadingVendorError,
+                color = Color.Red,
+                fontSize = 10.sp
+            )
+        }
+        PackageTypeSpinner(
+            items = state.packageTypes,
+            onItemSelected = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnPackageTypeSelected(it)) },
+            searchText = state.packageTypeSearchText,
+            onSearchTextChanged = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnPackageTypeSearchTextChanged(it)) }
+        )
+        if (state.packageTypeError.isNotEmpty()) Text(state.packageTypeError, color = Color.Red, fontSize = 10.sp)
+
+        Field(stringResource(R.string.receiving_qty) + " *", "0.0", state.quantity, { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnQuantityChanged(it)) }, isNumber = true)
+        if (state.quantityError.isNotEmpty()) Text(state.quantityError, color = Color.Red, fontSize = 10.sp)
+
+        Spacer(Modifier.height(16.dp))
+        
+        ReceivingAddLineButton(accent = accent, onClick = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnAddItem) })
     }
 }
 
-// ── Bottom Sheet Dialog ───────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BottomSheetDialog(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    val colors = AppTheme.colors
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+fun CarNumberSpinner(hint:String=stringResource(R.string.select_car_number), items : List<CarNumber>, onItemSelected: (CarNumber) -> Unit, accent: Color= AppTheme.colors.green, label: String = stringResource(R.string.car_number), searchText: String="", onSearchTextChanged: (String) -> Unit) {
+    Column(modifier = Modifier.padding(bottom = 14.dp)) {
+        SpinnerLabel(label, accent)
+        SearchableSpinner(
+            hint = hint,
+            items = items,
+            itemLabel = { "${it.carDescription} (${it.carNumber})" },
+            onItemSelected = onItemSelected,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NaolonDescriptionSpinner(hint:String=stringResource(R.string.select_naolon_description), items : List<NaolonDescription>, onItemSelected: (NaolonDescription) -> Unit, accent: Color= AppTheme.colors.green, label: String = stringResource(R.string.naolon), searchText: String="", onSearchTextChanged: (String) -> Unit) {
+    Column(modifier = Modifier.padding(bottom = 14.dp)) {
+        SpinnerLabel(label, accent)
+        SearchableSpinner(
+            hint = hint,
+            items = items,
+            itemLabel = { "${it.naolonDescription}" },
+            onItemSelected = onItemSelected,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CarTypeSpinner(hint:String=stringResource(R.string.select_car_type), items : List<CarType>, onItemSelected: (CarType) -> Unit, accent: Color= AppTheme.colors.green, label: String = stringResource(R.string.car_type), searchText: String="", onSearchTextChanged: (String) -> Unit) {
+    Column(modifier = Modifier.padding(bottom = 14.dp)) {
+        SpinnerLabel(label, accent)
+        SearchableSpinner(
+            hint = hint,
+            items = items,
+            itemLabel = { "${it.description} (${it.vehicleTypeName})" },
+            onItemSelected = onItemSelected,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LoadingVendorSpinner(hint:String=stringResource(R.string.select_loading_vendor), items : List<LoadingVendor>, onItemSelected: (LoadingVendor) -> Unit, accent: Color= AppTheme.colors.green, label: String = stringResource(R.string.loading_vendor), searchText: String="", onSearchTextChanged: (String) -> Unit) {
+    Column(modifier = Modifier.padding(bottom = 14.dp)) {
+        SpinnerLabel(label, accent)
+        SearchableSpinner(
+            hint = hint,
+            items = items,
+            itemLabel = { "${it.vendorName} (${it.vendorCode})" },
+            onItemSelected = onItemSelected,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PackageTypeSpinner(hint:String=stringResource(R.string.select_packing_type), items : List<PackageType>, onItemSelected: (PackageType) -> Unit, accent: Color= AppTheme.colors.green, label: String = stringResource(R.string.packing_type), searchText: String="", onSearchTextChanged: (String) -> Unit) {
+    Column(modifier = Modifier.padding(bottom = 14.dp)) {
+        SpinnerLabel(label, accent)
+        SearchableSpinner(
+            hint = hint,
+            items = items,
+            itemLabel = { "${it.packTypeDescription} (${it.packTypeCode})" },
+            onItemSelected = onItemSelected,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
+        )
+    }
+}
+
+@Composable
+fun SpinnerLabel(label: String, accent: Color) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.padding(bottom = 8.dp)
     ) {
         Box(
-            modifier = Modifier.fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.65f))
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { onClose() },
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(colors.card)
-                    .border(1.dp, colors.border2,
-                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .heightIn(max = 560.dp)
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { /* consume */ }
-            ) {
-                // Dialog Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(
-                            width = 1.dp, color = colors.border,
-                            shape = RoundedCornerShape(0.dp)
-                        )
-                        .padding(horizontal = 14.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("✕", color = colors.muted, fontSize = 18.sp,
-                        modifier = Modifier.clickable { onClose() }.padding(horizontal = 2.dp))
-                    Text(title, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            modifier = Modifier
+                .width(3.dp).height(12.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(accent)
+        )
+        Text(
+            label, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+            letterSpacing = 0.6.sp
+        )
+    }
+}
+
+@Composable
+fun ReceivingRawMaterialsLineItem(item: RawMaterialsLineDto, onDelete: () -> Unit) {
+    val colors = AppTheme.colors
+    val accent = AppTheme.colors.green
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.card),
+        border = BorderStroke(1.dp, colors.border)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = item.materialCode, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = accent)
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(text = item.receivedQuantity.toString(), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = colors.text)
+                    Spacer(Modifier.width(5.dp))
+                    Text(text = item.uom, fontSize = 12.sp, color = colors.muted)
                 }
-                content()
+            }
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ReceivingChip(text = stringResource(R.string.plant_) + item.plantCode)
+                ReceivingChip(text = stringResource(R.string.warehouse_) + item.warehouseCode)
+                if (!item.carNo.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.car_number_) + item.carNo)
+                if (!item.unloadingPoint.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.unloading_point_) + item.unloadingPoint)
+                if (item.naolon != null) ReceivingChip(text = stringResource(R.string.naolon_cost_) + item.naolon)
+                if (!item.naolonDescription.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.naolon_description_) + item.naolonDescription)
+                if (!item.contNo.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.contract_number_) + item.contNo)
+                if (!item.loadingVendorCode.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.loading_vendor_) + item.loadingVendorCode)
+                if (!item.wrokerGroupCode.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.workers_group_) + item.wrokerGroupCode)
+                if (!item.packTypeCode.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.packing_type_) + item.packTypeCode)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                IconButton(onClick = onDelete) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                }
             }
         }
     }
 }
 
-// ── FullBtn overload with Modifier ────────────────────────────────────────────
-@Composable
-fun FullBtn(label: String, color: Color, onClick: () -> Unit,
-            saving: Boolean = false, enabled: Boolean = true, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    val bg     = if (!enabled) colors.dim.copy(0.22f) else color.copy(0.12f)
-    val border = if (!enabled) colors.dim else color.copy(0.35f)
-    val txtCol = if (!enabled) colors.dim else color
 
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .border(1.dp, border, RoundedCornerShape(10.dp))
-            .clickable(enabled = enabled && !saving) { onClick() }
-            .padding(vertical = 13.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (saving) {
-            CircularProgressIndicator(
-                color = color, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-        } else {
-            Text(label, color = txtCol, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-        }
-    }
+// Keep Inspecting and PutAway as placeholders if they are not the focus
+@Composable
+fun InspectingRawMaterialsFromVendorDetailsScreen(navController: NavController, orderId: String) {
+    Box(Modifier.fillMaxSize().background(AppTheme.colors.bg), contentAlignment = Alignment.Center) { Text(stringResource(R.string.quality_inspection) + " - " + stringResource(R.string.under_implementation), color = AppTheme.colors.text) }
 }
 
-// ── InfoCell with Modifier ────────────────────────────────────────────────────
 @Composable
-fun InfoCell(label: String, value: String, color: Color = Color.Unspecified, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    val textColor = if (color == Color.Unspecified) colors.text else color
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(colors.dark)
-            .padding(all = 8.dp)
-    ) {
-        Text(label, color = colors.muted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 2.dp))
-        Text(value, color = textColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-    }
+fun PutAwayRawMaterialsFromVendorDetailsScreen(navController: NavController, orderId: String) {
+    Box(Modifier.fillMaxSize().background(AppTheme.colors.bg), contentAlignment = Alignment.Center) { Text(stringResource(R.string.putaway) + " - " + stringResource(R.string.under_implementation), color = AppTheme.colors.text) }
 }

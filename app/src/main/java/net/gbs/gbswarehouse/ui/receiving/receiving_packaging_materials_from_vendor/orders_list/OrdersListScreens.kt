@@ -44,7 +44,7 @@ import net.gbs.gbswarehouse.WarehouseViewModel
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 
 @Composable
-fun ReceivingPackagingMaterialsFromVendorListScreen(
+fun ReceivingPackagingMaterialsFromVendorListScreenOld(
     navController: NavController,
 ) {
     val viewModel: OrdersListViewModel = viewModel()

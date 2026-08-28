@@ -118,7 +118,11 @@ class IssueDetailsViewModel: ViewModel() {
         selMat = mat; matInput = mat.code; matDlg = false; matSearch = ""
     }
 
-    fun clearMaterial() { selMat = null; matInput = ""; qty = ""; smpQty = "" }
+    fun clearMaterial() {
+        selMat = null; matInput = ""; qty = ""; smpQty = ""
+        matSearch = ""; binInput = ""; selBin = null
+        serialNumber = ""; driverName = ""; selectedWorkersGroup = null; carCode = ""
+    }
 
     fun selectBin(bin: Bin) { selBin = bin; binInput = bin.code; binDlg = false }
 

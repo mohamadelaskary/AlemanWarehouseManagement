@@ -5,9 +5,9 @@ import net.gbs.gbswarehouse.domain.model.User
 
 fun UserDto.toUser(): User {
     return User(
-        id = id,
-        userName = userName,
-        email = email,
-        companyCodes = companyCodes,
+        id = id ?: "",
+        userName = userName ?: "",
+        email = email ?: "",
+        companyCodes = companyCodes ?: emptyList(),
     )
 }

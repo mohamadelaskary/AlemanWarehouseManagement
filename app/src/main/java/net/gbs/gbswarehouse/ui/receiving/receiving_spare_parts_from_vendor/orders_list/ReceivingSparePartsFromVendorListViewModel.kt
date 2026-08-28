@@ -5,141 +5,131 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
+import dagger.hilt.android.lifecycle.HiltViewModel
+import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.gbs.gbswarehouse.BINS
-import net.gbs.gbswarehouse.Bin
-import net.gbs.gbswarehouse.GREEN
-import net.gbs.gbswarehouse.Material
-import net.gbs.gbswarehouse.ORANGE
-import net.gbs.gbswarehouse.ORDERS
-import net.gbs.gbswarehouse.OpType
-import net.gbs.gbswarehouse.Operation
-import net.gbs.gbswarehouse.Order
-import net.gbs.gbswarehouse.SPARE_PARTS_MATERIALS
-import net.gbs.gbswarehouse.Screens
-import kotlin.collections.filter
-import kotlin.text.lowercase
+import net.gbs.gbswarehouse.core.network.NetworkResult
+import net.gbs.gbswarehouse.data.remote.mapper.toPurchaseOrder
+import net.gbs.gbswarehouse.domain.usecase.GetReceivingSparePartsFromVendorPurchaseOrdersListUseCase
+import javax.inject.Inject
+@HiltViewModel
+class ReceivingSparePartsFromVendorListViewModel
+@Inject constructor(
+    private val getReceivingSparePartsFromVendorPurchaseOrdersListUseCase: GetReceivingSparePartsFromVendorPurchaseOrdersListUseCase
+) : ViewModel() {
 
-class ReceivingSparePartsFromVendorListViewModel: ViewModel() {
+    private val _uiState = MutableStateFlow(ReceivingSparePartsFromVendorOrdersListState())
+    val uiState = _uiState.asStateFlow()
+
+    init {
+        // Removed to avoid duplicate calls, handled by LaunchedEffect in UI
+    }
+
+    fun onEvent(event: ReceivingSparePartsFromVendorOrdersListEvent) {
+        when (event) {
+            ReceivingSparePartsFromVendorOrdersListEvent.InitScreen -> {
+                loadOrders()
+            }
+            is ReceivingSparePartsFromVendorOrdersListEvent.OnSearchTextChanged -> {
+                _uiState.update { it.copy(searchText = event.text) }
+                filterOrders(event.text)
+            }
+
+            is ReceivingSparePartsFromVendorOrdersListEvent.OnShowMaterialsButtonClicked -> {
+                _uiState.update {
+                    if (it.showMaterialsClickedCardIndex == event.currentIndex) {
+                        it.copy(isMaterialsShowed = !it.isMaterialsShowed)
+                    } else {
+                        it.copy(
+                            isMaterialsShowed = true,
+                            showMaterialsClickedCardIndex = event.currentIndex
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun loadOrders() {
+        viewModelScope.launch {
+            Log.d("SparePartsListVM", "loadOrders: Starting")
+            _uiState.update { it.copy(loadingStatus = LoadingPurchaseOrdersListStatus.LOADING) }
+            try {
+                val result = getReceivingSparePartsFromVendorPurchaseOrdersListUseCase.invoke()
+                Log.d("SparePartsListVM", "loadOrders: Result received: $result")
+                when (result) {
+                    is NetworkResult.Success -> {
+                        val orders = result.data.map { it.toPurchaseOrder() }
+                        Log.d("SparePartsListVM", "loadOrders: Success, orders size: ${orders.size}")
+                        _uiState.update {
+                            it.copy(
+                                poList = orders,
+                                poFilteredList = orders,
+                                loadingStatus = LoadingPurchaseOrdersListStatus.SUCCESS(orders)
+                            )
+                        }
+                    }
+                    else -> {
+                        val message = when (result) {
+                            is NetworkResult.BusinessError -> result.message
+                            is NetworkResult.HttpError -> result.message
+                            is NetworkResult.NetworkError -> result.message
+                            is NetworkResult.UnknownError -> result.message
+                            else -> "Unknown Error"
+                        }
+                        Log.e("SparePartsListVM", "loadOrders: Error: $message")
+                        _uiState.update {
+                            it.copy(loadingStatus = LoadingPurchaseOrdersListStatus.ERROR(message))
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("SparePartsListVM", "loadOrders: Exception", e)
+                _uiState.update {
+                    it.copy(loadingStatus = LoadingPurchaseOrdersListStatus.ERROR(e.localizedMessage ?: "Mapping Error"))
+                }
+            }
+        }
+    }
+
+    private fun filterOrders(query: String) {
+        _uiState.update { state ->
+            val filteredList = if (query.isBlank()) {
+                state.poList
+            } else {
+                state.poList.filter {
+                    it.poNumber.contains(query, ignoreCase = true) ||
+                            it.vendorName.contains(query, ignoreCase = true)
+                }
+            }
+            state.copy(poFilteredList = filteredList)
+        }
+    }
+
     var currentClickedOrderIndex by mutableStateOf(-1)
     var showMaterials by mutableStateOf(false)
-    var screen    by mutableStateOf(Screens.Home)
-    var mainCat   by mutableStateOf<String?>(null)       // "recv" | "issue"
-    var selOp     by mutableStateOf<Operation?>(null)
-    var selOpType by mutableStateOf<OpType?>(null)
-    var selOrder  by mutableStateOf<Order?>(null)
 
-    // list search
-    var orderSearch by mutableStateOf("")
-
-    // detail fields
-    var matInput  by mutableStateOf("")
-    var matDlg    by mutableStateOf(false)
-    var matSearch by mutableStateOf("")
-    var selMat    by mutableStateOf<Material?>(null)
-    var qty       by mutableStateOf("")
-    var smpQty    by mutableStateOf("")
-
-    var binInput  by mutableStateOf("")
-    var binDlg    by mutableStateOf(false)
-    var selBin    by mutableStateOf<Bin?>(null)
-
-    // blind receive
-    var bCode  by mutableStateOf("")
-    var bDesc  by mutableStateOf("")
-    var vendorName  by mutableStateOf("")
-    var bQty   by mutableStateOf("")
-
-    // save state
-    var saved    by mutableStateOf(false)
-    var saveKind by mutableStateOf<String?>(null)  // "save" | "accept" | "reject"
-    var saving   by mutableStateOf(false)
-
-    // ── Computed ─────────────────────────────────────────────────────────────
-    val variant: String get() = when {
-        mainCat == "issue"            -> "issue"
-        selOpType?.id == "quality"    -> "quality"
-        selOpType?.id == "putaway"    -> "putaway"
-        else                          -> "normal"
+    val orderSearch: String get() = _uiState.value.searchText
+    fun searchPoNumber(query: String) {
+        onEvent(ReceivingSparePartsFromVendorOrdersListEvent.OnSearchTextChanged(query))
     }
 
-    val accent: androidx.compose.ui.graphics.Color get() =
-        if (mainCat == "issue") ORANGE else selOpType?.accent ?: GREEN
-
-    val filteredOrders: List<Order> get() {
-        val list = ORDERS["PO"] ?: emptyList()
-        return if (orderSearch.isBlank()) list
-        else list.filter { it.id.contains(orderSearch) || it.info.contains(orderSearch) }
-    }
-
-    val filteredMaterials: List<Material> get() {
-        return if (matSearch.isBlank()) SPARE_PARTS_MATERIALS
-        else SPARE_PARTS_MATERIALS.filter {
-            it.code.lowercase().contains(matSearch.lowercase()) || it.desc.contains(matSearch)
+    val filteredOrders: List<net.gbs.gbswarehouse.Order> get() {
+        return _uiState.value.poFilteredList.map {
+            net.gbs.gbswarehouse.Order(
+                id = it.poNumber,
+                info = it.vendorName,
+                date = "", // API doesn't provide date
+                items = it.purchaseOrderItems.size,
+                status = "", // API doesn't provide status
+                statusColor = net.gbs.gbswarehouse.GREEN,
+                materials = it.purchaseOrderItems.map { item -> 
+                    net.gbs.gbswarehouse.Material(item.materialCode, item.materialDescription, item.uom, item.orderedQuantity.toInt(), item.receivedQuantity.toInt())
+                }
+            )
         }
-    }
-
-    val filteredBins: List<Bin> get() {
-        return if (binInput.isBlank()) BINS
-        else BINS.filter {
-            it.code.lowercase().contains(binInput.lowercase()) ||
-                    it.zone.contains(binInput) || it.aisle.contains(binInput)
-        }
-    }
-
-    val blindOk: Boolean get() = bCode.trim().isNotEmpty() && bDesc.trim().isNotEmpty() && vendorName.trim().isNotEmpty() && bQty.isNotEmpty()
-
-    val showFixedSave: Boolean get() {
-        if (variant == "quality" || saved) return false
-        val isBlind = selOp?.blind == true
-        return when {
-            isBlind  -> blindOk
-            variant == "putaway" -> selBin != null && qty.isNotEmpty()
-            else -> selMat != null && qty.isNotEmpty()
-        }
-    }
-
-    val saveLabel: String get() = when (variant) {
-        "putaway" -> "⌘  تأكيد التسكين"
-        "issue"   -> "↑  حفظ الصرف"
-        else      -> "↓  حفظ الاستلام"
-    }
-
-    // ── Navigation ─────────────────────────────────────────────────────────
-
-
-
-
-    // ── Detail actions ──────────────────────────────────────────────────────
-    fun selectMaterial(mat: Material) {
-        selMat = mat; matInput = mat.code; matDlg = false; matSearch = ""
-    }
-
-    fun clearMaterial() { selMat = null; matInput = ""; qty = ""; smpQty = "" }
-
-    fun selectBin(bin: Bin) { selBin = bin; binInput = bin.code; binDlg = false }
-
-    fun clearBin() { selBin = null; binInput = ""; qty = "" }
-
-    fun doSave(kind: String) {
-        viewModelScope.launch {
-            saving = true
-            delay(1200)
-            saving = false
-            saved = true
-            saveKind = kind
-        }
-    }
-
-    private fun resetDetail() {
-        selMat = null; qty = ""; smpQty = ""; selBin = null
-        binInput = ""; matInput = ""; matSearch = ""
-        saved = false; saveKind = null; saving = false
-        bCode = ""; bDesc = ""; bQty = "";vendorName=""
-    }
-
-    fun searchPoNumber(poNumber: String) {
-
     }
 }

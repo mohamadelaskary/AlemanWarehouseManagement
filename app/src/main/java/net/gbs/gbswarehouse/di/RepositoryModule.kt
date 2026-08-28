@@ -5,8 +5,10 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import net.gbs.gbswarehouse.data.remote.repository.AuthenticationRepositoryImpl
+import net.gbs.gbswarehouse.data.remote.repository.IssuingRepositoryImpl
 import net.gbs.gbswarehouse.data.remote.repository.ReceivingRepositoryImpl
 import net.gbs.gbswarehouse.domain.repository.AuthenticationRepository
+import net.gbs.gbswarehouse.domain.repository.IssuingRepository
 import net.gbs.gbswarehouse.domain.repository.ReceivingRepository
 import javax.inject.Singleton
 
@@ -25,5 +27,11 @@ abstract class RepositoryModule {
     abstract fun bindAuthenticationRepository(
         repository: AuthenticationRepositoryImpl
     ): AuthenticationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindIssuingRepository(
+        repository: IssuingRepositoryImpl
+    ): IssuingRepository
 
 }

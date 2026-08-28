@@ -17,7 +17,8 @@ fun LineDto.toSparePartsLine(): SparePartsLine{
         uom = uom,
         receivedQuantity = receivedQuantity,
         valuationType = valuationType,
-        expiryDate = expiryDate,
+        expiryDate = expirationDate,
+        isBatchManaged = isBatchManaged,
     )
 }
 
@@ -35,7 +36,8 @@ fun SparePartsLine.toLineDto(): LineDto{
         uom = uom,
         receivedQuantity = receivedQuantity,
         valuationType = valuationType,
-        expiryDate = expiryDate,
+        expirationDate = expiryDate,
+        isBatchManaged = isBatchManaged,
         materialDescription = materialDescription,
     )
 }

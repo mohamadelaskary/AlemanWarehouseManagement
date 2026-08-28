@@ -10,4 +10,5 @@ data class SparePartsMaterial(
     val uom: String,
     val plantCode: String,
     val valuationTypes: List<ValuationType>,
+    val isBatchManaged: Boolean,
 )

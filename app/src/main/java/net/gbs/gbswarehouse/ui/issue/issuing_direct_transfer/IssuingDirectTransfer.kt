@@ -1,9 +1,12 @@
 package net.gbs.gbswarehouse.ui.issue.issuing_direct_transfer
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,49 +14,71 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import net.gbs.gbswarehouse.ErrorDialog
+import net.gbs.gbswarehouse.Field
 import net.gbs.gbswarehouse.FullBtn
+import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.MarginTenDp
-import net.gbs.gbswarehouse.OutlineBtn
-import net.gbs.gbswarehouse.SearchBox
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.Section
-import net.gbs.gbswarehouse.SuccessCard
+import net.gbs.gbswarehouse.SuccessDialog
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.WarehouseToTypeSelector
-import net.gbs.gbswarehouse.WarehousesSpinner
-import net.gbs.gbswarehouse.YELLOW
 import net.gbs.gbswarehouse.directTransferWarehouseToTypes
-import net.gbs.gbswarehouse.ui.issue.issuing_scrap.details_screen.BinDialogItem
-import net.gbs.gbswarehouse.ui.issue.issuing_scrap.details_screen.MaterialDialogItem
-import net.gbs.gbswarehouse.ui.issue.issuing_scrap.details_screen.PutAwaySelectedMaterialCard
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.BinCodeInput
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.BottomSheetDialog
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.MatCodeInput
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.SelectedBinCard
+import net.gbs.gbswarehouse.domain.model.StorageBinLocation
+import net.gbs.gbswarehouse.ui.issue.BatchValuationTypeSpinner
+import net.gbs.gbswarehouse.ui.issue.WarehousesSpinner
+import net.gbs.gbswarehouse.ui.theme.AppColors
 import net.gbs.gbswarehouse.ui.theme.AppTheme
-import net.gbs.gbswarehouse.warehouses
+import net.gbs.gbswarehouse.ui.theme.BORDER2
+import net.gbs.gbswarehouse.ui.theme.DARK
+import net.gbs.gbswarehouse.ui.theme.MUTED
+import net.gbs.gbswarehouse.ui.theme.ORANGE
+import net.gbs.gbswarehouse.ui.theme.TEXT
+import net.gbs.honeywellscanner.ScannerEffect
 
 @Composable
 fun IssuingDirectTransferScreen(navController: NavController) {
-    val viewModel: IssuingDirectTransferViewModel = viewModel()
+    val viewModel: IssuingDirectTransferViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsState()
     val colors = AppTheme.colors
-    val accent = YELLOW
-    val doneLabel = "الكمية المصروفة"
+    val accent = colors.yellow
+
+    ScannerEffect(onScan = viewModel::onBarcodeScanned)
 
     Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
-            TopBar(title = "صرف", subtitle = "تحويلات مباشرة",
+            TopBar(title = stringResource(R.string.issuing), subtitle = stringResource(R.string.direct_transfer),
                 accent = accent, onBack = {
-                    //  viewModel.back()
                     navController.popBackStack()
                 })
 
@@ -61,169 +86,146 @@ fun IssuingDirectTransferScreen(navController: NavController) {
                 contentPadding = PaddingValues(
                     start = 14.dp, end = 14.dp,
                     top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
+                    bottom = if (state.addedLines.isNotEmpty()) 90.dp else 20.dp
                 )
             ) {
-
-//                // ── Order Info Card (non-blind) ────────────────────────────
-//                item {
-//                    Section(label = "بيانات الأمر", accent = accent) {
-//                        val fields = listOf(
-//                            Triple("رقم المستند", ord.id, null),
-//                            Triple("الحالة",      ord.status, ord.statusColor),
-//                            Triple("الجهة",       ord.info,   null),
-//                            Triple("التاريخ",     ord.date,   null),
-//                            Triple("عدد الأصناف","${ord.items} أصناف", null),
-//                        )
-//                        // 2-column grid
-//                        for (i in fields.indices step 2) {
-//                            Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
-//                                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-//                                val f1 = fields[i]
-//                                val f2 = if (i + 1 < fields.size) fields[i + 1] else null
-//                                // if "الجهة" span full width
-//                                if (f1.first == "الجهة") {
-//                                    InfoCell(f1.first, f1.second, f1.third ?: TEXT, modifier = Modifier.weight(1f))
-//                                } else {
-//                                    net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.InfoCell(
-//                                        f1.first, f1.second, f1.third ?: TEXT,
-//                                        modifier = Modifier.weight(1f)
-//                                    )
-//                                    if (f2 != null) {
-//                                        net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.InfoCell(
-//                                            f2.first, f2.second, f2.third ?: TEXT,
-//                                            modifier = Modifier.weight(1f)
-//                                        )
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-
+                // 1. From Bin Section
                 item {
-                    Section(label = "بيانات الصنف", accent = accent) {
-                        Row(Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
+                    Section(label = stringResource(R.string.issued_from_warehouse_location_data), accent = accent) {
+                        BinCodeInput(
+                            value = state.binFromInput,
+                            onValueChange = { 
+                                viewModel.onEvent(IssuingDirectTransferEvent.OnBinFromInputChanged(it))
+                                if (it.length >= 4) viewModel.onEvent(IssuingDirectTransferEvent.OnScanBinFrom(it))
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (!state.binFromError.isNullOrEmpty()){
+                            Text(state.binFromError?:"", color = colors.danger, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                        }
+                        if (state.binFromData != null) {
+                            Spacer(Modifier.height(8.dp))
+                            IssuingSelectedBinCard(
+                                bin = state.binFromData!!,
+                                accent = accent,
+                                onClear = { viewModel.onEvent(IssuingDirectTransferEvent.OnClearBinFrom) }
+                            )
+                        }
+                    }
+                }
+
+                // 2. Material Section
+                if (state.binFromData != null) {
+                    item {
+                        Section(label = stringResource(R.string.item_data), accent = accent) {
                             MatCodeInput(
-                                value = viewModel.matInput,
-                                onValueChange = { viewModel.matInput = it },
-                                modifier = Modifier.weight(1f)
+                                value = state.matInput,
+                                onValueChange = {
+                                    viewModel.onEvent(IssuingDirectTransferEvent.OnMatInputChanged(it))
+                                    if (it.length >= 4) viewModel.onEvent(IssuingDirectTransferEvent.OnScanMaterial(it))
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = colors
                             )
-                            OutlineBtn("اختر مادة", accent) { viewModel.matDlg = true }
-                        }
-                        if (viewModel.selMat != null) {
-                            Spacer(Modifier.height(8.dp))
-                            PutAwaySelectedMaterialCard(
-                                mat = viewModel.selMat!!,
-                                accent = accent,
-                                isQuality = false,
-                                isIssue = false,
-                                doneLabel = doneLabel,
-                                smpQty = viewModel.smpQty,
-                                onSmpQtyChange = { viewModel.smpQty = it },
-                                qty = viewModel.qty,
-                                onQtyChange = { viewModel.qty = it },
-                                saved = viewModel.saved,
-                                saving = viewModel.saving,
-                                onAccept = { viewModel.doSave("accept") },
-                                onReject = { viewModel.doSave("reject") },
-                                onClear = { viewModel.clearMaterial() },
-                                onValuationTypeSelected = {viewModel.selectedValuationType = it}
-                            )
-                        }
-                    }
-                }
-
-
-
-                item {
-                    Section(label = "بيانات موقع المخزن المصروف منه", accent = accent) {
-                        Row(Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            BinCodeInput(
-                                value = viewModel.binInputFrom,
-                                onValueChange = { viewModel.binInputFrom = it },
-                                modifier = Modifier.weight(1f)
-                            )
-                            OutlineBtn("اختر Bin", accent) { viewModel.binDlgFrom = true }
-                        }
-                        if (viewModel.selBinFrom != null) {
-                            Spacer(Modifier.height(8.dp))
-                            SelectedBinCard(
-                                bin = viewModel.selBinFrom!!,
-                                accent = accent,
-                                qty = viewModel.qty,
-                                onQtyChange = { viewModel.qty = it },
-                                onClear = { viewModel.clearBinFrom() }
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    WarehouseToTypeSelector(
-                        directTransferWarehouseToTypes
-                        , onItemSelected = {
-                            viewModel.selectedWarehouseToType = it
-                        }
-                    )
-                }
-
-                item {
-                    MarginTenDp()
-                    Section(label = "بيانات موقع المخزن المصروف إليه", accent = accent) {
-                        if (viewModel.selectedWarehouseToType?.id == "1") {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                BinCodeInput(
-                                    value = viewModel.binInputTo,
-                                    onValueChange = { viewModel.binInputTo = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlineBtn("اختر Bin", accent) { viewModel.binDlgTo = true }
+                            if (!state.matErrorMessage.isNullOrEmpty()){
+                                Text(state.matErrorMessage?:"", color = colors.danger, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
                             }
-                            if (viewModel.selBinTo != null) {
+                            if (state.selectedMatStock != null || state.stockList.isNotEmpty()) {
                                 Spacer(Modifier.height(8.dp))
-                                SelectedBinCard(
-                                    bin = viewModel.selBinTo!!,
+                                IssuingSelectedMaterialCard(
+                                    state = state,
                                     accent = accent,
-                                    qty = viewModel.qty,
-                                    onQtyChange = { viewModel.qty = it },
-                                    onClear = { viewModel.clearBinTo() }
+                                    viewModel = viewModel,
+                                    onClear = { viewModel.onEvent(IssuingDirectTransferEvent.OnClearMaterial) }
                                 )
                             }
-                        } else {
-                            WarehousesSpinner(
-                                "اختر المخزن الانتاج",
-                                warehouses,
-                                onItemSelected = {
-                                    viewModel.selectedWarehouseTo = it
-                                }
-                            )
                         }
                     }
-
                 }
 
+                // 3. Destination Section
+                if (state.selectedMatStock != null) {
+                    item {
+                        WarehouseToTypeSelector(
+                            directTransferWarehouseToTypes,
+                            onItemSelected = {
+                                viewModel.onEvent(IssuingDirectTransferEvent.OnWarehouseTypeSelected(it))
+                            }
+                        )
+                    }
 
+                    item {
+                        MarginTenDp()
+                        Section(label = stringResource(R.string.issued_to_warehouse_location_data), accent = accent) {
+                            if (state.warehouseType.id == "1") {
+                                BinCodeInput(
+                                    value = state.binToInput,
+                                    onValueChange = {
+                                        viewModel.onEvent(IssuingDirectTransferEvent.OnBinToInputChanged(it))
+                                        if (it.length >= 4) viewModel.onEvent(IssuingDirectTransferEvent.OnScanBinTo(it))
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                if (!state.binToError.isNullOrEmpty()){
+                                    Text(state.binToError?:"", color = colors.danger, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                                }
+                                if (state.binToData != null) {
+                                    Spacer(Modifier.height(8.dp))
+                                    IssuingSelectedBinCard(
+                                        bin = state.binToData!!,
+                                        accent = accent,
+                                        onClear = { viewModel.onEvent(IssuingDirectTransferEvent.OnClearBinTo) }
+                                    )
+                                }
+                            } else {
+                                WarehousesSpinner(
+                                    items = state.productionWarehouses,
+                                    onItemSelected = {
+                                        viewModel.onEvent(IssuingDirectTransferEvent.OnProductionWarehouseSelected(it))
+                                    },
+                                    onSearchTextChanged = {}
+                                )
+                            }
+                        }
+                    }
+                    
+                    item {
+                        Spacer(Modifier.height(16.dp))
+                        FullBtn(
+                            label = stringResource(R.string.add),
+                            color = accent,
+                            onClick = { viewModel.onEvent(IssuingDirectTransferEvent.OnAddLine) },
+                            enabled = (state.binToData != null || state.selectedProductionWarehouse != null) && state.quantity.isNotEmpty() && state.quantityError == null
+                        )
+                    }
+                }
 
-
-
-                // ── Success Card ──────────────────────────────────────────
-                if (viewModel.saved) {
-                    item { SuccessCard(kind = viewModel.saveKind, accent = accent) }
+                // 4. Added Items List
+                if (state.addedLines.isNotEmpty()) {
+                    item {
+                        Section(label = stringResource(R.string.added_items), accent = accent) {
+                            state.addedLines.forEachIndexed { index, line ->
+                                AddedLineItem(
+                                    materialCode = line.materialCode,
+                                    qty = line.quantity,
+                                    uom = line.uom,
+                                    bin = line.storageBinCode,
+                                    batch = line.batch,
+                                    valuationType = line.valuationType,
+                                    accent = accent,
+                                    onDelete = { viewModel.onEvent(IssuingDirectTransferEvent.OnDeleteLine(index)) },
+                                    warehouseToCode = line.receivingWarehouseCode
+                                )
+                                Spacer(Modifier.height(8.dp))
+                            }
+                        }
+                    }
                 }
             }
         }
 
         // ── Fixed Save Button ─────────────────────────────────────────────
-        if (viewModel.showFixedSave && !viewModel.saved) {
+        if (state.addedLines.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -236,62 +238,242 @@ fun IssuingDirectTransferScreen(navController: NavController) {
                     .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
                 FullBtn(
-                    "حفظ الصرف", accent, { viewModel.doSave("save") },
-                    saving = viewModel.saving
+                    stringResource(R.string.save_issuing), accent, { viewModel.onEvent(IssuingDirectTransferEvent.OnIssueAll) },
+                    saving = state.isSaving
+                )
+            }
+        }
+        
+        if (state.savingSuccessMessage != null) {
+            SuccessDialog(accent = colors.green, message = state.savingSuccessMessage!!, onClose = {
+                viewModel.onEvent(IssuingDirectTransferEvent.OnDismissDialogs)
+            })
+        }
+        if (state.savingErrorMessage != null) {
+            ErrorDialog(accent = colors.danger, message = state.savingErrorMessage!!, onClose = {
+                viewModel.onEvent(IssuingDirectTransferEvent.OnDismissDialogs)
+            })
+        }
+    }
+}
+
+@Composable
+fun IssuingSelectedBinCard(bin: StorageBinLocation, accent: Color, onClear: () -> Unit) {
+    val colors = AppTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(accent.copy(0.06f))
+            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
+            .padding(12.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            Text("📍 ${bin.storageBinCode}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+            IconButton(onClick = onClear) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Clear",
+                    tint = colors.muted,
+                    modifier = Modifier.padding(4.dp).size(16.dp)
                 )
             }
         }
     }
-    // ── Bin Dialog ────────────────────────────────────────────────────────
-    if (viewModel.binDlgFrom) {
-        BottomSheetDialog(title = "اختيار موقع الصرف", onClose = { viewModel.binDlgFrom = false }) {
-            SearchBox(viewModel.binInputFrom, { viewModel.binInputFrom = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(contentPadding = PaddingValues(
-                start = 14.dp, end = 14.dp, bottom = 20.dp
-            )) {
-                itemsIndexed(viewModel.filteredBinsFrom) { _, b ->
-                    BinDialogItem(b, viewModel.accent) { viewModel.selectBinFrom(b) }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-    }
-    if (viewModel.binDlgTo) {
-        BottomSheetDialog(title = "اختيار موقع الصرف", onClose = { viewModel.binDlgTo = false }) {
-            SearchBox(viewModel.binInputTo, { viewModel.binInputTo = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(contentPadding = PaddingValues(
-                start = 14.dp, end = 14.dp, bottom = 20.dp
-            )) {
-                itemsIndexed(viewModel.filteredBinsTo) { _, b ->
-                    BinDialogItem(b, viewModel.accent) { viewModel.selectBinTo(b) }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-    }
+}
 
-    // ── Material Dialog ───────────────────────────────────────────────────
-    if (viewModel.matDlg) {
-        BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
-            SearchBox(
-                viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+@Composable
+fun IssuingSelectedMaterialCard(
+    state: IssuingDirectTransferState,
+    accent: Color,
+    viewModel: IssuingDirectTransferViewModel,
+    onClear: () -> Unit,
+) {
+    val colors = AppTheme.colors
+    val mat = state.selectedMatStock ?: state.stockList.firstOrNull() ?: return
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.card)
+            .padding(12.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            InfoCell(
+                label = stringResource(R.string.material_code),
+                value = mat.materialCode?:"",
+                modifier = Modifier.weight(1f)
             )
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
+            IconButton(onClick = onClear) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Clear",
+                    tint = colors.muted
                 )
-            ) {
-                itemsIndexed(viewModel.filteredMaterials) { _, m ->
-                    MaterialDialogItem(m, viewModel.accent, doneLabel) {
-                        viewModel.selectMaterial(m)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                }
+            }
+        }
+        
+        if (state.stockList.isNotEmpty()) {
+            MarginTenDp()
+            BatchValuationTypeSpinner(
+                items = state.stockList,
+                onItemSelected = { viewModel.onEvent(IssuingDirectTransferEvent.OnStockSelected(it)) },
+                accent = accent,
+                searchText = state.stockSearch,
+                onSearchTextChanged = { viewModel.onEvent(IssuingDirectTransferEvent.OnStockSearchTextChanged(it)) },
+                isBatchManaged = true 
+            )
+        }
+        
+        if (state.selectedMatStock != null) {
+            MarginTenDp()
+            Field(
+                label = "${stringResource(R.string.issued_qty)} (${mat.quantity})",
+                hint = stringResource(R.string.enter_quantity),
+                value = state.quantity,
+                onValueChange = { viewModel.onEvent(IssuingDirectTransferEvent.OnQuantityChanged(it)) },
+                isNumber = true,
+                withLabel = true
+            )
+            if (state.quantityError != null) {
+                Text(state.quantityError, color = colors.danger, fontSize = 10.sp)
             }
         }
     }
+}
 
+@Composable
+fun AddedLineItem(
+    materialCode: String,
+    qty: Double,
+    uom: String,
+    bin: String,
+    batch: String?,
+    valuationType: String?,
+    accent: Color,
+    warehouseToCode:String,
+    onDelete: () -> Unit
+) {
+    val colors = AppTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.card, RoundedCornerShape(8.dp))
+            .padding(10.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(materialCode, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("$qty $uom", color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                DirectTransferChip(stringResource(R.string.bin_from) + " $bin", accent)
+                DirectTransferChip(stringResource(R.string.warehouse_to_code) + " $warehouseToCode", accent)
+                if (!batch.isNullOrEmpty()) DirectTransferChip(stringResource(R.string.batch) + ": $batch", accent)
+                if (!valuationType.isNullOrEmpty()) DirectTransferChip(stringResource(R.string.valuation_type_) + " $valuationType", accent)
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = colors.danger
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DirectTransferChip(text: String, accent: Color) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = accent.copy(alpha = 0.1f),
+        modifier = Modifier.padding(vertical = 2.dp)
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            fontSize = 10.sp,
+            color = accent,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+fun InfoCell(label: String, value: String, modifier: Modifier = Modifier, color: Color = Color.Unspecified) {
+    val colors = AppTheme.colors
+    val finalColor = if (color == Color.Unspecified) colors.text else color
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(colors.dark)
+            .padding(8.dp),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Text(label, color = colors.muted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(bottom = 2.dp))
+        Text(value, color = finalColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier,colors: AppColors) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.dark)
+            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = value, onValueChange = onValueChange, singleLine = true,
+            textStyle = TextStyle(
+                color = colors.text, fontSize = 13.sp,
+                textDirection = TextDirection.Ltr
+            ),
+            cursorBrush = SolidColor(ORANGE),
+            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            decorationBox = { inner ->
+                if (value.isEmpty()) Text(stringResource(R.string.item_code_hint), color = colors.muted, fontSize = 13.sp)
+                inner()
+            }
+        )
+    }
+}
+
+@Composable
+fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.dark)
+            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = value, onValueChange = onValueChange, singleLine = true,
+            textStyle = TextStyle(
+                color = colors.text, fontSize = 13.sp,
+                textDirection = TextDirection.Ltr
+            ),
+            cursorBrush = SolidColor(colors.yellow),
+            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            decorationBox = { inner ->
+                if (value.isEmpty()) Text(stringResource(R.string.bin_code_hint), color = colors.muted, fontSize = 13.sp)
+                inner()
+            }
+        )
+    }
 }

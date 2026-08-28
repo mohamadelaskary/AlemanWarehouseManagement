@@ -10,3 +10,7 @@ fun WorkersGroupDto.toWorkersGroup(): WorkersGroup {
         workerGroupDescription = workerGroupDescription,
     )
 }
+
+fun List<WorkersGroupDto>.toWorkersGroups(): List<WorkersGroup> {
+    return map { it.toWorkersGroup() }
+}

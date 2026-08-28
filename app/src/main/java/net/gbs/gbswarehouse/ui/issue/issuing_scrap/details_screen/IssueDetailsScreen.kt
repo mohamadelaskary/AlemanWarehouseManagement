@@ -1,5 +1,6 @@
 package net.gbs.gbswarehouse.ui.issue.issuing_scrap.details_screen
 
+import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,11 +73,11 @@ import net.gbs.gbswarehouse.domain.model.ValuationType
 import net.gbs.gbswarehouse.ValuationTypeSpinner
 import net.gbs.gbswarehouse.YELLOW
 import net.gbs.gbswarehouse.scrapReasons
+import net.gbs.gbswarehouse.ui.issue.issuing_scrap.MatCodeInput
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.BinCodeInput
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.BottomSheetDialog
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.ReceivingSparePartsFromVendorDetailsViewModel
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.MatCodeInput
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.SelectedBinCard
+import net.gbs.gbswarehouse.ui.theme.AppColors
+import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.gbswarehouse.valuationTypes
 import kotlin.collections.find
 
@@ -127,12 +128,12 @@ fun IssueScrapDetailsScreen(
                                 if (f1.first == "الجهة") {
                                     InfoCell(f1.first, f1.second, f1.third ?: TEXT, modifier = Modifier.weight(1f))
                                 } else {
-                                    net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.InfoCell(
+                                    InfoCell(
                                         f1.first, f1.second, f1.third ?: TEXT,
                                         modifier = Modifier.weight(1f)
                                     )
                                     if (f2 != null) {
-                                        net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.InfoCell(
+                                        InfoCell(
                                             f2.first, f2.second, f2.third ?: TEXT,
                                             modifier = Modifier.weight(1f)
                                         )
@@ -204,7 +205,8 @@ fun IssueScrapDetailsScreen(
                             MatCodeInput(
                                 value = viewModel.matInput,
                                 onValueChange = { viewModel.matInput = it },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                colors = AppTheme.colors
                             )
                             OutlineBtn("اختر مادة", accent) { viewModel.matDlg = true }
                         }
@@ -387,7 +389,10 @@ fun PutAwaySelectedMaterialCard(
         ValuationTypeSpinner(
             "نوع التقييم",
             valuationTypes,
-            { onValuationTypeSelected(it) }
+            { onValuationTypeSelected(it) },
+            searchText = "",
+            onSearchTextChanged = {},
+            accent = accent
         )
     }
 }
@@ -429,31 +434,7 @@ fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) 
 }
 
 // ── Material Code Input ───────────────────────────────────────────────────────
-@Composable
-fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(DARK)
-            .border(1.dp, BORDER2, RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = true,
-            textStyle = TextStyle(
-                color = TEXT, fontSize = 13.sp,
-                textDirection = TextDirection.Ltr
-            ),
-            cursorBrush = SolidColor(GREEN),
-            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
-            decorationBox = { inner ->
-                if (value.isEmpty()) Text("كود المادة...", color = MUTED, fontSize = 13.sp)
-                inner()
-            }
-        )
-    }
-}
+
 
 @Composable
 fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {

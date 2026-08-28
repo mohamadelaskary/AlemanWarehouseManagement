@@ -8,10 +8,9 @@ import com.honeywell.aidc.ScannerUnavailableException
 import com.honeywell.aidc.TriggerStateChangeEvent
 import com.honeywell.aidc.UnsupportedPropertyException
 
-class ScannerManager(
-    private val reader: BarcodeReader
-) {
 
+class ScannerManager {
+    private val reader = HoneywellScanner.getBarcodeReader()
     private var onScanListener: ((String) -> Unit)? = null
 
     fun setOnScanListener(listener: (String) -> Unit) {
@@ -42,7 +41,7 @@ class ScannerManager(
         val config = HoneywellScanner.getConfig()
 
         try {
-            reader.setProperty(
+            reader?.setProperty(
                 BarcodeReader.PROPERTY_TRIGGER_CONTROL_MODE,
                 BarcodeReader.TRIGGER_CONTROL_MODE_CLIENT_CONTROL
             )
@@ -83,15 +82,15 @@ class ScannerManager(
 
         properties[BarcodeReader.PROPERTY_EAN_13_CHECK_DIGIT_TRANSMIT_ENABLED] = true
 
-        reader.setProperties(properties)
+        reader?.setProperties(properties)
     }
 
     private fun onTrigger(event: TriggerStateChangeEvent) {
 
         try {
-            reader.aim(event.state)
-            reader.light(event.state)
-            reader.decode(event.state)
+            reader?.aim(event.state)
+            reader?.light(event.state)
+            reader?.decode(event.state)
         } catch (e: ScannerNotClaimedException) {
             e.printStackTrace()
         } catch (e: ScannerUnavailableException) {
@@ -102,9 +101,9 @@ class ScannerManager(
     fun start() {
 
         try {
-            reader.claim()
-            reader.addBarcodeListener(barcodeListener)
-            reader.addTriggerListener(triggerListener)
+            reader?.claim()
+            reader?.addBarcodeListener(barcodeListener)
+            reader?.addTriggerListener(triggerListener)
         } catch (e: ScannerUnavailableException) {
             e.printStackTrace()
         }
@@ -113,12 +112,12 @@ class ScannerManager(
     fun stop() {
 
         try {
-            reader.release()
+            reader?.release()
         } catch (_: Exception) {
         }
 
-        reader.removeBarcodeListener(barcodeListener)
-        reader.removeTriggerListener(triggerListener)
+        reader?.removeBarcodeListener(barcodeListener)
+        reader?.removeTriggerListener(triggerListener)
 
         onScanListener = null
     }

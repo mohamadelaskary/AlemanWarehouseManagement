@@ -1,7 +1,7 @@
 package net.gbs.gbswarehouse
 
 
-import androidx.compose.animation.*
+import android.provider.CalendarContract
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
@@ -36,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
+import net.gbs.gbswarehouse.core.session.SessionManager
 import net.gbs.gbswarehouse.domain.model.ValuationType
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.ui.theme.AppTheme
@@ -72,14 +75,10 @@ fun LanguageToggleButton(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun LogoutButton(navController: NavController, modifier: Modifier = Modifier) {
+fun LogoutButton( modifier: Modifier = Modifier, onClick: () -> Unit) {
     val colors = AppTheme.colors
     IconButton(
-        onClick = {
-            navController.navigate(Screens.LoginScreen.route) {
-                popUpTo(0) { inclusive = true }
-            }
-        },
+        onClick = onClick,
         modifier = modifier
             .clip(CircleShape)
             .background(colors.card)
@@ -151,10 +150,11 @@ fun TopBar(
     subtitle: String? = null,
     accent: Color = GREEN,
     onBack: () -> Unit,
-    navController: NavController? = null
-) {
+    navController: NavController? = null) {
     val colors = AppTheme.colors
     val actualNavController = navController ?: LocalNavController.current
+    val sessionManager = SessionManager()
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -188,7 +188,12 @@ fun TopBar(
                 Text(text = subtitle, color = accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
             }
         }
-        LogoutButton(actualNavController)
+        LogoutButton( onClick = {
+            actualNavController.navigate(Screens.LoginScreen.route) {
+                popUpTo(0) { inclusive = true }
+            }
+            sessionManager.logout()
+        })
     }
 }
 
@@ -217,7 +222,9 @@ fun Section(label: String, accent: Color, content: @Composable ColumnScope.() ->
                 .background(colors.card)
                 .border(1.dp, colors.border, RoundedCornerShape(12.dp))
                 .padding(12.dp)
-        ) { content() }
+        ) {
+            content()
+        }
     }
 }
 
@@ -576,18 +583,24 @@ fun ErrorDialog(accent: Color,message: String,onClose: () -> Unit){
 }
 // ── InfoCell ──────────────────────────────────────────────────────────────────
 @Composable
-fun InfoCell(label: String, value: String, color: Color) {
+fun InfoCell(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    color: Color = AppTheme.colors.text
+) {
     val colors = AppTheme.colors
     Column(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(colors.dark)
             .padding(8.dp),
         horizontalAlignment = Alignment.Start
     ) {
-
-        Text(label, color = colors.muted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 2.dp))
+        Text(
+            label, color = colors.muted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(bottom = 2.dp)
+        )
         Text(value, color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
@@ -1078,7 +1091,7 @@ fun TransportationTypeSelector(options:List<TransportationType>, onItemSelected:
                 icon = {},   
                 label = {
                     Text(
-                        text = options[index].name,
+                        text = options[index].arName,
                         fontSize = 12.sp,
                         fontFamily = CairoFont,
                         fontWeight = if (selectedIndex == index) FontWeight.Bold
@@ -1227,94 +1240,158 @@ fun LoadTypeSpinner(hint:String, items : List<LoadType>, onItemSelected: (LoadTy
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WarehousesSpinner(hint:String, items : List<Warehouse>, onItemSelected: (Warehouse) -> Unit) {
+fun <T> SearchableSpinner(
+    hint: String,
+    items: List<T>,
+    itemLabel: (T) -> String,
+    onItemSelected: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    searchText: String = "",
+    onSearchTextChanged: (String) -> Unit = {}
+) {
     val colors = AppTheme.colors
-    var expanded by remember {
-        mutableStateOf(false)
+    var expanded by remember { mutableStateOf(false) }
+//    var searchText by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+
+    val filteredItems = remember(searchText, items) {
+        if (searchText.isBlank()) items
+        else items.filter { itemLabel(it).contains(searchText, ignoreCase = true) }
     }
 
-    var selectedCategory by remember {
-        mutableStateOf<Warehouse?>(null)
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
+    Column(modifier = modifier.fillMaxWidth()) {
         ExposedDropdownMenuBox(
             expanded = expanded,
-            onExpandedChange = {
-                expanded = !expanded
+            onExpandedChange = { 
+                if (!it) expanded = false
             }
         ) {
-
-            Box(
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = {
+                    onSearchTextChanged(it)
+                    if (!expanded) expanded = true
+                },
+                placeholder = { Text(text = hint, color = colors.text.copy(alpha = 0.5f)) },
+                trailingIcon = {
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            tint = colors.text
+                        )
+                    }
+                },
+                singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = colors.text),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = colors.dark,
+                    unfocusedContainerColor = colors.dark,
+                    focusedBorderColor = colors.border2,
+                    unfocusedBorderColor = colors.border2,
+                    cursorColor = colors.text
+                ),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .menuAnchor()
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(colors.dark)
-                    .border(
-                        width = 2.dp,
-                        color = colors.border2,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .clickable {
-                        expanded = true
-                    }
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
-            ) {
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    Text(
-                        text = selectedCategory?.warehouseDescription ?: hint,
-                        color = colors.text,
-                        fontSize = 16.sp
-                    )
-
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = null,
-                        tint = colors.text
-                    )
-                }
-            }
+                    .focusRequester(focusRequester)
+            )
 
             ExposedDropdownMenu(
                 expanded = expanded,
-                onDismissRequest = {
-                    expanded = false
-                },
-                modifier = Modifier
-                    .background(colors.card)
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(colors.card)
             ) {
-
-                items.forEach { category ->
-
+                if (filteredItems.isEmpty()) {
                     DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = category.warehouseDescription,
-                                color = colors.text
-                            )
-                        },
-                        onClick = {
-                            onItemSelected(category)
-                            selectedCategory = category
-                            expanded = false
-                        }
+                        text = { Text("No results", color = colors.text) },
+                        onClick = {}
                     )
+                } else {
+                    filteredItems.forEach { item ->
+                        DropdownMenuItem(
+                            text = { Text(text = itemLabel(item), color = colors.text) },
+                            onClick = {
+                                onSearchTextChanged(itemLabel(item))
+                                onItemSelected(item)
+                                expanded = false
+                            }
+                        )
+                    }
                 }
             }
         }
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WarehousesSpinner( hint:String=stringResource(R.string.select_a_warehouse),items : List<Warehouse>, onItemSelected: (Warehouse) -> Unit,accent: Color= GREEN,label: String = stringResource(R.string.warehouse),searchText: String="",onSearchTextChanged: (String) -> Unit) {
+     //   val colors = AppTheme.colors
+//    var expanded by remember {
+//        mutableStateOf(false)
+//    }
+    Column(modifier = Modifier.padding(bottom = 14.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp).height(12.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accent)
+            )
+            Text(
+                label, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                letterSpacing = 0.6.sp
+            )
+        }
+        SearchableSpinner(
+            hint = hint,
+            items = items,
+            itemLabel = { "${it.warehouseDescription} (${it.warehouseCode})" },
+            onItemSelected = onItemSelected,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+
+fun WorkersGroupsSpinner( hint:String=stringResource(R.string.select_workers_group),items : List<net.gbs.gbswarehouse.domain.model.WorkersGroup>, onItemSelected: (net.gbs.gbswarehouse.domain.model.WorkersGroup) -> Unit,accent: Color= GREEN,label: String = stringResource(R.string.workers_group),searchText: String="",onSearchTextChanged: (String) -> Unit) {
+    Column(modifier = Modifier.padding(bottom = 14.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp).height(12.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accent)
+            )
+            Text(
+                label, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                letterSpacing = 0.6.sp
+            )
+        }
+        SearchableSpinner(
+            hint = hint,
+            items = items,
+            itemLabel = { "${it.workerGroupDescription} (${it.workerGroupCode})" },
+            onItemSelected = onItemSelected,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
+        )
     }
 }
 
@@ -1590,7 +1667,7 @@ fun MarginVertical(margin : Dp){
 
 @Composable
 fun DatePickerField(
-    value: String,
+    value: String?,
     onDateSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
     label: String,
@@ -1615,15 +1692,15 @@ fun DatePickerField(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = value.ifEmpty { label },
-                color = if (value.isEmpty()) colors.muted else colors.text,
+                text = if(value.isNullOrEmpty())label else value  ,
+                color = if (value.isNullOrEmpty()) colors.muted else colors.text,
                 fontSize = 13.sp,
-                fontWeight = if (value.isEmpty()) FontWeight.Normal else FontWeight.SemiBold
+                fontWeight = if (value.isNullOrEmpty()) FontWeight.Normal else FontWeight.SemiBold
             )
             Icon(
                 imageVector = Icons.Default.DateRange,
                 contentDescription = hint ,
-                tint = if (value.isEmpty()) colors.muted else GREEN,
+                tint = if (value.isNullOrEmpty()) colors.muted else GREEN,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -1637,7 +1714,7 @@ fun DatePickerField(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
 
-                            val formatted = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                            val formatted = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
                                 .format(Date(millis))
                             onDateSelected(formatted)
                         }
@@ -1697,91 +1774,117 @@ fun DatePickerField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ValuationTypeSpinner(hint:String, items : List<ValuationType>, onItemSelected: (ValuationType) -> Unit) {
-    val colors = AppTheme.colors
-    var expanded by remember {
-        mutableStateOf(false)
-    }
-
-    var selectedCategory by remember {
-        mutableStateOf<ValuationType?>(null)
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = {
-                expanded = !expanded
-            }
+fun ValuationTypeSpinner(hint:String, items : List<ValuationType>, onItemSelected: (ValuationType) -> Unit,accent:Color,searchText:String,onSearchTextChanged: (String) -> Unit) {
+//    val colors = AppTheme.colors
+//    var expanded by remember {
+//        mutableStateOf(false)
+//    }
+//
+//    var selectedCategory by remember {
+//        mutableStateOf<ValuationType?>(null)
+//    }
+//    Column(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//    ) {
+//
+//        ExposedDropdownMenuBox(
+//            expanded = expanded,
+//            onExpandedChange = {
+//                expanded = !expanded
+//            }
+//        ) {
+//
+//            Box(
+//                modifier = Modifier
+//                    .menuAnchor()
+//                    .fillMaxWidth()
+//                    .clip(RoundedCornerShape(12.dp))
+//                    .background(colors.dark)
+//                    .border(
+//                        width = 2.dp,
+//                        color = colors.border2,
+//                        shape = RoundedCornerShape(12.dp)
+//                    )
+//                    .clickable {
+//                        expanded = true
+//                    }
+//                    .padding(horizontal = 16.dp, vertical = 14.dp)
+//            ) {
+//
+//                Row(
+//                    modifier = Modifier.fillMaxWidth(),
+//                    horizontalArrangement = Arrangement.SpaceBetween,
+//                    verticalAlignment = Alignment.CenterVertically
+//                ) {
+//
+//                    Text(
+//                        text = selectedCategory?.type ?: hint,
+//                        color = colors.text,
+//                        fontSize = 16.sp
+//                    )
+//
+//                    Icon(
+//                        imageVector = Icons.Default.ArrowDropDown,
+//                        contentDescription = null,
+//                        tint = colors.text
+//                    )
+//                }
+//            }
+//
+//            ExposedDropdownMenu(
+//                expanded = expanded,
+//                onDismissRequest = {
+//                    expanded = false
+//                },
+//                modifier = Modifier
+//                    .background(colors.bg)
+//            ) {
+//
+//                items.forEach { category ->
+//
+//                    DropdownMenuItem(
+//                        text = {
+//                            Text(
+//                                text = category.type,
+//                                color = colors.text
+//                            )
+//                        },
+//                        onClick = {
+//                            onItemSelected(category)
+//                            selectedCategory = category
+//                            expanded = false
+//                        }
+//                    )
+//                }
+//            }
+//        }
+//    }
+    Column(modifier = Modifier.padding(bottom = 14.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(bottom = 8.dp)
         ) {
-
             Box(
                 modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(colors.dark)
-                    .border(
-                        width = 2.dp,
-                        color = colors.border2,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .clickable {
-                        expanded = true
-                    }
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
-            ) {
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    Text(
-                        text = selectedCategory?.type ?: hint,
-                        color = colors.text,
-                        fontSize = 16.sp
-                    )
-
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = null,
-                        tint = colors.text
-                    )
-                }
-            }
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = {
-                    expanded = false
-                },
-                modifier = Modifier
-                    .background(colors.bg)
-            ) {
-
-                items.forEach { category ->
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = category.type,
-                                color = colors.text
-                            )
-                        },
-                        onClick = {
-                            onItemSelected(category)
-                            selectedCategory = category
-                            expanded = false
-                        }
-                    )
-                }
-            }
+                    .width(3.dp).height(12.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accent)
+            )
+            Text(
+                stringResource(R.string.valuation_type), color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                letterSpacing = 0.6.sp
+            )
         }
+        SearchableSpinner(
+            hint = hint,
+            items = items,
+            itemLabel = { it.type },
+            onItemSelected = onItemSelected,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
+        )
     }
 }
 

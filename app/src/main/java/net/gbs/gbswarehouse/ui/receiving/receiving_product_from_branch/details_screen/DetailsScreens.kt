@@ -3,11 +3,10 @@ package net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.details_
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,589 +14,787 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import net.gbs.gbswarehouse.ui.theme.AppTheme
-import net.gbs.gbswarehouse.Bin
-import net.gbs.gbswarehouse.CarCodeInput
-import net.gbs.gbswarehouse.CarSourceSpinner
-import net.gbs.gbswarehouse.CarTypeSpinner
-import net.gbs.gbswarehouse.DatePickerField
+import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.Field
 import net.gbs.gbswarehouse.FullBtn
-import net.gbs.gbswarehouse.InfoCell
-import net.gbs.gbswarehouse.InspectionSelectedMaterialCard
-import net.gbs.gbswarehouse.LoadTypeSpinner
-import net.gbs.gbswarehouse.MarginTenDp
-import net.gbs.gbswarehouse.Material
-import net.gbs.gbswarehouse.ORDERS
-import net.gbs.gbswarehouse.Order
+import net.gbs.gbswarehouse.GREEN
+import net.gbs.gbswarehouse.MarginVertical
 import net.gbs.gbswarehouse.OutlineBtn
-import net.gbs.gbswarehouse.QualityDecisionSpinner
-import net.gbs.gbswarehouse.Screens
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.Section
-import net.gbs.gbswarehouse.SuccessCard
+import net.gbs.gbswarehouse.SuccessDialog
 import net.gbs.gbswarehouse.TopBar
-import net.gbs.gbswarehouse.domain.model.ValuationType
-import net.gbs.gbswarehouse.ValuationTypeSpinner
 import net.gbs.gbswarehouse.WarehousesSpinner
-import net.gbs.gbswarehouse.WorksGroupSpinner
-import net.gbs.gbswarehouse.carSources
-import net.gbs.gbswarehouse.carTypes
-import net.gbs.gbswarehouse.loadTypes
-import net.gbs.gbswarehouse.qualityDecisions
-import net.gbs.gbswarehouse.valuationTypes
-import net.gbs.gbswarehouse.warehouses
-import net.gbs.gbswarehouse.workersGroup
-import kotlin.text.ifEmpty
+import net.gbs.gbswarehouse.WorkersGroupsSpinner
+import net.gbs.gbswarehouse.domain.model.CarNumber
+import net.gbs.gbswarehouse.domain.model.CarType
+import net.gbs.gbswarehouse.domain.model.LoadingVendor
+import net.gbs.gbswarehouse.domain.model.NaolonDescription
+import net.gbs.gbswarehouse.domain.model.PackageType
+import net.gbs.gbswarehouse.domain.model.TransitOrderMaterialLine
+import net.gbs.gbswarehouse.domain.model.TransitOrderMaterialPurchaseOrderItem
+import net.gbs.gbswarehouse.domain.model.Warehouse
+import net.gbs.gbswarehouse.domain.model.WorkersGroup
+import net.gbs.gbswarehouse.ui.receiving.ReceivingMatCodeInput
+import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.BottomSheetDialog
+import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.CarNumberSpinner
+import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.CarTypeSpinner
+import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.InfoCell
+import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.LoadingVendorSpinner
+import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.NaolonCard
+import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.NaolonDescriptionSpinner
+import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.NaolonLoadingStatus
+import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.PackingTypeSpinner
+import net.gbs.gbswarehouse.ui.theme.AppTheme
+import net.gbs.gbswarehouse.ui.theme.DANGER
+import net.gbs.honeywellscanner.ScannerEffect
 
 @Composable
 fun ReceivingProductFromBranchDetailsScreen(
     navController: NavController,
     orderId: String
-){
-    val viewModel: DetailsViewModel = viewModel()
+) {
+    val viewModel: DetailsViewModel = hiltViewModel()
+    val state by viewModel.uiState.collectAsState()
     val colors = AppTheme.colors
     val accent = colors.green
-    val doneLabel = "الكمية المستلمة"
-    val order = ORDERS["TRANSFER"]?.find { it.id == orderId }!!
+    val doneLabel = stringResource(R.string.received_qty)
+
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    LaunchedEffect(state.purchaseOrderGetDataStatus) {
+        if (state.purchaseOrderGetDataStatus is TransitPurchaseOrderGetDataStatus.SUCCESS) {
+            focusManager.clearFocus()
+        }
+    }
+    LaunchedEffect(orderId) {
+        viewModel.onEvent(ReceivingProductFromBranchEvent.OnScreenLoaded(orderId))
+    }
+    LaunchedEffect(state.selectedMaterial) {
+        if (state.selectedMaterial != null) {
+            focusManager.clearFocus()
+        }
+    }
+
+    ScannerEffect(onScan = viewModel::onBarcodeScanned)
+
     Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
-            TopBar(title = "استلام", subtitle = "تحويلات مخزنية بين المواقع",
-                accent = accent, onBack = {
-                    navController.popBackStack()
-                })
+            TopBar(
+                title = stringResource(R.string.receiving),
+                subtitle = stringResource(R.string.product_from_branch),
+                accent = accent,
+                onBack = { navController.popBackStack() }
+            )
 
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
-                    top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
-                )
-            ) {
-
-                // ── Order Info Card (non-blind) ────────────────────────────
-                    item {
-                        Section(label = "بيانات الأمر", accent = colors.green) {
-                            val fields = listOf(
-                                Triple("رقم امر التحويل", order.id, null),
-                                Triple("الحالة",      order.status, order.statusColor),
-                                Triple("الجهة",       order.info,   null),
-                                Triple("التاريخ",     order.date,   null),
-                                Triple("عدد الأصناف","${order.items} أصناف", null),
+            when (state.purchaseOrderGetDataStatus) {
+                TransitPurchaseOrderGetDataStatus.LOADING -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = accent)
+                    }
+                }
+                is TransitPurchaseOrderGetDataStatus.ERROR -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(state.searchError, color = colors.text)
+                            Spacer(Modifier.height(10.dp))
+                            OutlineBtn(stringResource(R.string.retry), accent) {
+                                viewModel.onEvent(ReceivingProductFromBranchEvent.OnScreenLoaded(orderId))
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    val order = state.purchaseOrder
+                    if (order != null) {
+                        LazyColumn(
+                            contentPadding = PaddingValues(
+                                start = 14.dp, end = 14.dp, top = 10.dp,
+                                bottom = if (state.addedItems.isNotEmpty()) 90.dp else 20.dp
                             )
-                            // 2-column grid
-                            for (i in fields.indices step 2) {
-                                Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    val f1 = fields[i]
-                                    val f2 = if (i + 1 < fields.size) fields[i + 1] else null
-                                    // if "الجهة" span full width
-                                    if (f1.first == "الجهة") {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text)
-                                    } else {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
-                                            modifier = Modifier.weight(1f))
-                                        if (f2 != null) {
-                                            InfoCell(f2.first, f2.second, f2.third ?: colors.text,
-                                                modifier = Modifier.weight(1f))
+                        ) {
+                            item {
+                                Section(label = stringResource(R.string.order_data), accent = accent) {
+                                    Row(
+                                        Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        InfoCell(stringResource(R.string.po_number), order.poNumber, accent, Modifier.weight(1f))
+                                    }
+                                    InfoCell(stringResource(R.string.vendor), order.vendorName ?: "", colors.text, Modifier.fillMaxWidth())
+                                    if (!order.warehouseCode.isNullOrEmpty()){
+                                        InfoCell(stringResource(R.string.warehouse), "${order.warehouseCode} - ${order.warehouseDescription}", colors.text, Modifier.fillMaxWidth())
+                                    }
+                                }
+                            }
+
+                            item {
+                                Section(label = stringResource(R.string.item_data), accent = accent) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(Modifier.weight(1f)) {
+                                            ReceivingMatCodeInput(
+                                                value = state.materialCodeInput,
+                                                onValueChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialCodeInputEntered(it)) },
+                                                onKeyboardAction = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(state.materialCodeInput)) }
+                                            )
+                                            if (state.materialCodeError.isNotEmpty()){
+                                                Text(state.materialCodeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                                            }
                                         }
+                                        OutlineBtn(stringResource(R.string.select_item), accent) { viewModel.matDlg = true }
+                                    }
+                                    if (state.selectedMaterial != null) {
+                                        Spacer(Modifier.height(8.dp))
+                                        SelectedTransitMaterialCard(
+                                            mat = state.selectedMaterial!!,
+                                            accent = accent,
+                                            doneLabel = doneLabel,
+                                            qty = state.quantity,
+                                            onQtyChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnQuantityEntered(it)) },
+                                            onClear = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnClearMaterialButtonClicked) },
+                                            warehouses = state.warehouses,
+                                            onWarehouseSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWarehouseSelected(it)) },
+                                            quantityError = state.quantityError,
+                                            warehouseError = state.warehouseError,
+                                            carNoError = state.carNoError,
+                                            searchText = state.warehouseSearchText,
+                                            onSearchTextChanged = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWarehouseSearchTextChange(it)) },
+                                            carNumberSearchText = state.carNoSearchText,
+                                            carNumbersList = state.carNos,
+                                            onCarNumberSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoTextSearchChange(it)) },
+                                            onCarNoSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoSelected(it)) },
+                                            unloadingPoint = state.unloadingPoint,
+                                            unloadingPointError = state.unloadingPointError,
+                                            onUnloadingPointChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnUnloadingPointEntered(it)) },
+                                            workersGroup = state.workerGroups,
+                                            workersGroupSearchText = state.workerGroupSearchText,
+                                            onWorkersGroupSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupTextSearchChange(it)) },
+                                            onWorkersGroupSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupSelected(it)) },
+                                            workersGroupError = state.workerGroupError,
+                                            contractNumber = state.contNo,
+                                            onContractNumberEntered = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnContNoEntered(it)) },
+                                            contractNumberError = state.contNoError,
+                                            loadingVendors = state.loadingVendors,
+                                            onLoadingVendorSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnLoadingVendorSelected(it)) },
+                                            loadingVendorSearchText = state.loadingVendorSearchText,
+                                            onSearchLoadingVendorTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnLoadingVendorTextSearchChange(it)) },
+                                            loadingVendorError = state.loadingVendorError,
+                                            packingTypes = state.packingTypes,
+                                            onPackingTypeSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnPackingTypeSelected(it)) },
+                                            packingTypeError = state.packingTypeError,
+                                            packingTypeSearchText = state.packingTypeSearchText,
+                                            onSearchPackingTypeTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnPackingTypeTextSearchChange(it)) },
+                                            carTypesList = state.carTypes,
+                                            onCarTypeSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarTypeSelected(it)) },
+                                            carTypesErrorMessage = state.carTypeError,
+                                            carTypeTextSearch = state.carTypeSearchText,
+                                            onCarTypeTextSearchChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarTypeTextSearchChange(it)) },
+                                            naoloanDescriptions = state.naolonDescriptions,
+                                            onNaolonDescriptionSelected = {
+                                                viewModel.onEvent(ReceivingProductFromBranchEvent.OnNaolonDescriptionSelected(it))
+                                                                          },
+                                            naolonDescriptionTextSearch = state.naolonDescriptionSearchText,
+                                            onNaolonDescriptionTextSearchChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnNaolonDescriptionTextSearchChange(it)) },
+                                            naolonDescriptionErrorMessage = state.naolonError,
+                                            naolonLoadingStatus = state.naolonLoadStatus,
+                                        )
                                     }
                                 }
                             }
-                        }
-                    }
-                
-                item {
-                        WorksGroupSpinner("مجموعة العمال",workersGroup, onItemSelected = {
-                            viewModel.selectedWorkersGroup = it
-                        })
 
-                }
-                item{
-                    Section(label = "بيانات العربة", accent = colors.green) {
-                        Row(Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            CarCodeInput(
-                                value = viewModel.carCode,
-                                onValueChange = { viewModel.carCode = it },
-                                modifier = Modifier.weight(1f),
-                                withLabel = false
-                            )
-                            OutlineBtn("بحث", colors.green) {
-                                if (viewModel.carCode.isNotEmpty())
-                                    viewModel.carCodeEntered = true
-                            }
-                        }
-                        if (viewModel.carCodeEntered) {
-                            Spacer(Modifier.height(8.dp))
-                            Text("856002215", color = colors.text, fontSize = 13.sp)
-                        }
-                    }
-                    // Shipping cost
-                    Section(label = "معلومات الناولون", accent = colors.green) {
-                        Column(Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally) {
-                            CarTypeSpinner(
-                                hint = "نوع العربة",
-                                items = carTypes,
-                                onItemSelected = {
-                                    viewModel.selectedCarType = it
+                            if (state.selectedMaterial != null && state.quantity.isNotEmpty()) {
+                                item {
+                                    Spacer(Modifier.height(10.dp))
+                                    AddTransitLineButton(
+                                        onClick = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnAddButtonClicked) }
+                                    )
                                 }
-                            )
-                            CarSourceSpinner(
-                                hint = "الجهة",
-                                items = carSources,
-                                onItemSelected = {
-                                    viewModel.selectedCarSource = it
+                            }
+
+                            itemsIndexed(state.addedItems) { index, item ->
+                                ReceivingTransitMaterialsLineItem(item) {
+                                    viewModel.onEvent(ReceivingProductFromBranchEvent.OnDeleteAddedMaterialButtonClicked(index))
                                 }
-                            )
-                            if (viewModel.shippingCost.isNotEmpty()) {
-                                Spacer(Modifier.height(8.dp))
-                                Text(text = viewModel.shippingCost, color = colors.text)
                             }
                         }
-
-
                     }
-                    // Load type
-                    Spacer(Modifier.height(10.dp))
-                    LoadTypeSpinner("نوع الحمولة", loadTypes, onItemSelected = {viewModel.selectedLoadType = it})
-                    Spacer(Modifier.height(10.dp))
-                }
-                item {
-                    WarehousesSpinner("اختر المخزن", warehouses, onItemSelected = {
-                        viewModel.selectedWarehouse = it
-                    })
-
-                }
-                
-
-                // ── Normal/Issue: Material Section ────────────────────────
-                
-                    item {
-                        Section(label = "بيانات الصنف", accent = accent) {
-                            Row(Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                MatCodeInput(
-                                    value = viewModel.matInput,
-                                    onValueChange = { viewModel.matInput = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlineBtn("اختر مادة", accent) { viewModel.matDlg = true }
-                            }
-                            if (viewModel.selMat != null) {
-                                Spacer(Modifier.height(8.dp))
-                                SelectedMaterialCard(
-                                    mat = viewModel.selMat!!,
-                                    accent = accent,
-                                    isQuality = false,
-                                    isIssue = false,
-                                    doneLabel = doneLabel,
-                                    smpQty = viewModel.smpQty,
-                                    onSmpQtyChange = { viewModel.smpQty = it },
-                                    qty = viewModel.qty,
-                                    onQtyChange = { viewModel.qty = it },
-                                    saved = viewModel.saved,
-                                    saving = viewModel.saving,
-                                    onAccept = { viewModel.doSave("accept") },
-                                    onReject = { viewModel.doSave("reject") },
-                                    onClear = { viewModel.clearMaterial() },
-                                    onValuationTypeSelected = {
-                                        viewModel.selectedValuationType = it
-                                    },
-                                    expiryDate = viewModel.expiryDate,
-                                    onExpiryDateSelected = {
-                                        viewModel.expiryDate = it
-                                    },
-                                    productionDate = viewModel.productionDate,
-                                    onProductionDateSelected = {
-                                        viewModel.productionDate = it
-                                    }
-                                )
-                            }
-                        }
-                    
-                }
-
-
-                // ── Success Card ──────────────────────────────────────────
-                if (viewModel.saved) {
-                    item { SuccessCard(kind = viewModel.saveKind, accent = accent) }
                 }
             }
         }
 
-        // ── Fixed Save Button ─────────────────────────────────────────────
-        if (viewModel.showFixedSave && !viewModel.saved) {
+        if (state.addedItems.isNotEmpty()) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent, 0.35f to colors.bg
-                        )
-                    )
+                    .align(Alignment.BottomCenter)
+                    .background(Brush.verticalGradient(0f to Color.Transparent, 0.35f to colors.bg))
                     .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
                 FullBtn(
-                    "حفظ الاستلام", accent, { viewModel.doSave("save") },
-                    saving = viewModel.saving
+                    stringResource(R.string.save_receiving), accent,
+                    { viewModel.onEvent(ReceivingProductFromBranchEvent.OnSaveButtonClicked) },
+                    saving = state.isSavingLoading
                 )
+            }
+        }
+
+        if (state.showSuccessDialog) {
+            SuccessDialog(colors.succ, state.savingSuccessStatusMessage) {
+                viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
+            }
+            navController.popBackStack()
+        }
+        if (state.showErrorDialog) {
+            ErrorDialog(DANGER, state.savingErrorStatusMessage) {
+                viewModel.onEvent(ReceivingProductFromBranchEvent.HideErrorDialog)
             }
         }
     }
 
-    // ── Material Dialog ───────────────────────────────────────────────────
     if (viewModel.matDlg) {
-        BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
-            SearchBox(viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
-                )
-            ) {
-                itemsIndexed(viewModel.filteredMaterials) { _, m ->
-                    MaterialDialogItem(m, viewModel.accent, doneLabel) {
-                        viewModel.selectMaterial(m)
+        BottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
+            SearchBox(state.materialSearch, { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSearchTextEntered(it)) },
+                stringResource(R.string.search_for_item), Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
+                itemsIndexed(state.filteredMaterials) { _, m ->
+                    TransitMaterialDialogItem(m, accent, doneLabel) {
+                        viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(m.materialCode ?: ""))
+                        viewModel.matDlg = false
                     }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-    }
-
-    // ── Bin Dialog ────────────────────────────────────────────────────────
-    if (viewModel.binDlg) {
-        BottomSheetDialog(title = "اختيار موقع التسكين", onClose = { viewModel.binDlg = false }) {
-            SearchBox(viewModel.binInput, { viewModel.binInput = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(contentPadding = PaddingValues(
-                start = 14.dp, end = 14.dp, bottom = 20.dp
-            )) {
-                itemsIndexed(viewModel.filteredBins) { _, b ->
-                    BinDialogItem(b, viewModel.accent) { viewModel.selectBin(b) }
                     Spacer(Modifier.height(6.dp))
                 }
             }
         }
     }
 }
-@Composable
-fun InspectingProductFromBranchDetailsScreen(
-    navController: NavController,
-    orderId: String
-){
-    val viewModel: DetailsViewModel = viewModel()
-    val colors = AppTheme.colors
-    val accent = colors.purple
-    val order = ORDERS["TRANSFER"]?.find { it.id == orderId }!!
-    val doneLabel = "الكمية المستلمة"
-    Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
-        Column(Modifier.fillMaxSize()) {
-            TopBar(title = "مراجعة الجودة", subtitle = "منتج تام من الانتاج",
-                accent = accent, onBack = {
-                    navController.popBackStack()
-                })
-
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
-                    top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
-                )
-            ) {
-
-            
-                    item {
-                        Section(label = "بيانات الأمر", accent = accent) {
-                            val fields = listOf(
-                                Triple("رقم امر التحويل", order.id, null),
-                                Triple("الحالة",      order.status, order.statusColor),
-                                Triple("الجهة",       order.info,   null),
-                                Triple("التاريخ",     order.date,   null),
-                                Triple("عدد الأصناف","${order.items} أصناف", null),
-                            )
-                            // 2-column grid
-                            for (i in fields.indices step 2) {
-                                Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    val f1 = fields[i]
-                                    val f2 = if (i + 1 < fields.size) fields[i + 1] else null
-                                    // if "الجهة" span full width
-                                    if (f1.first == "الجهة") {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text)
-                                    } else {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
-                                            modifier = Modifier.weight(1f))
-                                        if (f2 != null) {
-                                            InfoCell(f2.first, f2.second, f2.third ?: colors.text,
-                                                modifier = Modifier.weight(1f))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-
-                item{
-                    Field(
-                        "القائم بالفحص *",
-                        "ادخل الكود الوظيفي أو الاسم ..",
-                        viewModel.qualityDecider,
-                        { viewModel.qualityDecider = it })
-                    Spacer(Modifier.height(10.dp))
-                }
-
-                // ── Normal/Issue: Material Section ────────────────────────
-                    item {
-                        Section(label = "بيانات الصنف", accent = accent) {
-                            Row(Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                MatCodeInput(
-                                    value = viewModel.matInput,
-                                    onValueChange = { viewModel.matInput = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlineBtn("اختر مادة", accent) { viewModel.matDlg = true }
-                            }
-                            if (viewModel.selMat != null) {
-                                Spacer(Modifier.height(8.dp))
-                                InspectionSelectedMaterialCard(
-                                    mat = viewModel.selMat!!,
-                                    accent = accent,
-                                    isQuality = true,
-                                    isIssue = false,
-                                    doneLabel = doneLabel,
-                                    smpQty = viewModel.smpQty,
-                                    onSmpQtyChange = { viewModel.smpQty = it },
-                                    qty = viewModel.qty,
-                                    onQtyChange = { viewModel.qty = it },
-                                    saved = viewModel.saved,
-                                    saving = viewModel.saving,
-                                    onAccept = { viewModel.doSave("accept") },
-                                    onReject = { viewModel.doSave("reject") },
-                                    onClear = { viewModel.clearMaterial() },
-                                    onQualityDecisionChange = {viewModel.qualityDecision = it }
-                                )
-                            }
-                        }
-                    }
-//                item {
-//
-//                    Section(label="قرار الجودة",accent= accent){
-//                        QualityDecisionSpinner("قرار الجودة",qualityDecisions, onItemSelected = {
-//                            viewModel.qualityDecision = it
-//                        })
-//                    }
-//
-//
-//                }
-
-                // ── Success Card ──────────────────────────────────────────
-                if (viewModel.saved) {
-                    item { SuccessCard(kind = viewModel.saveKind, accent = accent) }
-                }
-            }
-        }
-
-        // ── Fixed Save Button ─────────────────────────────────────────────
-        if (viewModel.showFixedSave && !viewModel.saved) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent, 0.35f to colors.bg
-                        )
-                    )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
-            ) {
-                FullBtn(viewModel.saveLabel, accent, { viewModel.doSave("save") },
-                    saving = viewModel.saving)
-            }
-        }
-    }
-
-    // ── Material Dialog ───────────────────────────────────────────────────
-    if (viewModel.matDlg) {
-        BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
-            SearchBox(
-                viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-            )
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
-                )
-            ) {
-                itemsIndexed(viewModel.filteredMaterials) { _, m ->
-                    MaterialDialogItem(m, viewModel.accent, doneLabel) {
-                        viewModel.selectMaterial(m)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-    }
-
-
-}
 
 @Composable
-fun SelectedMaterialCard(
-    mat: Material, accent: Color, isQuality: Boolean, isIssue: Boolean,
-    doneLabel: String, smpQty: String, onSmpQtyChange: (String) -> Unit,
-    qty: String, onQtyChange: (String) -> Unit,
-    saved: Boolean, saving: Boolean,
-    onAccept: () -> Unit, onReject: () -> Unit, onClear: () -> Unit,
-    onValuationTypeSelected:(ValuationType)->Unit,
-    productionDate: String, onProductionDateSelected: (String) -> Unit,
-    expiryDate: String, onExpiryDateSelected: (String) -> Unit
+fun SelectedTransitMaterialCard(
+    mat: TransitOrderMaterialPurchaseOrderItem,
+    accent: Color,
+    doneLabel: String,
+    qty: String,
+    onQtyChange: (String) -> Unit,
+    onClear: () -> Unit,
+    warehouses: List<Warehouse>,
+    onWarehouseSelected: (Warehouse) -> Unit,
+    onCarNoSelected: (CarNumber) -> Unit,
+    quantityError: String = "",
+    warehouseError: String = "",
+    carNoError: String = "",
+    searchText: String = "",
+    onSearchTextChanged: (String) -> Unit,
+    carNumberSearchText: String = "",
+    carNumbersList: List<CarNumber> = emptyList(),
+    onCarNumberSearchTextChange: (String) -> Unit,
+    unloadingPoint: String = "",
+    unloadingPointError: String = "",
+    onUnloadingPointChange: (String) -> Unit,
+    workersGroup: List<WorkersGroup> = emptyList(),
+    workersGroupSearchText: String = "",
+    onWorkersGroupSearchTextChange: (String) -> Unit,
+    onWorkersGroupSelected: (WorkersGroup) -> Unit,
+    workersGroupError: String = "",
+    contractNumber: String = "",
+    onContractNumberEntered: (String) -> Unit,
+    contractNumberError: String = "",
+    loadingVendors: List<LoadingVendor> = emptyList(),
+    onLoadingVendorSelected: (LoadingVendor) -> Unit,
+    loadingVendorSearchText: String = "",
+    onSearchLoadingVendorTextChange: (String) -> Unit,
+    loadingVendorError: String = "",
+    packingTypes: List<PackageType> = emptyList(),
+    onPackingTypeSelected: (PackageType) -> Unit,
+    packingTypeError: String = "",
+    packingTypeSearchText: String = "",
+    onSearchPackingTypeTextChange: (String) -> Unit,
+    carTypesList: List<CarType> = emptyList(),
+    onCarTypeSelected: (CarType) -> Unit,
+    carTypesErrorMessage: String = "",
+    carTypeTextSearch: String = "",
+    onCarTypeTextSearchChange: (String) -> Unit,
+    naoloanDescriptions: List<NaolonDescription> = emptyList(),
+    onNaolonDescriptionSelected: (NaolonDescription) -> Unit,
+    naolonDescriptionTextSearch: String = "",
+    onNaolonDescriptionTextSearchChange: (String) -> Unit,
+    naolonDescriptionErrorMessage: String = "",
+    naolonLoadingStatus: NaolonLoadingStatus
 ) {
-    val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
+    val progress = if ((mat.orderedQuantity ?: 0.0) > 0) (mat.receivedQuantity ?: 0.0) / mat.orderedQuantity!! else 0.0
     val colors = AppTheme.colors
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(accent.copy(0.06f))
-            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .background(accent.copy(0.06f)).border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
             .padding(12.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+            Text(mat.materialCode ?: "", color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
             Text("✕", color = colors.muted, fontSize = 12.sp,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        Text(mat.materialDescription ?: "", color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
         Spacer(Modifier.height(8.dp))
-        // Stats row
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
-                "الوحدة" to mat.unit,).forEach { (l, v) ->
+            listOf(doneLabel to mat.receivedQuantity.toString(), stringResource(R.string.required) to mat.orderedQuantity.toString(),
+                stringResource(R.string.unit) to (mat.uom ?: ""),).forEach { (l, v) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(l, color = colors.muted, fontSize = 9.sp,
-                        modifier = Modifier.padding(bottom = 2.dp))
+                    Text(l, color = colors.muted, fontSize = 9.sp, modifier = Modifier.padding(bottom = 2.dp))
                     Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
         Spacer(Modifier.height(10.dp))
-        // Progress bar
         Column {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("التنفيذ", color = colors.muted, fontSize = 9.sp)
-                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
-                    fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.execution), color = colors.muted, fontSize = 9.sp)
+                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(3.dp))
-            Box(
-                modifier = Modifier.fillMaxWidth().height(4.dp)
-                    .clip(RoundedCornerShape(2.dp)).background(colors.dark)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxHeight()
-                        .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
-                        .clip(RoundedCornerShape(2.dp)).background(accent)
-                )
+            Box(modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(colors.dark)) {
+                Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(fraction = progress.toFloat().coerceIn(0f, 1f))
+                    .clip(RoundedCornerShape(2.dp)).background(accent))
             }
         }
         Spacer(Modifier.height(10.dp))
-        if (isQuality) {
-            Field("كمية العينة", "0", smpQty, onSmpQtyChange, isNumber = true, center = true)
-            if (!saved) {
-                Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FullBtn("✓  قبول", colors.succ, onAccept, saving, smpQty.isNotEmpty(),
-                        modifier = Modifier.weight(1f))
-                    FullBtn("✕  رفض", colors.danger, onReject, saving, smpQty.isNotEmpty(),
-                        modifier = Modifier.weight(1f))
+        Field("${stringResource(R.string.receiving_qty)} (${mat.uom ?: ""})", "", qty, onQtyChange, isNumber = true, center = true)
+        if (quantityError.isNotEmpty()) Text(quantityError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        
+        Spacer(Modifier.height(10.dp))
+        WarehousesSpinner(
+            hint = stringResource(R.string.warehouse),
+            items = warehouses,
+            onItemSelected = onWarehouseSelected,
+            accent = accent,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
+        )
+        if (warehouseError.isNotEmpty()) Text(warehouseError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        
+        Spacer(Modifier.height(10.dp))
+        CarNumberSpinner(
+            hint = stringResource(R.string.select_car_number),
+            items = carNumbersList,
+            onItemSelected = onCarNoSelected,
+            accent = accent,
+            label = stringResource(R.string.car_number),
+            searchText = carNumberSearchText,
+            onSearchTextChanged = { onCarNumberSearchTextChange(it) }
+        )
+        if (carNoError.isNotEmpty()) Text(carNoError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        Spacer(Modifier.height(10.dp))
+        Field(
+            label = stringResource(R.string.unloading_point),
+            hint = stringResource(R.string.enter_unloading_point),
+            value = unloadingPoint,
+            onValueChange = onUnloadingPointChange,
+            isNumber = false,
+            center = true
+            )
+        if (unloadingPointError.isNotEmpty()) Text(unloadingPointError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        Spacer(Modifier.height(10.dp))
+        WorkersGroupsSpinner(
+            hint = stringResource(R.string.select_workers_group),
+            items = workersGroup,
+            onItemSelected = onWorkersGroupSelected,
+            accent = accent,
+            label = stringResource(R.string.workers_group),
+            searchText = workersGroupSearchText,
+            onSearchTextChanged = { onWorkersGroupSearchTextChange(it) }
+        )
+        if (workersGroupError.isNotEmpty()) Text(workersGroupError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        Spacer(Modifier.height(10.dp))
+        Field(
+            label = stringResource(R.string.cont_no),
+            hint = stringResource(R.string.enter_cont_no),
+            value = contractNumber,
+            onValueChange = onContractNumberEntered,
+            isNumber = false,
+            center = true
+        )
+        if (contractNumberError.isNotEmpty()) Text(contractNumberError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        Spacer(Modifier.height(10.dp))
+        LoadingVendorSpinner(
+            items = loadingVendors,
+            onItemSelected = onLoadingVendorSelected,
+            accent = accent,
+            searchText = loadingVendorSearchText,
+            onSearchTextChanged = { onSearchLoadingVendorTextChange(it) }
+        )
+        if (loadingVendorError.isNotEmpty()) Text(loadingVendorError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        Spacer(Modifier.height(10.dp))
+        PackingTypeSpinner(
+            hint = stringResource(R.string.select_packing_type),
+            items = packingTypes,
+            onItemSelected = onPackingTypeSelected,
+            accent = accent,
+            searchText = packingTypeSearchText,
+            onSearchTextChanged = { onSearchPackingTypeTextChange(it) }
+        )
+        if (packingTypeError.isNotEmpty()) Text(packingTypeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        Spacer(Modifier.height(10.dp))
+        NaolonCard(
+            carTypes = carTypesList,
+            onCarTypeSelected =  onCarTypeSelected,
+            carTypeTextSearch = carTypeTextSearch,
+            onCarTypeTextSearchChange = { onCarTypeTextSearchChange(it) },
+            carTypesErrorMessage = carTypesErrorMessage,
+            naoloanDescriptions = naoloanDescriptions,
+            onNaolonDescriptionSelected = onNaolonDescriptionSelected,
+            naolonDescriptionTextSearch = naolonDescriptionTextSearch,
+            onNaolonDescriptionTextSearchChange = { onNaolonDescriptionTextSearchChange(it) },
+            naolonDescriptionErrorMessage = naolonDescriptionErrorMessage,
+            accent = accent,
+            naolonLoadingStatus = naolonLoadingStatus,
+        )
+    }
+}
+
+@Composable
+fun AddTransitLineButton(onClick: () -> Unit) {
+    val colors = AppTheme.colors
+    Box(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .background(colors.addMaterialButtonBackground).border(1.dp, colors.border, RoundedCornerShape(10.dp))
+            .clickable { onClick() }.padding(vertical = 13.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(stringResource(R.string.add), color = colors.addMaterialButtonTextColor, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+    }
+}
+
+@Composable
+fun ReceivingTransitMaterialsLineItem(item: TransitOrderMaterialLine, onDelete: () -> Unit) {
+    val colors = AppTheme.colors
+    val accent = GREEN
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.card),
+        elevation = CardDefaults.cardElevation(3.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = item.materialCode, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = accent)
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(text = item.receivedQuantity.toString(), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = colors.text)
+                    Spacer(Modifier.width(5.dp))
+                    Text(text = item.uom, fontSize = 12.sp, color = colors.muted)
                 }
             }
-        } else {
-            val qLabel = "${if (isIssue) "الكمية المصروفة" else "كمية الاستلام"} (${mat.unit})"
-            Field(qLabel, "0", qty, onQtyChange, isNumber = true, center = true)
-        }
-        MarginTenDp()
-        Row(
-            Modifier.fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(colors.card)
-              //  .border(1.dp, BORDER, RoundedCornerShape(12.dp))
-                .padding(12.dp)
-        ) {
-            Text("نوع التقييم", color = colors.muted, fontSize = 13.sp)
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Box(modifier = Modifier.align(Alignment.CenterHorizontally).padding(start = 10.dp)) {
-                    Text("نوع التقييم 1", color = colors.text, fontSize = 13.sp)
+            MarginVertical(5.dp)
+            Text(text = item.materialDescription, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.text)
+            MarginVertical(5.dp)
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                FlowRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Chip(stringResource(R.string.warehouse) + ": " + item.warehouseCode)
+                    if (item.carNo != null) {
+                        Chip(stringResource(R.string.car_number) + ": " + item.carNo)
+                    }
+                    Chip(stringResource(R.string.po_number) + ": " + item.purchaseOrder)
+                    if (!item.unloadingPoint.isNullOrBlank()) {
+                        Chip(stringResource(R.string.unloading_point) + ": " + item.unloadingPoint)
+                    }
+                    if (!item.wrokerGroupCode.isNullOrBlank()) {
+                        Chip(stringResource(R.string.workers_group) + ": " + item.wrokerGroupCode)
+                    }
+                    if (!item.contNo.isNullOrBlank()) {
+                        Chip(stringResource(R.string.cont_no) + ": " + item.contNo)
+                    }
+                    if (!item.loadingVendorCode.isNullOrBlank()) {
+                        Chip(stringResource(R.string.loading_vendor) + ": " + item.loadingVendorCode)
+                    }
+                    if (!item.packTypeCode.isNullOrBlank()) {
+                        Chip(stringResource(R.string.packing_type) + ": " + item.packTypeCode)
+                    }
+                    if (!item.naolonDescription.isNullOrBlank()) {
+                        Chip(stringResource(R.string.naolon) + ": " + item.naolonDescription)
+                    }
+                    if (!item.carType.isNullOrBlank()) {
+                        Chip(stringResource(R.string.car_type) + ": " + item.carType)
+                    }
+                    if (item.naolon != null) {
+                        Chip(stringResource(R.string.naolon_cost) + ": " + item.naolon)
+                    }
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
                 }
             }
         }
-        MarginTenDp()
-        DatePickerField(
-            value = productionDate,
-            onDateSelected = { onProductionDateSelected(it) },
-            modifier = Modifier.fillMaxWidth(),
-            label = "تاريخ الانتاج",
-            hint = "اختر تاريخ الانتاج (اختياري)"
-        )
-        MarginTenDp()
-        DatePickerField(
-            value = expiryDate,
-            onDateSelected = { onExpiryDateSelected(it) },
-            modifier = Modifier.fillMaxWidth(),
-            label = "تاريخ الانتهاء",
-            hint = "اختر تاريخ الانتهاء (اختياري)"
-        )
-//        MarginTenDp()
-//        ValuationTypeSpinner(
-//            hint = "اختر نوع التقييم (اختياري)",
-//            items = valuationTypes,
-//            onItemSelected = {
-//                onValuationTypeSelected(it)
-//            }
-//        )
+    }
+}
+
+@Composable
+private fun Chip(text: String) {
+    Surface(shape = RoundedCornerShape(50), color = GREEN.copy(.10f)) {
+        Text(text = text, modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            fontSize = 12.sp, color = GREEN, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+fun InspectingProductFromBranchDetailsScreen(
+    navController: NavController,
+    orderId: String
+) {
+    val viewModel: DetailsViewModel = hiltViewModel()
+    val state by viewModel.uiState.collectAsState()
+    val colors = AppTheme.colors
+    val accent = colors.purple
+    val doneLabel = stringResource(R.string.received_qty)
+
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    LaunchedEffect(state.purchaseOrderGetDataStatus) {
+        if (state.purchaseOrderGetDataStatus is TransitPurchaseOrderGetDataStatus.SUCCESS) {
+            focusManager.clearFocus()
+        }
+    }
+    LaunchedEffect(orderId) {
+        viewModel.onEvent(ReceivingProductFromBranchEvent.OnScreenLoaded(orderId))
+    }
+    LaunchedEffect(state.selectedMaterial) {
+        if (state.selectedMaterial != null) {
+            focusManager.clearFocus()
+        }
+    }
+
+    ScannerEffect(onScan = viewModel::onBarcodeScanned)
+
+    Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
+        Column(Modifier.fillMaxSize()) {
+            TopBar(
+                title = stringResource(R.string.quality_decision),
+                subtitle = stringResource(R.string.product_from_branch),
+                accent = accent,
+                onBack = { navController.popBackStack() }
+            )
+
+            when (state.purchaseOrderGetDataStatus) {
+                TransitPurchaseOrderGetDataStatus.LOADING -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = accent)
+                    }
+                }
+                is TransitPurchaseOrderGetDataStatus.ERROR -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(state.searchError, color = colors.text)
+                            Spacer(Modifier.height(10.dp))
+                            OutlineBtn(stringResource(R.string.retry), accent) {
+                                viewModel.onEvent(ReceivingProductFromBranchEvent.OnScreenLoaded(orderId))
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    val order = state.purchaseOrder
+                    if (order != null) {
+                        LazyColumn(
+                            contentPadding = PaddingValues(
+                                start = 14.dp, end = 14.dp, top = 10.dp,
+                                bottom = if (state.addedItems.isNotEmpty()) 90.dp else 20.dp
+                            )
+                        ) {
+                            item {
+                                Section(label = stringResource(R.string.order_data), accent = accent) {
+                                    Row(
+                                        Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        InfoCell(stringResource(R.string.po_number), order.poNumber, accent, Modifier.weight(1f))
+                                    }
+                                    InfoCell(stringResource(R.string.vendor), order.vendorName ?: "", colors.text, Modifier.fillMaxWidth())
+                                    if (!order.warehouseCode.isNullOrEmpty()){
+                                        InfoCell(stringResource(R.string.warehouse), "${order.warehouseCode} - ${order.warehouseDescription}", colors.text, Modifier.fillMaxWidth())
+                                    }
+                                }
+                            }
+
+                            item {
+                                Section(label = stringResource(R.string.item_data), accent = accent) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(Modifier.weight(1f)) {
+                                            ReceivingMatCodeInput(
+                                                value = state.materialCodeInput,
+                                                onValueChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialCodeInputEntered(it)) },
+                                                onKeyboardAction = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(state.materialCodeInput)) }
+                                            )
+                                            if (state.materialCodeError.isNotEmpty()){
+                                                Text(state.materialCodeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                                            }
+                                        }
+                                        OutlineBtn(stringResource(R.string.select_item), accent) { viewModel.matDlg = true }
+                                    }
+                                    if (state.selectedMaterial != null) {
+                                        Spacer(Modifier.height(8.dp))
+                                        SelectedTransitMaterialCard(
+                                            mat = state.selectedMaterial!!,
+                                            accent = accent,
+                                            doneLabel = doneLabel,
+                                            qty = state.quantity,
+                                            onQtyChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnQuantityEntered(it)) },
+                                            onClear = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnClearMaterialButtonClicked) },
+                                            warehouses = state.warehouses,
+                                            onWarehouseSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWarehouseSelected(it)) },
+                                            quantityError = state.quantityError,
+                                            warehouseError = state.warehouseError,
+                                            carNoError = state.carNoError,
+                                            searchText = state.warehouseSearchText,
+                                            onSearchTextChanged = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWarehouseSearchTextChange(it)) },
+                                            carNumberSearchText = state.carNoSearchText,
+                                            carNumbersList = state.carNos,
+                                            onCarNumberSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoTextSearchChange(it)) },
+                                            onCarNoSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoSelected(it)) },
+                                            unloadingPoint = state.unloadingPoint,
+                                            unloadingPointError = state.unloadingPointError,
+                                            onUnloadingPointChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnUnloadingPointEntered(it)) },
+                                            workersGroup = state.workerGroups,
+                                            workersGroupSearchText = state.workerGroupSearchText,
+                                            onWorkersGroupSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupTextSearchChange(it)) },
+                                            onWorkersGroupSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupSelected(it)) },
+                                            workersGroupError = state.workerGroupError,
+                                            contractNumber = state.contNo,
+                                            onContractNumberEntered = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnContNoEntered(it)) },
+                                            contractNumberError = state.contNoError,
+                                            loadingVendors = state.loadingVendors,
+                                            onLoadingVendorSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnLoadingVendorSelected(it)) },
+                                            loadingVendorSearchText = state.loadingVendorSearchText,
+                                            onSearchLoadingVendorTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnLoadingVendorTextSearchChange(it)) },
+                                            loadingVendorError = state.loadingVendorError,
+                                            packingTypes = state.packingTypes,
+                                            onPackingTypeSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnPackingTypeSelected(it)) },
+                                            packingTypeError = state.packingTypeError,
+                                            packingTypeSearchText = state.packingTypeSearchText,
+                                            onSearchPackingTypeTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnPackingTypeTextSearchChange(it)) },
+                                            carTypesList = state.carTypes,
+                                            onCarTypeSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarTypeSelected(it)) },
+                                            carTypesErrorMessage = state.carTypeError,
+                                            carTypeTextSearch = state.carTypeSearchText,
+                                            onCarTypeTextSearchChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarTypeTextSearchChange(it)) },
+                                            naoloanDescriptions = state.naolonDescriptions,
+                                            onNaolonDescriptionSelected = {
+                                                viewModel.onEvent(ReceivingProductFromBranchEvent.OnNaolonDescriptionSelected(it))
+                                                                          },
+                                            naolonDescriptionTextSearch = state.naolonDescriptionSearchText,
+                                            onNaolonDescriptionTextSearchChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnNaolonDescriptionTextSearchChange(it)) },
+                                            naolonDescriptionErrorMessage = state.naolonError,
+                                            naolonLoadingStatus = state.naolonLoadStatus,
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (state.selectedMaterial != null && state.quantity.isNotEmpty()) {
+                                item {
+                                    Spacer(Modifier.height(10.dp))
+                                    AddTransitLineButton(
+                                        onClick = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnAddButtonClicked) }
+                                    )
+                                }
+                            }
+
+                            itemsIndexed(state.addedItems) { index, item ->
+                                ReceivingTransitMaterialsLineItem(item) {
+                                    viewModel.onEvent(ReceivingProductFromBranchEvent.OnDeleteAddedMaterialButtonClicked(index))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (state.addedItems.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .background(Brush.verticalGradient(0f to Color.Transparent, 0.35f to colors.bg))
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+            ) {
+                FullBtn(
+                    stringResource(R.string.save), accent,
+                    { viewModel.onEvent(ReceivingProductFromBranchEvent.OnSaveButtonClicked) },
+                    saving = state.isSavingLoading
+                )
+            }
+        }
+
+        if (state.showSuccessDialog) {
+            SuccessDialog(colors.succ, state.savingSuccessStatusMessage) {
+                viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
+            }
+            navController.popBackStack()
+        }
+        if (state.showErrorDialog) {
+            ErrorDialog(DANGER, state.savingErrorStatusMessage) {
+                viewModel.onEvent(ReceivingProductFromBranchEvent.HideErrorDialog)
+            }
+        }
+    }
+
+    if (viewModel.matDlg) {
+        BottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
+            SearchBox(state.materialSearch, { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSearchTextEntered(it)) },
+                stringResource(R.string.search_for_item), Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
+                itemsIndexed(state.filteredMaterials) { _, m ->
+                    TransitMaterialDialogItem(m, accent, doneLabel) {
+                        viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(m.materialCode ?: ""))
+                        viewModel.matDlg = false
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+            }
+        }
     }
 }
 
@@ -605,518 +802,243 @@ fun SelectedMaterialCard(
 fun PutAwayProductFromBranchDetailsScreen(
     navController: NavController,
     orderId: String
-){
-    val vm: DetailsViewModel = viewModel()
+) {
+    val viewModel: DetailsViewModel = hiltViewModel()
+    val state by viewModel.uiState.collectAsState()
     val colors = AppTheme.colors
-    val ord = ORDERS["TRANSFER"]?.find { it.id == orderId }!!
     val accent = colors.yellow
-    val doneLabel = "الكمية المستلمة"
+    val doneLabel = stringResource(R.string.received_qty)
+
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    LaunchedEffect(state.purchaseOrderGetDataStatus) {
+        if (state.purchaseOrderGetDataStatus is TransitPurchaseOrderGetDataStatus.SUCCESS) {
+            focusManager.clearFocus()
+        }
+    }
+    LaunchedEffect(orderId) {
+        viewModel.onEvent(ReceivingProductFromBranchEvent.OnScreenLoaded(orderId))
+    }
+    LaunchedEffect(state.selectedMaterial) {
+        if (state.selectedMaterial != null) {
+            focusManager.clearFocus()
+        }
+    }
+
+    ScannerEffect(onScan = viewModel::onBarcodeScanned)
 
     Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
-            TopBar(title = "تسكين", subtitle = "منتج تام من الانتاج",
-                accent = accent, onBack = {
-                    //  vm.back()
-                    navController.popBackStack()
-                })
+            TopBar(
+                title = stringResource(R.string.putaway),
+                subtitle = stringResource(R.string.product_from_branch),
+                accent = accent,
+                onBack = { navController.popBackStack() }
+            )
 
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
-                    top = 10.dp,
-                    bottom = if (vm.showFixedSave) 90.dp else 20.dp
-                )
-            ) {
-
-                // ── Order Info Card (non-blind) ────────────────────────────
-                    item {
-                        Section(label = "بيانات الأمر", accent = accent) {
-                            val fields = listOf(
-                                Triple("رقم المستند", ord.id, null),
-                                Triple("الحالة",      ord.status, ord.statusColor),
-                                Triple("الجهة",       ord.info,   null),
-                                Triple("التاريخ",     ord.date,   null),
-                                Triple("عدد الأصناف","${ord.items} أصناف", null),
+            when (state.purchaseOrderGetDataStatus) {
+                TransitPurchaseOrderGetDataStatus.LOADING -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = accent)
+                    }
+                }
+                is TransitPurchaseOrderGetDataStatus.ERROR -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(state.searchError, color = colors.text)
+                            Spacer(Modifier.height(10.dp))
+                            OutlineBtn(stringResource(R.string.retry), accent) {
+                                viewModel.onEvent(ReceivingProductFromBranchEvent.OnScreenLoaded(orderId))
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    val order = state.purchaseOrder
+                    if (order != null) {
+                        LazyColumn(
+                            contentPadding = PaddingValues(
+                                start = 14.dp, end = 14.dp, top = 10.dp,
+                                bottom = if (state.addedItems.isNotEmpty()) 90.dp else 20.dp
                             )
-                            // 2-column grid
-                            for (i in fields.indices step 2) {
-                                Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    val f1 = fields[i]
-                                    val f2 = if (i + 1 < fields.size) fields[i + 1] else null
-                                    // if "الجهة" span full width
-                                    if (f1.first == "الجهة") {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text)
-                                    } else {
-                                        InfoCell(f1.first, f1.second, f1.third ?: colors.text,
-                                            modifier = Modifier.weight(1f))
-                                        if (f2 != null) {
-                                            InfoCell(f2.first, f2.second, f2.third ?: colors.text,
-                                                modifier = Modifier.weight(1f))
-                                        }
+                        ) {
+                            item {
+                                Section(label = stringResource(R.string.order_data), accent = accent) {
+                                    Row(
+                                        Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        InfoCell(stringResource(R.string.po_number), order.poNumber, accent, Modifier.weight(1f))
                                     }
+                                    InfoCell(stringResource(R.string.vendor), order.vendorName ?: "", colors.text, Modifier.fillMaxWidth())
+                                    if (!order.warehouseCode.isNullOrEmpty()){
+                                        InfoCell(stringResource(R.string.warehouse), "${order.warehouseCode} - ${order.warehouseDescription}", colors.text, Modifier.fillMaxWidth())
+                                    }
+                                }
+                            }
+
+                            item {
+                                Section(label = stringResource(R.string.item_data), accent = accent) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(Modifier.weight(1f)) {
+                                            ReceivingMatCodeInput(
+                                                value = state.materialCodeInput,
+                                                onValueChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialCodeInputEntered(it)) },
+                                                onKeyboardAction = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(state.materialCodeInput)) }
+                                            )
+                                            if (state.materialCodeError.isNotEmpty()){
+                                                Text(state.materialCodeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                                            }
+                                        }
+                                        OutlineBtn(stringResource(R.string.select_item), accent) { viewModel.matDlg = true }
+                                    }
+                                    if (state.selectedMaterial != null) {
+                                        Spacer(Modifier.height(8.dp))
+                                        SelectedTransitMaterialCard(
+                                            mat = state.selectedMaterial!!,
+                                            accent = accent,
+                                            doneLabel = doneLabel,
+                                            qty = state.quantity,
+                                            onQtyChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnQuantityEntered(it)) },
+                                            onClear = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnClearMaterialButtonClicked) },
+                                            warehouses = state.warehouses,
+                                            onWarehouseSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWarehouseSelected(it)) },
+                                            quantityError = state.quantityError,
+                                            warehouseError = state.warehouseError,
+                                            carNoError = state.carNoError,
+                                            searchText = state.warehouseSearchText,
+                                            onSearchTextChanged = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWarehouseSearchTextChange(it)) },
+                                            carNumberSearchText = state.carNoSearchText,
+                                            carNumbersList = state.carNos,
+                                            onCarNumberSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoTextSearchChange(it)) },
+                                            onCarNoSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoSelected(it)) },
+                                            unloadingPoint = state.unloadingPoint,
+                                            unloadingPointError = state.unloadingPointError,
+                                            onUnloadingPointChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnUnloadingPointEntered(it)) },
+                                            workersGroup = state.workerGroups,
+                                            workersGroupSearchText = state.workerGroupSearchText,
+                                            onWorkersGroupSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupTextSearchChange(it)) },
+                                            onWorkersGroupSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupSelected(it)) },
+                                            workersGroupError = state.workerGroupError,
+                                            contractNumber = state.contNo,
+                                            onContractNumberEntered = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnContNoEntered(it)) },
+                                            contractNumberError = state.contNoError,
+                                            loadingVendors = state.loadingVendors,
+                                            onLoadingVendorSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnLoadingVendorSelected(it)) },
+                                            loadingVendorSearchText = state.loadingVendorSearchText,
+                                            onSearchLoadingVendorTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnLoadingVendorTextSearchChange(it)) },
+                                            loadingVendorError = state.loadingVendorError,
+                                            packingTypes = state.packingTypes,
+                                            onPackingTypeSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnPackingTypeSelected(it)) },
+                                            packingTypeError = state.packingTypeError,
+                                            packingTypeSearchText = state.packingTypeSearchText,
+                                            onSearchPackingTypeTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnPackingTypeTextSearchChange(it)) },
+                                            carTypesList = state.carTypes,
+                                            onCarTypeSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarTypeSelected(it)) },
+                                            carTypesErrorMessage = state.carTypeError,
+                                            carTypeTextSearch = state.carTypeSearchText,
+                                            onCarTypeTextSearchChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarTypeTextSearchChange(it)) },
+                                            naoloanDescriptions = state.naolonDescriptions,
+                                            onNaolonDescriptionSelected = {
+                                                viewModel.onEvent(ReceivingProductFromBranchEvent.OnNaolonDescriptionSelected(it))
+                                                                          },
+                                            naolonDescriptionTextSearch = state.naolonDescriptionSearchText,
+                                            onNaolonDescriptionTextSearchChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnNaolonDescriptionTextSearchChange(it)) },
+                                            naolonDescriptionErrorMessage = state.naolonError,
+                                            naolonLoadingStatus = state.naolonLoadStatus,
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (state.selectedMaterial != null && state.quantity.isNotEmpty()) {
+                                item {
+                                    Spacer(Modifier.height(10.dp))
+                                    AddTransitLineButton(
+                                        onClick = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnAddButtonClicked) }
+                                    )
+                                }
+                            }
+
+                            itemsIndexed(state.addedItems) { index, item ->
+                                ReceivingTransitMaterialsLineItem(item) {
+                                    viewModel.onEvent(ReceivingProductFromBranchEvent.OnDeleteAddedMaterialButtonClicked(index))
                                 }
                             }
                         }
                     }
-
-
-
-
-
-                    item {
-                        Section(label = "بيانات الصنف", accent = accent) {
-                            Row(Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                MatCodeInput(
-                                    value = vm.matInput,
-                                    onValueChange = { vm.matInput = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlineBtn("اختر مادة", accent) { vm.matDlg = true }
-                            }
-                            if (vm.selMat != null) {
-                                Spacer(Modifier.height(8.dp))
-                                PutAwaySelectedMaterialCard(
-                                    mat = vm.selMat!!,
-                                    accent = accent,
-                                    isQuality = false,
-                                    isIssue = false,
-                                    doneLabel = doneLabel,
-                                    smpQty = vm.smpQty,
-                                    onSmpQtyChange = { vm.smpQty = it },
-                                    qty = vm.qty,
-                                    onQtyChange = { vm.qty = it },
-                                    saved = vm.saved,
-                                    saving = vm.saving,
-                                    onAccept = { vm.doSave("accept") },
-                                    onReject = { vm.doSave("reject") },
-                                    onClear = { vm.clearMaterial() }
-                                )
-                            }
-                        }
-                    }
-
-
-
-                    item {
-                        Section(label = "بيانات التسكين", accent = accent) {
-                            Row(Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                BinCodeInput(
-                                    value = vm.binInput,
-                                    onValueChange = { vm.binInput = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlineBtn("اختر Bin", accent) { vm.binDlg = true }
-                            }
-                            if (vm.selBin != null) {
-                                Spacer(Modifier.height(8.dp))
-                                SelectedBinCard(
-                                    bin = vm.selBin!!,
-                                    accent = accent,
-                                    qty = vm.qty,
-                                    onQtyChange = { vm.qty = it },
-                                    onClear = { vm.clearBin() }
-                                )
-                            }
-                        }
-                    }
-
-
-                // ── Success Card ──────────────────────────────────────────
-                if (vm.saved) {
-                    item { SuccessCard(kind = vm.saveKind, accent = accent) }
                 }
             }
         }
 
-        // ── Fixed Save Button ─────────────────────────────────────────────
-        if (vm.showFixedSave && !vm.saved) {
+        if (state.addedItems.isNotEmpty()) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent, 0.35f to colors.bg
-                        )
-                    )
+                    .align(Alignment.BottomCenter)
+                    .background(Brush.verticalGradient(0f to Color.Transparent, 0.35f to colors.bg))
                     .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
-                FullBtn("تأكيد التسكين", accent, { vm.doSave("save") },
-                    saving = vm.saving)
+                FullBtn(
+                    stringResource(R.string.confirm_putaway), accent,
+                    { viewModel.onEvent(ReceivingProductFromBranchEvent.OnSaveButtonClicked) },
+                    saving = state.isSavingLoading
+                )
+            }
+        }
+
+        if (state.showSuccessDialog) {
+            SuccessDialog(colors.succ, state.savingSuccessStatusMessage) {
+                viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
+            }
+            navController.popBackStack()
+        }
+        if (state.showErrorDialog) {
+            ErrorDialog(DANGER, state.savingErrorStatusMessage) {
+                viewModel.onEvent(ReceivingProductFromBranchEvent.HideErrorDialog)
             }
         }
     }
 
-    // ── Material Dialog ───────────────────────────────────────────────────
-    if (vm.matDlg) {
-        BottomSheetDialog(title = "اختيار الصنف", onClose = { vm.matDlg = false }) {
-            SearchBox(vm.matSearch, { vm.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
-                )
-            ) {
-                itemsIndexed(vm.filteredMaterials) { _, m ->
-                    MaterialDialogItem(m, vm.accent, doneLabel) {
-                        vm.selectMaterial(m)
+    if (viewModel.matDlg) {
+        BottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
+            SearchBox(state.materialSearch, { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSearchTextEntered(it)) },
+                stringResource(R.string.search_for_item), Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
+                itemsIndexed(state.filteredMaterials) { _, m ->
+                    TransitMaterialDialogItem(m, accent, doneLabel) {
+                        viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(m.materialCode ?: ""))
+                        viewModel.matDlg = false
                     }
                     Spacer(Modifier.height(6.dp))
                 }
             }
         }
     }
-
-    // ── Bin Dialog ────────────────────────────────────────────────────────
-    if (vm.binDlg) {
-        BottomSheetDialog(title = "اختيار موقع التسكين", onClose = { vm.binDlg = false }) {
-            SearchBox(vm.binInput, { vm.binInput = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(contentPadding = PaddingValues(
-                start = 14.dp, end = 14.dp, bottom = 20.dp
-            )) {
-                itemsIndexed(vm.filteredBins) { _, b ->
-                    BinDialogItem(b, vm.accent) { vm.selectBin(b) }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-    }
 }
 
-
-
-
-// ── Material Card ─────────────────────────────────────────────────────────────
 @Composable
-fun PutAwaySelectedMaterialCard(
-    mat: Material, accent: Color, isQuality: Boolean, isIssue: Boolean,
-    doneLabel: String, smpQty: String, onSmpQtyChange: (String) -> Unit,
-    qty: String, onQtyChange: (String) -> Unit,
-    saved: Boolean, saving: Boolean,
-    onAccept: () -> Unit, onReject: () -> Unit, onClear: () -> Unit
-) {
-    val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
-    val colors = AppTheme.colors
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(accent.copy(0.06f))
-            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
-            .padding(12.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
-                modifier = Modifier.clickable { onClear() }.padding(4.dp))
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-            lineHeight = 18.sp)
-        Spacer(Modifier.height(8.dp))
-        // Stats row
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
-                "الوحدة" to mat.unit,).forEach { (l, v) ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(l, color = colors.muted, fontSize = 9.sp,
-                        modifier = Modifier.padding(bottom = 2.dp))
-                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        // Progress bar
-        Column {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("التنفيذ", color = colors.muted, fontSize = 9.sp)
-                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
-                    fontWeight = FontWeight.SemiBold)
-            }
-            Spacer(Modifier.height(3.dp))
-            Box(
-                modifier = Modifier.fillMaxWidth().height(4.dp)
-                    .clip(RoundedCornerShape(2.dp)).background(colors.dark)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxHeight()
-                        .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
-                        .clip(RoundedCornerShape(2.dp)).background(accent)
-                )
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        if (isQuality) {
-            Field("كمية العينة", "0", smpQty, onSmpQtyChange, isNumber = true, center = true)
-            if (!saved) {
-                Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FullBtn("✓  قبول", colors.succ, onAccept, saving, smpQty.isNotEmpty(),
-                        modifier = Modifier.weight(1f))
-                    FullBtn("✕  رفض", colors.danger, onReject, saving, smpQty.isNotEmpty(),
-                        modifier = Modifier.weight(1f))
-                }
-            }
-        } else {
-            val qLabel = "${if (isIssue) "الكمية المصروفة" else "كمية التسكين"} (${mat.unit})"
-            Field(qLabel, "0", qty, onQtyChange, isNumber = true, center = true)
-        }
-    }
-}
-
-// ── Bin Card ──────────────────────────────────────────────────────────────────
-@Composable
-fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) -> Unit,
-                    onClear: () -> Unit) {
+fun TransitMaterialDialogItem(mat: TransitOrderMaterialPurchaseOrderItem, accent: Color, doneLabel: String, onClick: () -> Unit) {
     val colors = AppTheme.colors
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(accent.copy(0.06f))
-            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
-            .padding(12.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text("📍 ${bin.code}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
-                modifier = Modifier.clickable { onClear() }.padding(4.dp))
-        }
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("المنطقة" to bin.zone, "الممر" to bin.aisle,
-                "الرف" to bin.rack, "المتاح" to bin.avail).forEach { (l, v) ->
-                Column(
-                    modifier = Modifier.weight(1f)
-                        .clip(RoundedCornerShape(6.dp)).background(colors.dark).padding(horizontal = 6.dp, vertical = 8.dp)
-                ) {
-                    Text(l, color = colors.muted, fontSize = 9.sp)
-                    Text(v, color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-//        Spacer(Modifier.height(12.dp))
-//        Field("الكمية المراد تسكينها", "0", qty, onQtyChange, isNumber = true, center = true)
-    }
-}
-
-// ── Material Code Input ───────────────────────────────────────────────────────
-@Composable
-fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(colors.dark)
-            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = true,
-            textStyle = TextStyle(
-                color = colors.text, fontSize = 13.sp,
-                textDirection = TextDirection.Ltr
-            ),
-            cursorBrush = SolidColor(colors.green),
-            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
-            decorationBox = { inner ->
-                if (value.isEmpty()) Text("كود المادة...", color = colors.muted, fontSize = 13.sp)
-                inner()
-            }
-        )
-    }
-}
-
-@Composable
-fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(colors.dark)
-            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = true,
-            textStyle = TextStyle(
-                color = colors.text, fontSize = 13.sp,
-                textDirection = TextDirection.Ltr
-            ),
-            cursorBrush = SolidColor(colors.yellow),
-            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
-            decorationBox = { inner ->
-                if (value.isEmpty()) Text("كود البن (Bin Code)...", color = colors.muted, fontSize = 13.sp)
-                inner()
-            }
-        )
-    }
-}
-
-// ── Dialog items ──────────────────────────────────────────────────────────────
-@Composable
-fun MaterialDialogItem(mat: Material, accent: Color, doneLabel: String, onClick: () -> Unit) {
-    var hovered by remember { mutableStateOf(false) }
-    val colors = AppTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (hovered) colors.card2 else colors.dark)
-            .border(1.dp, if (hovered) accent.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
-            .clickable { onClick(); hovered = false }
-            .padding(all = 11.dp)
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .background(colors.dark).border(1.dp, colors.border, RoundedCornerShape(10.dp))
+            .clickable { onClick() }.padding(all = 11.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(mat.code, color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text(mat.unit, color = colors.muted, fontSize = 10.sp)
+            Text(mat.materialCode ?: "", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text(mat.uom ?: "", color = colors.muted, fontSize = 10.sp)
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-            lineHeight = 18.sp)
+        Text(mat.materialDescription ?: "", color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, lineHeight = 18.sp)
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("المطلوب: ", color = colors.muted, fontSize = 10.sp).let {}
-            Text("المطلوب: ${mat.qty}", color = colors.muted, fontSize = 10.sp)
-            Text("$doneLabel: ${mat.done}",
-                color = if (mat.done == mat.qty) colors.succ else colors.muted, fontSize = 10.sp)
+            Text("${stringResource(R.string.required)}: ${mat.orderedQuantity}", color = colors.muted, fontSize = 10.sp)
+            Text("$doneLabel: ${mat.receivedQuantity}", color = if (mat.receivedQuantity == mat.orderedQuantity) colors.succ else colors.muted, fontSize = 10.sp)
         }
-    }
-}
-
-@Composable
-fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
-    var hovered by remember { mutableStateOf(false) }
-    val colors = AppTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (hovered) colors.card2 else colors.dark)
-            .border(1.dp, if (hovered) colors.yellow.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
-            .clickable { onClick(); hovered = false }
-            .padding(12.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("📍 ${bin.code}", color = colors.yellow, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text("متاح", color = colors.succ, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-        }
-        Spacer(Modifier.height(4.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            listOf("المنطقة" to bin.zone, "الممر" to bin.aisle, "المتاح" to bin.avail)
-                .forEach { (l, v) ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(l, color = colors.muted, fontSize = 9.sp)
-                        Text(v, color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-        }
-    }
-}
-
-
-// ── Bottom Sheet Dialog ───────────────────────────────────────────────────────
-@Composable
-fun BottomSheetDialog(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    val colors = AppTheme.colors
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.65f))
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { onClose() },
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(colors.card)
-                    .border(1.dp, colors.border2,
-                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .heightIn(max = 560.dp)
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { /* consume */ }
-            ) {
-                // Dialog Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(
-                            width = 1.dp, color = colors.border,
-                            shape = RoundedCornerShape(0.dp)
-                        )
-                        .padding(horizontal = 14.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("✕", color = colors.muted, fontSize = 18.sp,
-                        modifier = Modifier.clickable { onClose() }.padding(horizontal = 2.dp))
-                    Text(title, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-                content()
-            }
-        }
-    }
-}
-
-// ── FullBtn overload with Modifier ────────────────────────────────────────────
-@Composable
-fun FullBtn(label: String, color: Color, onClick: () -> Unit,
-            saving: Boolean = false, enabled: Boolean = true, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    val bg     = if (!enabled) colors.dim.copy(0.22f) else color.copy(0.12f)
-    val border = if (!enabled) colors.dim else color.copy(0.35f)
-    val txtCol = if (!enabled) colors.dim else color
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .border(1.dp, border, RoundedCornerShape(10.dp))
-            .clickable(enabled = enabled && !saving) { onClick() }
-            .padding(vertical = 13.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (saving) {
-            CircularProgressIndicator(
-                color = color, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-        } else {
-            Text(label, color = txtCol, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-        }
-    }
-}
-
-// ── InfoCell with Modifier ────────────────────────────────────────────────────
-@Composable
-fun InfoCell(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(colors.dark)
-            .padding(all = 8.dp)
-    ) {
-        Text(label, color = colors.muted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 2.dp))
-        Text(value, color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }

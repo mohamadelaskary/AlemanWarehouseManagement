@@ -1,5 +1,13 @@
 package net.gbs.gbswarehouse
 import androidx.compose.ui.graphics.Color
+import net.gbs.gbswarehouse.ReceivingScreenNames.FinishedGoodsFeedFromProductionOrder
+import net.gbs.gbswarehouse.ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder
+import net.gbs.gbswarehouse.ReceivingScreenNames.PackagingMaterialsFromVendor
+import net.gbs.gbswarehouse.ReceivingScreenNames.PoultryMaterialsFromVendor
+import net.gbs.gbswarehouse.ReceivingScreenNames.RawMaterialsFromVendor
+import net.gbs.gbswarehouse.ReceivingScreenNames.SparePartsFromVendor
+import net.gbs.gbswarehouse.ReceivingScreenNames.SparePartsReturn
+import net.gbs.gbswarehouse.ReceivingScreenNames.TransitOrderMaterial
 import net.gbs.gbswarehouse.domain.model.ValuationType
 import net.gbs.gbswarehouse.domain.model.Warehouse
 
@@ -89,7 +97,8 @@ data class OpType(
     val label: String,
     val accent: Color,
     val icon: String,
-    val hint: String
+    val arHint: String,
+    val enHint: String,
 )
 
 data class WorkersGroup (
@@ -108,7 +117,8 @@ data class CostCenter (
 )
 data class TransportationType (
     val id: String,
-    val name: String,
+    val arName: String,
+    val enName: String,
 )
 data class DirectTransferWarehouseToType (
     val id: String,
@@ -252,8 +262,8 @@ var returnTypes = listOf(
     ReturnType("2","مرتجع أمر داخلي"),
 )
 val transportationTypes: List<TransportationType> = listOf(
-    TransportationType("1","أرض المصنع"),
-    TransportationType("2","وصال")
+    TransportationType("1","أرض المصنع","Factory land"),
+    TransportationType("2","وصال","Transporter")
 )
 val carTypes: List<CarType> = listOf(
     CarType("1","ربع نقل"),
@@ -371,14 +381,15 @@ val BINS = listOf(
 )
 
 val RECV_OPS = listOf(
-    Operation("recv-raw", enName = "Raw materials from vendor",        "مواد خام من مورد",                  "PO"),
-    Operation("recv-spare",enName = "Spare parts from vendor",      "قطع غيار من مورد",                  "PO"),
-    Operation("recv-pkg",  enName = "Packaging materials from vendor",      "مواد تعبئة وتغليف من مورد",         "PO"),
+    Operation(ReceivingScreenNames.RawMaterialsFromVendor, enName = "Raw materials from vendor",        "مواد خام من مورد",                  "PO"),
+    Operation(ReceivingScreenNames.SparePartsFromVendor,enName = "Spare parts from vendor",      "قطع غيار من مورد",                  "PO"),
+    Operation(ReceivingScreenNames.PackagingMaterialsFromVendor,  enName = "Packaging materials from vendor",      "مواد تعبئة وتغليف من مورد",         "PO"),
+    Operation(ReceivingScreenNames.PoultryMaterialsFromVendor, enName = "Poultry materials from vendor",   "إضافات أعلاف من مورد",              "PROD"),
     Operation("recv-blind", enName = "Receiving without purchase order",     "استلام بدون أمر شراء",                       null, blind = true),
-    Operation("recv-prod-fg",enName = "Finished goods ()",    "منتج تام من الإنتاج(علف)",              "PROD"),
-    Operation("recv-prod-fg-plastic", enName = "Finished goods (Plastic)",   "منتج تام من الإنتاج(بلاستيك)",              "PROD"),
-    Operation("recv-prod-spare", enName = "Return spare parts to warehouse","ارتجاع قطع غيار للمخزن",      "PROD"),
-    Operation("recv-branch",  enName = "Warehouse transfers between Locations",   "تحويلات مخزنية بين المواقع",              "TRANSFER"),
+    Operation(ReceivingScreenNames.FinishedGoodsFeedFromProductionOrder,enName = "Finished goods ()",    "منتج تام من الإنتاج(علف)",              "PROD"),
+    Operation(ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder, enName = "Finished goods (Plastic)",   "منتج تام من الإنتاج(بلاستيك)",              "PROD"),
+    Operation(ReceivingScreenNames.SparePartsReturn, enName = "Return spare parts to warehouse","ارتجاع قطع غيار للمخزن",      "PROD"),
+    Operation(ReceivingScreenNames.TransitOrderMaterial,  enName = "Warehouse transfers between Locations",   "تحويلات مخزنية بين المواقع",              "TRANSFER"),
     Operation("recv-return",  enName = "Returns from customers",   "استلام منتج تام مرتجع من العميل",  "SO"),
 )
 
@@ -390,17 +401,43 @@ val ISSUE_OPS = listOf(
     Operation("issue-sales_plastic",enName = "Finished goods for sales or shipping (Plastic)", "منتج تام للبيع أو الشحن (بلاستيك)",          "SO"),
     Operation("issue-cost-center", enName = "Direct issuing on cost center",   "صرف مباشر علي مركز تكلفة",          "RESERVATION"),
     Operation("issue-direct-transfer",enName = "Direct transfers",    "تحويلات مباشرة",          "SO"),
-    Operation("issue-sub", enName = "For vendors (subcontracting)",     "للمورد (تصنيع لدى الغير)",         "PO"),
+//    Operation("issue-sub", enName = "For vendors (subcontracting)",     "للمورد (تصنيع لدى الغير)",         "PO"),
     Operation("issue-scrap",   enName = "Scrap", "هالك أو إعدام أو خردة",            "SCRAP"),
 )
 
 val OP_TYPES = listOf(
-    OpType("receive",enLabel = "Receiving", "استلام",          GREEN,  "↓", "تسجيل الكمية الواردة"),
-    OpType("quality", enLabel = "Quality","مراجعة الجودة",   PURPLE, "◎", "فحص وقبول / رفض"),
-    OpType("putaway", enLabel = "Put away","تسكين",           YELLOW, "⌘", "تحديد موقع التخزين"),
+    OpType("receive",enLabel = "Receiving", "استلام",          GREEN,  "↓", "تسجيل الكمية الواردة","Entering incoming qauntities" ),
+    OpType("quality", enLabel = "Quality","مراجعة الجودة",   PURPLE, "◎", "فحص وقبول / رفض","Inspection"),
+    OpType("putaway", enLabel = "Put away","تسكين",           YELLOW, "⌘", "تحديد موقع التخزين","Setting the location of storage"),
 )
 
 val OP_TYPES_WITHOUT_INSPECTION = listOf(
-    OpType("receive",enLabel = "Receiving", "استلام",          GREEN,  "↓", "تسجيل الكمية الواردة"),
-    OpType("putaway",enLabel = "Put away", "تسكين",           YELLOW, "⌘", "تحديد موقع التخزين"),
+    OpType("receive",enLabel = "Receiving", "استلام",          GREEN,  "↓", "تسجيل الكمية الواردة", "Entering incoming quantities"),
+    OpType("putaway",enLabel = "Put away", "تسكين",           YELLOW, "⌘", "تحديد موقع التخزين", "Setting the location of storage"),
 )
+
+
+object ReceivingScreenNames {
+    const val SparePartsFromVendor = "SparePartsFromVendor"
+    const val PackagingMaterialsFromVendor = "PackagingMaterialsFromVendor"
+    const val RawMaterialsFromVendor = "RawMaterialsFromVendor"
+    const val PoultryMaterialsFromVendor = "PoultryMaterialsFromVendor"
+    const val FinishedGoodsPlasticFromProductionOrder = "FinishedGoodsPlasticFromProductionOrder"
+    const val FinishedGoodsFeedFromProductionOrder = "FinishedGoodsFeedFromProductionOrder"
+    const val TransitOrderMaterial = "TransitOrderMaterial"
+    const val SparePartsReturn = "SparePartsReturn"
+}
+
+fun arabicScreenNames(name:String):String{
+   return when (name){
+       SparePartsFromVendor -> "قطع غيار من مورد"
+       PackagingMaterialsFromVendor -> "مواد تعبئة وتغليف من مورد"
+       RawMaterialsFromVendor -> "مواد خام من مورد"
+           PoultryMaterialsFromVendor -> "دواجن من مورد"
+       FinishedGoodsPlasticFromProductionOrder -> "منتج تام من الانتاج (علف)"
+       FinishedGoodsFeedFromProductionOrder -> "منتج تام من الانتاج (بلاستيك)"
+       TransitOrderMaterial -> "تحويلات مخزنية بين المواقع"
+       SparePartsReturn -> "ارتجاع قطع غيار للمخزن"
+       else -> name
+   }
+}

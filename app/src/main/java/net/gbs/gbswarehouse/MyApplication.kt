@@ -10,11 +10,11 @@ class MyApplication: Application(){
     override fun onCreate() {
         super.onCreate()
 
-        HoneywellScanner.initialize(this)
+       HoneywellScanner.initialize(this)
     }
 
     override fun onTerminate() {
-        HoneywellScanner.destroy()
+      HoneywellScanner.destroy()
         super.onTerminate()
     }
 }

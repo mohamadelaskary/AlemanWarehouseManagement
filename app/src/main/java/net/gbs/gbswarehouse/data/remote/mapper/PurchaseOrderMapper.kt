@@ -44,7 +44,8 @@ fun SparePartsMaterialDto.toSparePartsMaterial(): SparePartsMaterial {
         remainingQuantity = remainingQuantity ?: 0f,
         uom = uom ?: "",
         plantCode = plantCode ?: "",
-        valuationTypes = valuationTypes!!.toValuationTypes(),
+        valuationTypes = valuationTypes?.toValuationTypes() ?: emptyList(),
+        isBatchManaged = isBatchManaged,
     )
 }
 fun List<SparePartsMaterialDto>.toSparePartsMaterials(): List<SparePartsMaterial> {
@@ -56,6 +57,6 @@ fun PurchaseOrderDto.toPurchaseOrder(): PurchaseOrder {
         vendorCode = vendorCode ?: "",
         vendorName = vendorName ?: "",
         companyCode = companyCode ?: "",
-        purchaseOrderItems = purchaseOrderItems!!.toSparePartsMaterials(),
+        purchaseOrderItems = purchaseOrderItems?.toSparePartsMaterials() ?: emptyList(),
     )
 }

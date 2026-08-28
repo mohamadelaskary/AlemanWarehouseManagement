@@ -44,7 +44,7 @@ import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.WarehouseViewModel
 
 @Composable
-fun ReceivingFinishedGoodFromProductionListScreen(
+fun ReceivingFinishedGoodFromProductionListScreenOld(
     navController: NavController,
 ) {
     val viewModel: OrdersListViewModel = viewModel()
@@ -97,7 +97,7 @@ fun ReceivingFinishedGoodFromProductionListScreen(
     }
 }
 @Composable
-fun InspectingFinishedGoodFromProductionListScreen(
+fun InspectingFinishedGoodFromProductionListScreenOld(
     navController: NavController,
 ) {
     val viewModel: OrdersListViewModel = viewModel()
@@ -152,7 +152,7 @@ fun InspectingFinishedGoodFromProductionListScreen(
     }
 }
 @Composable
-fun PutAwayFinishedGoodFromProductionListScreen(
+fun PutAwayFinishedGoodFromProductionListScreenOld(
     navController: NavController,
 ) {
     val viewModel: OrdersListViewModel = viewModel()
@@ -206,7 +206,6 @@ fun PutAwayFinishedGoodFromProductionListScreen(
         }
     }
 }
-
 
 @Composable
 fun OrderCard(order: Order, accent: Color, onClick: () -> Unit) {

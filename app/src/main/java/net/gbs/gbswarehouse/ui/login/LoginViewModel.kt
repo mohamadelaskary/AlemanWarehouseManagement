@@ -17,6 +17,7 @@ import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.data.remote.dto.response.LoginResponse
 import net.gbs.gbswarehouse.data.remote.mapper.toUser
 import net.gbs.gbswarehouse.domain.usecase.LoginUseCase
+import net.gbs.gbswarehouse.ui.login.LoginApiState.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -68,21 +69,22 @@ class LoginViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
+            _uiState.update { it.copy(loginApiState = LoginApiState.Loading) }
             val result = loginUseCase(
                 userName = username,
                 password = password
             )
             when(result){
-                is NetworkResult.Error -> {
-                    _uiState.value = _uiState.value.copy(loginApiState = LoginApiState.Error(result.message))
-                }
-                NetworkResult.Loading -> {
-                    _uiState.value = _uiState.value.copy(loginApiState = LoginApiState.Loading)
-                }
                 is NetworkResult.Success<*> -> {
                     val response = result.data as LoginResponse
-                    _uiState.value = _uiState.value.copy(loginApiState = LoginApiState.Success(response.data.toUser(),response.responseStatus.statusMessage))
+                    _uiState.value = _uiState.value.copy(loginApiState = Success(response.data.toUser(),response.responseStatus.statusMessage))
                 }
+
+                is NetworkResult.BusinessError -> _uiState.value = _uiState.value.copy(loginApiState = Error(result.message))
+                is NetworkResult.HttpError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(result.message))
+                is NetworkResult.NetworkError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(result.message))
+                is NetworkResult.UnknownError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(result.message))
+                NetworkResult.Loading -> {}
             }
 
         }

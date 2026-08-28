@@ -144,7 +144,8 @@ fun ReceivingSparePartsFromProductionDetailsScreen(
                     WarehousesSpinner(
                         hint = "المخزن المستلم",
                         items = warehouses,
-                        onItemSelected = { viewModel.selectedWarehouse = it }
+                        onItemSelected = { viewModel.selectedWarehouse = it },
+                        onSearchTextChanged = {}
                     )
                     Spacer(Modifier.height(10.dp))
                 }
@@ -490,7 +491,10 @@ fun SelectedMaterialCard(
         ValuationTypeSpinner(
             "نوع التقييم",
             valuationTypes,
-            onItemSelected = { onValuationTypeSelected(it) }
+            onItemSelected = { onValuationTypeSelected(it) },
+            searchText = "",
+            onSearchTextChanged = {},
+            accent = accent
         )
 
     }

@@ -1,5 +1,6 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -8,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +24,7 @@ import net.gbs.gbswarehouse.OpType
 import net.gbs.gbswarehouse.Operation
 import net.gbs.gbswarehouse.Order
 import net.gbs.gbswarehouse.QualityDecision
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.domain.model.ValuationType
 import net.gbs.gbswarehouse.core.network.NetworkResult
@@ -34,16 +37,20 @@ import net.gbs.gbswarehouse.domain.model.SparePartsLine
 import net.gbs.gbswarehouse.domain.model.SparePartsMaterial
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.usecase.GetPlantWarehousesUseCase
-import net.gbs.gbswarehouse.domain.usecase.GetPurchaseOrderUseCase
+import net.gbs.gbswarehouse.domain.usecase.GetReceivingSparePartsFromVendorPurchaseOrderDataUseCase
 import net.gbs.gbswarehouse.domain.usecase.ReceiveVendorSparePartsUseCase
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import kotlin.collections.filter
 import kotlin.text.lowercase
 @HiltViewModel
 class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
-    private val getPurchaseOrderUseCase: GetPurchaseOrderUseCase,
+    private val getReceivingSparePartsFromVendorPurchaseOrderDataUseCase: GetReceivingSparePartsFromVendorPurchaseOrderDataUseCase,
     private val getWarehousesUseCase: GetPlantWarehousesUseCase,
-    private val receiveVendorSparePartsUseCase: ReceiveVendorSparePartsUseCase
+    private val receiveVendorSparePartsUseCase: ReceiveVendorSparePartsUseCase,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
 
@@ -69,17 +76,17 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
 
         when (event) {
 
-            is ReceivingSparePartsFromVendorEvent.OnPurchaseOrderNumberEntered ->
-                updateOrderNumber(event.orderNumber)
-
-            ReceivingSparePartsFromVendorEvent.OnSearchButtonClicked ->
-                search()
+            is ReceivingSparePartsFromVendorEvent.OnScreenLoaded ->
+                getPoData(event.poData)
 
             ReceivingSparePartsFromVendorEvent.OnClearButtonClicked ->
                 clear()
 
             is ReceivingSparePartsFromVendorEvent.OnMaterialSelected ->
                 loadMaterial(event.materialCode)
+
+            is ReceivingSparePartsFromVendorEvent.OnMaterialCodeInputEntered ->
+                updateMaterialCodeInput(event.materialCode)
 
             is ReceivingSparePartsFromVendorEvent.OnWarehouseSelected ->
                 selectWarehouse(event.warehouse)
@@ -105,8 +112,43 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
             is ReceivingSparePartsFromVendorEvent.OnMaterialSearchTextEntered -> {
                 filteredMaterials(event.text)
             }
+
+            is ReceivingSparePartsFromVendorEvent.OnDeleteAddedMaterialButtonClicked -> {
+                val list = _uiState.value.addedItems.toMutableList()
+                list.removeAt(event.index)
+                _uiState.update {
+                    it.copy(
+                        addedItems = list
+                    )
+                }
+            }
+
+            is ReceivingSparePartsFromVendorEvent.OnWarehouseSearchTextChange ->
+                _uiState.update {
+                    it.copy(
+                        warehouseSearchText = event.searchText
+                    )
+                }
+
+            is ReceivingSparePartsFromVendorEvent.OnValuationSearchTextChange ->
+                _uiState.update {
+                    it.copy(
+                        valuationSearchText = event.searchText
+                    )
+                }
         }
 
+    }
+
+    private fun updatePurchaseOrder(poData: String) {
+        val purchaseOrder = PurchaseOrder.fromJson(poData)
+        _uiState.update {
+            it.copy(
+                purchaseOrder = purchaseOrder,
+                materials = purchaseOrder.purchaseOrderItems ?: emptyList(),
+                filteredMaterials = purchaseOrder.purchaseOrderItems?:emptyList()
+            )
+        }
     }
 
     private fun filteredMaterials(text: String) {
@@ -174,7 +216,7 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
             it.copy(
                 selectedMaterial = null,
                 warehouses = emptyList(),
-                selectedExpiryDate = "",
+                selectedExpiryDate = null,
                 selectedWarehouse = null,
                 selectedValuationType = null,
                 quantity = "",
@@ -197,74 +239,56 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
 
     }
 
-    private fun search() {
-        val orderNumber = _uiState.value.orderNumber
-        if (orderNumber.isEmpty()){
-            _uiState.update {
-                it.copy(
-                    searchError = "Please enter order number"
-                )
-            }
-            return
-        }
+    private fun getPoData(orderNumber: String) {
         viewModelScope.launch {
 
             _uiState.update {
 
                 it.copy(
-                    purchaseOrderSearchStatus = PurchaseOrderSearchStatus.IDLE,
+                    purchaseOrderGetDataStatus = PurchaseOrderGetDataStatus.IDLE,
                     error = ""
                 )
 
             }
 
             when (
-
                 val result =
-                    getPurchaseOrderUseCase(
-                        PurchaseOrderRequest(
-                            pageName = pageName,
-                            companyCodes = listOf(
-                                "1001","1002"
-                            ),
-                            poNumber = _uiState.value.orderNumber
-                        )
+                    getReceivingSparePartsFromVendorPurchaseOrderDataUseCase(
+                        poNumber = orderNumber
                     )
-
             ) {
-                is NetworkResult.Loading -> {
+                NetworkResult.Loading -> {
                     _uiState.update {
                         it.copy(
-                            purchaseOrderSearchStatus = PurchaseOrderSearchStatus.LOADING
+                            purchaseOrderGetDataStatus = PurchaseOrderGetDataStatus.LOADING
                         )
                     }
                 }
                 is NetworkResult.Success -> {
-                    val purchaseOrder = result.data.data?.toPurchaseOrder()
+                    val purchaseOrder = result.data
                     _uiState.update {
                         it.copy(
-                            purchaseOrderSearchStatus = PurchaseOrderSearchStatus.SUCCESS,
+                            purchaseOrderGetDataStatus = PurchaseOrderGetDataStatus.SUCCESS(purchaseOrder),
                             purchaseOrder = purchaseOrder,
-                            materials = purchaseOrder?.purchaseOrderItems ?: emptyList(),
-                            filteredMaterials = purchaseOrder?.purchaseOrderItems?:emptyList()
+                            materials = purchaseOrder.purchaseOrderItems,
+                            filteredMaterials = purchaseOrder.purchaseOrderItems
                         )
                     }
                 }
 
-                is NetworkResult.Error -> {
-
-                    _uiState.update {
-
-                        it.copy(
-
-                            purchaseOrderSearchStatus = PurchaseOrderSearchStatus.ERROR,
-
-                            searchError = result.message
-
-                        )
-
+                else -> {
+                    val message = when (result) {
+                        is NetworkResult.BusinessError -> result.message
+                        is NetworkResult.HttpError -> result.message
+                        is NetworkResult.NetworkError -> result.message
+                        is NetworkResult.UnknownError -> result.message
                     }
-
+                    _uiState.update {
+                        it.copy(
+                            purchaseOrderGetDataStatus = PurchaseOrderGetDataStatus.ERROR(message),
+                            searchError = message
+                        )
+                    }
                 }
 
             }
@@ -272,14 +296,30 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
         }
 
     }
+    private fun updateMaterialCodeInput(code: String) {
+        _uiState.update { it.copy(materialCodeInput = code) }
+    }
+
     private fun loadMaterial(
         materialCode: String
     ) {
-        val selectedMaterial = _uiState.value.materials.find { material -> material.materialCode == materialCode }
+        val state = _uiState.value
+        val selectedMaterial = state.materials.find { material -> material.materialCode == materialCode }
         if (selectedMaterial==null){
             _uiState.update {
                 it.copy(
-                    materialCodeError = "Wrong material code"
+                    materialCodeInput = materialCode,
+                    materialCodeError = context.resources.getString(R.string.wrong_material_code)
+                )
+            }
+            return
+        }
+        val alreadyAddedMaterial = state.addedItems.find { it.purchaseOrderItem == selectedMaterial.poItemNumber }
+        if (alreadyAddedMaterial!=null){
+            _uiState.update {
+                it.copy(
+                    materialCodeInput = materialCode,
+                    materialCodeError = context.resources.getString(R.string.material_already_added)
                 )
             }
             return
@@ -290,6 +330,7 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
 
                 it.copy(
                     isWarehousesLoading = true,
+                    materialCodeInput = materialCode,
                 )
 
             }
@@ -308,7 +349,8 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
 
                             selectedMaterial = selectedMaterial,
                             quantity = selectedMaterial.remainingQuantity.toString(),
-                            warehouses = warehouses.data.data.toWarehouses()
+                            selectedExpiryDate = if (selectedMaterial.isBatchManaged) SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).format(Date()) else null,
+                            warehouses = warehouses.data
 
                         )
 
@@ -316,20 +358,19 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
 
                 }
 
-                is NetworkResult.Error -> {
-
-                    _uiState.update {
-
-                        it.copy(
-
-                            isWarehousesLoading = false,
-
-                            error = warehouses.message
-
-                        )
-
+                else -> {
+                    val message = when (warehouses) {
+                        is NetworkResult.BusinessError -> warehouses.message
+                        is NetworkResult.HttpError -> warehouses.message
+                        is NetworkResult.NetworkError -> warehouses.message
+                        is NetworkResult.UnknownError -> warehouses.message
                     }
-
+                    _uiState.update {
+                        it.copy(
+                            isWarehousesLoading = false,
+                            error = message
+                        )
+                    }
                 }
 
             }
@@ -356,7 +397,7 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun updateExpiryDate (expiryDate:String) {
+    private fun updateExpiryDate (expiryDate:String?) {
         _uiState.update {
             it.copy(selectedExpiryDate = expiryDate)
         }
@@ -369,21 +410,28 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
 
         var hasError = false
         val quantity = state.quantity
-        if (quantity.isEmpty() || quantity.toFloatOrNull() == null || quantity.toFloat() <= 0) {
-            _uiState.update { it.copy(quantityError = "Please enter a valid quantity") }
+        if ((quantity.isEmpty()) || (quantity.toFloatOrNull() == null) || (quantity.toFloat() <= 0)) {
+            _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
             hasError = true
         } else if (quantity.toFloat() > material.remainingQuantity) {
-            _uiState.update { it.copy(quantityError = "Quantity cannot exceed remaining quantity (${material.remainingQuantity})") }
+            _uiState.update { it.copy(quantityError = context.getString(
+                R.string.quantity_cannot_exceed_remaining_quantity,
+                material.remainingQuantity.toString()
+            )) }
+            hasError = true
+        }
+        if (material.isBatchManaged&&state.selectedExpiryDate==null){
+            _uiState.update { it.copy(warehouseError = context.getString(R.string.please_select_expiry_date)) }
             hasError = true
         }
 
         if (state.selectedWarehouse == null) {
-            _uiState.update { it.copy(warehouseError = "Please select a warehouse") }
+            _uiState.update { it.copy(warehouseError = context.getString(R.string.please_select_a_warehouse)) }
             hasError = true
         }
 
         if (material.valuationTypes.isNotEmpty() && state.selectedValuationType == null) {
-            _uiState.update { it.copy(valuationTypeError = "Please select a valuation type") }
+            _uiState.update { it.copy(valuationTypeError = context.getString(R.string.please_select_a_valuation_type)) }
             hasError = true
         }
 
@@ -391,7 +439,7 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
 
         val poNumber = state.purchaseOrder?.poNumber ?: return
         val warehouse = state.selectedWarehouse!!
-        val expiryDate = state.selectedExpiryDate
+        val expiryDate = if (state.selectedExpiryDate==null) null else state.selectedExpiryDate+"T00:00:00.000Z"
         val valuationType =
             if (material.valuationTypes.isEmpty())
                 ""
@@ -413,6 +461,7 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
                         receivedQuantity = if (quantity.isEmpty()) 0f else quantity.toFloat(),
                         valuationType = valuationType,
                         expiryDate = expiryDate,
+                        isBatchManaged = material.isBatchManaged,
                     )
                 )
             )
@@ -425,14 +474,17 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 selectedMaterial = null,
-                selectedExpiryDate = "",
+                materialCodeInput = "",
+                selectedExpiryDate = null,
                 selectedWarehouse = null,
                 selectedValuationType = null,
                 quantity = "",
                 quantityError = "",
                 warehouseError = "",
                 valuationTypeError = "",
-                materialCodeError = ""
+                materialCodeError = "",
+                warehouseSearchText = "",
+                valuationSearchText = "",
             )
         }
     }
@@ -451,25 +503,11 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             val result = receiveVendorSparePartsUseCase(
                 ReceiveVendorSparePartsRequest(
-                    userId = "25d9118f-a8f2-48fd-8150-8509a18ca903",
-                    companyCodes = listOf("1001","1002"),
                     poNumber = state.purchaseOrder?.poNumber ?: "",
                     lines = addedItems,
                 )
             )
             when(result){
-                is NetworkResult.Error -> {
-                    showErrorDialog()
-                    _uiState.update {
-                        it.copy(
-                            showSuccessDialog = false,
-                            showErrorDialog = true,
-                            savingSuccessStatusMessage = "",
-                            savingErrorStatusMessage = result.message,
-                            isSavingLoading = false,
-                        )
-                    }
-                }
                 NetworkResult.Loading -> {
                     _uiState.update{
                         it.copy(
@@ -492,7 +530,25 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
                             isSavingLoading = false,
                         )
                     }
-                    resetDetail(result.data.data?.toPurchaseOrder())
+                    resetDetail(result.data)
+                }
+                else -> {
+                    val message = when (result) {
+                        is NetworkResult.BusinessError -> result.message
+                        is NetworkResult.HttpError -> result.message
+                        is NetworkResult.NetworkError -> result.message
+                        is NetworkResult.UnknownError -> result.message
+                    }
+                    showErrorDialog()
+                    _uiState.update {
+                        it.copy(
+                            showSuccessDialog = false,
+                            showErrorDialog = true,
+                            savingSuccessStatusMessage = "",
+                            savingErrorStatusMessage = message,
+                            isSavingLoading = false,
+                        )
+                    }
                 }
             }
         }
@@ -504,8 +560,9 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
                 purchaseOrder = data,
                 materials = data?.purchaseOrderItems ?: emptyList(),
                 selectedMaterial = null,
+                materialCodeInput = "",
                 warehouses = emptyList(),
-                selectedExpiryDate = "",
+                selectedExpiryDate = null,
                 selectedWarehouse = null,
                 selectedValuationType = null,
                 quantity = "",
@@ -615,9 +672,9 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
 
 
     // ── Detail actions ──────────────────────────────────────────────────────
-    fun selectMaterial(mat: SparePartsMaterial) {
-        selMat = mat; matInput = mat.materialCode; matDlg = false; matSearch = ""
-    }
+//    fun selectMaterial(mat: SparePartsMaterial) {
+//        selMat = mat; matInput = mat.materialCode; matDlg = false; matSearch = ""
+//    }
 
 
     fun selectBin(bin: Bin) { selBin = bin; binInput = bin.code; binDlg = false }
@@ -633,6 +690,7 @@ class ReceivingSparePartsFromVendorDetailsViewModel @Inject constructor(
             saveKind = kind
         }
     }
+
 
 
 

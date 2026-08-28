@@ -109,12 +109,12 @@ fun AuditDetailsScreen(
                                     InfoCell(f1.first, f1.second, f1.third ?: colors.text,
                                         modifier = Modifier.weight(1f))
                                 } else {
-                                    net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.InfoCell(
+                                    InfoCell(
                                         f1.first, f1.second, f1.third ?: colors.text,
                                         modifier = Modifier.weight(1f)
                                     )
                                     if (f2 != null) {
-                                        net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.InfoCell(
+                                        InfoCell(
                                             f2.first, f2.second, f2.third ?: colors.text,
                                             modifier = Modifier.weight(1f)
                                         )

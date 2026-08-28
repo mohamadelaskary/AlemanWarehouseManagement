@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -16,6 +17,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 
 // ── UI State ──────────────────────────────────────────────────────────────────
@@ -27,9 +29,11 @@ sealed class SettingsUiState {
 }
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
-class SettingsViewModel(app: Application) : AndroidViewModel(app) {
-
-    private val context get() = getApplication<Application>().applicationContext
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    app: Application,
+    private val settingsPrefs: SettingsPrefs
+) : AndroidViewModel(app) {
 
     // ── Form state ─────────────────────────────────────────────────────────
     var protocol  by mutableStateOf("http")
@@ -42,17 +46,17 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     // ── UI state ───────────────────────────────────────────────────────────
     var uiState   by mutableStateOf<SettingsUiState>(SettingsUiState.Idle)
-    val settingsPrefs = SettingsPrefs(context)
-    init {
 
+    init {
         port = settingsPrefs.getPort()
         ip   = settingsPrefs.getIp()
         protocol = settingsPrefs.getProtocol()
     }
     private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
         .build()
 
 
@@ -113,10 +117,13 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
             }
         } catch (e: java.net.SocketTimeoutException) {
             Log.e("SettingsViewModel", "testConnection: timeout", e)
-            "انتهت مهلة الاتصال - تحقق من الـ IP والمنفذ"
+            "انتهت مهلة الاتصال (30 ثانية) - تحقق من عنوان IP والمنفذ وتأكد أن السيرفر يعمل"
+        } catch (e: java.net.ConnectException) {
+            Log.e("SettingsViewModel", "testConnection: connect error", e)
+            "فشل الاتصال: السيرفر غير متاح أو العنوان خطأ"
         } catch (e: Exception) {
             Log.e("SettingsViewModel", "testConnection: ", e)
-            "تعذّر الاتصال: ${e.localizedMessage}"
+            "تعذّر الاتصال: ${e.localizedMessage ?: "خطأ غير معروف"}"
         }
     }
 
