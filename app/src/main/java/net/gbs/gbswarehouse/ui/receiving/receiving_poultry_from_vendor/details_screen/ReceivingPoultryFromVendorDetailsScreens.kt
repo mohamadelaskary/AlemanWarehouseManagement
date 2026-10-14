@@ -1,6 +1,5 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen
 
-import android.content.ContentValues.TAG
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,12 +16,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,11 +42,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
 import net.gbs.gbswarehouse.DatePickerField
 import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.Field
@@ -64,18 +67,22 @@ import net.gbs.gbswarehouse.WorkersGroupsSpinner
 import net.gbs.gbswarehouse.domain.model.CarNumber
 import net.gbs.gbswarehouse.domain.model.CarType
 import net.gbs.gbswarehouse.domain.model.LoadingVendor
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.NaolonDescription
 import net.gbs.gbswarehouse.domain.model.PackageType
 import net.gbs.gbswarehouse.domain.model.PoultryMaterialsLine
 import net.gbs.gbswarehouse.domain.model.PoultryMaterialsPurchaseOrderItem
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.model.WorkersGroup
+import net.gbs.gbswarehouse.transportationTypes
+import net.gbs.gbswarehouse.ui.receiving.ReceivingInfoCell
 import net.gbs.gbswarehouse.ui.receiving.ReceivingMatCodeInput
 import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.orders_list.PoultryPurchaseOrderCard
 
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.gbswarehouse.ui.theme.DANGER
 import net.gbs.honeywellscanner.ScannerEffect
+import net.gbs.gbswarehouse.spinnerLabel
 
 @Composable
 fun ReceivingPoultryFromVendorDetailsScreen(
@@ -123,7 +130,7 @@ fun ReceivingPoultryFromVendorDetailsScreen(
                 is PoultryPurchaseOrderGetDataStatus.ERROR -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(state.searchError, color = colors.text)
+                            Text(state.searchError!!.text, color = colors.text)
                             Spacer(Modifier.height(10.dp))
                             OutlineBtn(stringResource(R.string.retry), accent) {
                                 viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnScreenLoaded(orderId))
@@ -142,17 +149,27 @@ fun ReceivingPoultryFromVendorDetailsScreen(
                         ) {
                             item {
                                 Section(label = stringResource(R.string.order_data), accent = accent) {
-                                    Row(
-                                        Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        InfoCell(stringResource(R.string.po_number), order.poNumber, accent, Modifier.weight(1f))
-//                                        OutlineBtn(stringResource(R.string.change_po), accent) {
-//                                            viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnChangePoButtonClicked)
-//                                        }
+                                    val fields = listOf(
+                                        Triple(stringResource(R.string.car_number), order.carNo ?: "", null),
+                                        Triple(stringResource(R.string.vendor), order.vendorName ?: "", null),
+                                        Triple(stringResource(R.string.vendor_code), order.vendorCode ?: "", null),
+                                        Triple(stringResource(R.string.items_count), "${order.purchaseOrderItems.size} " + stringResource(R.string.items), null),
+                                    )
+                                    for (i in fields.indices step 2) {
+                                        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            val f1 = fields[i]
+                                            val f2 = if (i + 1 < fields.size) fields[i + 1] else null
+                                            ReceivingInfoCell(f1.first, f1.second, f1.third ?: colors.text, modifier = Modifier.weight(1f))
+                                            if (f2 != null) {
+                                                ReceivingInfoCell(f2.first, f2.second, f2.third ?: colors.text, modifier = Modifier.weight(1f))
+                                            }
+                                        }
                                     }
-                                    InfoCell(stringResource(R.string.vendor), order.vendorName ?: "", colors.text, Modifier.fillMaxWidth())
+                                    if (!order.factoryCarDescription.isNullOrBlank()) {
+                                        Spacer(Modifier.height(4.dp))
+                                        ReceivingInfoCell(stringResource(R.string.factory_car_description), order.factoryCarDescription ?: "", colors.text)
+                                    }
                                 }
                             }
 
@@ -169,8 +186,8 @@ fun ReceivingPoultryFromVendorDetailsScreen(
                                                 onValueChange = { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnMaterialCodeInputEntered(it)) },
                                                 onKeyboardAction = { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnMaterialSelected(state.materialCodeInput)) }
                                             )
-                                            if (state.materialCodeError.isNotEmpty()){
-                                                Text(state.materialCodeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
+                                            if (state.materialCodeError != null){
+                                                Text(state.materialCodeError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
                                             }
                                         }
                                         OutlineBtn(stringResource(R.string.select_item), accent) { viewModel.matDlg = true }
@@ -179,6 +196,7 @@ fun ReceivingPoultryFromVendorDetailsScreen(
                                         Spacer(Modifier.height(8.dp))
                                         SelectedPoultryMaterialCard(
                                             mat = state.selectedMaterial!!,
+                                            state = state,
                                             accent = accent,
                                             doneLabel = doneLabel,
                                             qty = state.quantity,
@@ -188,13 +206,13 @@ fun ReceivingPoultryFromVendorDetailsScreen(
                                             onWarehouseSelected = { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnWarehouseSelected(it)) },
                                             quantityError = state.quantityError,
                                             warehouseError = state.warehouseError,
-                                            carNoError = state.carNoError,
+//                                            carNoError = state.carNoError,
                                             searchText = state.warehouseSearchText,
                                             onSearchTextChanged = { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnWarehouseSearchTextChange(it)) },
-                                            carNumberSearchText = state.carNoSearchText,
-                                            carNumbersList = state.carNos,
-                                            onCarNumberSearchTextChange = { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnCarNoTextSearchChange(it)) },
-                                            onCarNoSelected = { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnCarNoSelected(it)) },
+//                                            carNumberSearchText = state.carNoSearchText,
+//                                            carNumbersList = state.carNos,
+//                                            onCarNumberSearchTextChange = { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnCarNoTextSearchChange(it)) },
+//                                            onCarNoSelected = { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnCarNoSelected(it)) },
                                             unloadingPoint = state.unloadingPoint,
                                             unloadingPointError = state.unloadingPointError,
                                             onUnloadingPointChange = { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnUnloadingPointEntered(it)) },
@@ -247,9 +265,14 @@ fun ReceivingPoultryFromVendorDetailsScreen(
                             }
 
                             itemsIndexed(state.addedItems) { index, item ->
-                                ReceivingPoultryMaterialsLineItem(item) {
-                                    viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnDeleteAddedMaterialButtonClicked(index))
-                                }
+                                ReceivingPoultryMaterialsLineItem(item,
+                                    onDelete = {
+                                        viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnDeleteAddedMaterialButtonClicked(index))
+                                    },
+                                    onEdit = {
+                                        viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnEditAddedMaterialButtonClicked(index))
+                                    }
+                                )
                             }
                         }
                     }
@@ -274,18 +297,34 @@ fun ReceivingPoultryFromVendorDetailsScreen(
         }
         
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage) {
+            SuccessDialog(colors.succ, state.savingSuccessStatusMessage!!.text) {
                 viewModel.onEvent(ReceivingPoultryFromVendorEvent.HideSuccessDialog)
             }
-            navController.popBackStack()
         }
+//        LaunchedEffect(state.showSuccessDialog) {
+//            if (state.showSuccessDialog) {
+//                delay(1000)
+//                navController.popBackStack()
+//            }
+//        }
+
         if (state.showErrorDialog) {
-            ErrorDialog(DANGER, state.savingErrorStatusMessage) {
+            ErrorDialog(DANGER, state.savingErrorStatusMessage!!.text) {
                 viewModel.onEvent(ReceivingPoultryFromVendorEvent.HideErrorDialog)
             }
         }
     }
-
+    if (state.isSavingLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.3f))
+                .clickable(enabled = false) { },
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = accent)
+        }
+    }
     if (viewModel.matDlg) {
         BottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
             SearchBox(state.materialSearch, { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnMaterialSearchTextEntered(it)) },
@@ -317,7 +356,7 @@ fun ReceivingPoultryFromVendorDetailsScreen(
                 LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
                     itemsIndexed(state.filteredPurchaseOrders) { _, po ->
                         PoultryPurchaseOrderCard(order = po, accent = accent,
-                            onClick = { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnPurchaseOrderSelected(po.poNumber)) },
+                            onClick = { viewModel.onEvent(ReceivingPoultryFromVendorEvent.OnPurchaseOrderSelected(po.carNo ?: "")) },
                             onMaterialsNumberButtonClicked = { /* maybe just navigate or something else */ })
                         Spacer(Modifier.height(8.dp))
                     }
@@ -330,6 +369,7 @@ fun ReceivingPoultryFromVendorDetailsScreen(
 @Composable
 fun SelectedPoultryMaterialCard(
     mat: PoultryMaterialsPurchaseOrderItem,
+    state: ReceivingPoultryFromVendorState,
     accent: Color,
     doneLabel: String,
     qty: String,
@@ -337,50 +377,50 @@ fun SelectedPoultryMaterialCard(
     onClear: () -> Unit,
     warehouses: List<Warehouse>,
     onWarehouseSelected: (Warehouse) -> Unit,
-    onCarNoSelected: (CarNumber) -> Unit,
-    quantityError: String = "",
-    warehouseError: String = "",
-    carNoError: String = "",
+//    onCarNoSelected: (CarNumber) -> Unit,
+    quantityError: Message? = null,
+    warehouseError: Message? = null,
+//    carNoError: String = "",
     searchText: String = "",
     onSearchTextChanged: (String) -> Unit,
-    carNumberSearchText: String = "",
-    carNumbersList: List<CarNumber> = emptyList(),
-    onCarNumberSearchTextChange: (String) -> Unit,
+//    carNumberSearchText: String = "",
+//    carNumbersList: List<CarNumber> = emptyList(),
+//    onCarNumberSearchTextChange: (String) -> Unit,
     unloadingPoint: String = "",
-    unloadingPointError: String = "",
+    unloadingPointError: Message? = null,
     onUnloadingPointChange: (String) -> Unit,
     workersGroup: List<WorkersGroup> = emptyList(),
     workersGroupSearchText: String = "",
     onWorkersGroupSearchTextChange: (String) -> Unit,
     onWorkersGroupSelected: (WorkersGroup) -> Unit,
-    workersGroupError: String = "",
+    workersGroupError: Message? = null,
     contractNumber: String = "",
     onContractNumberEntered: (String) -> Unit,
-    contractNumberError: String = "",
+    contractNumberError: Message? = null,
     loadingVendors: List<LoadingVendor> = emptyList(),
     onLoadingVendorSelected: (LoadingVendor) -> Unit,
     loadingVendorSearchText: String = "",
     onSearchLoadingVendorTextChange: (String) -> Unit,
-    loadingVendorError: String = "",
+    loadingVendorError: Message? = null,
     packingTypes: List<PackageType> = emptyList(),
     onPackingTypeSelected: (PackageType) -> Unit,
-    packingTypeError: String = "",
+    packingTypeError: Message? = null,
     packingTypeSearchText: String = "",
     onSearchPackingTypeTextChange: (String) -> Unit,
     isBatchManaged: Boolean = false,
     expiryDate: String = "",
     onExpiryDateChange: (String) -> Unit,
-    expiryDateError: String = "",
+    expiryDateError: Message? = null,
     carTypesList: List<CarType> = emptyList(),
     onCarTypeSelected: (CarType) -> Unit,
-    carTypesErrorMessage: String = "",
+    carTypesErrorMessage: Message? = null,
     carTypeTextSearch: String = "",
     onCarTypeTextSearchChange: (String) -> Unit,
     naoloanDescriptions: List<NaolonDescription> = emptyList(),
     onNaolonDescriptionSelected: (NaolonDescription) -> Unit,
     naolonDescriptionTextSearch: String = "",
     onNaolonDescriptionTextSearchChange: (String) -> Unit,
-    naolonDescriptionErrorMessage: String = "",
+    naolonDescriptionErrorMessage: Message? = null,
     naolonLoadingStatus: NaolonLoadingStatus
 ) {
     val progress = if ((mat.orderedQuantity ?: 0.0) > 0) (mat.receivedQuantity ?: 0.0) / mat.orderedQuantity!! else 0.0
@@ -394,12 +434,14 @@ fun SelectedPoultryMaterialCard(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text(mat.materialCode ?: "", color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
+            Text("×", color = colors.muted, fontSize = 12.sp,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))
         Text(mat.materialDescription ?: "", color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
+        Spacer(Modifier.height(2.dp))
+        Text("#${mat.poNumber ?: ""}", color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             listOf(doneLabel to mat.receivedQuantity.toString(), stringResource(R.string.required) to mat.orderedQuantity.toString(),
@@ -423,18 +465,41 @@ fun SelectedPoultryMaterialCard(
             }
         }
         Spacer(Modifier.height(10.dp))
+
         Field("${stringResource(R.string.receiving_qty)} (${mat.uom ?: ""})", "", qty, onQtyChange, isNumber = true, center = true)
-        if (quantityError.isNotEmpty()) Text(quantityError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (quantityError != null) Text(quantityError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         
         Spacer(Modifier.height(10.dp))
+        Box(
+            modifier = Modifier.fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .clip(shape=RoundedCornerShape(size = 10.dp))
+                .background(accent.copy(0.3f))
+                .border(1.dp, accent, RoundedCornerShape(10.dp))
+        ){
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    state.transportationVendor?.arName?:"",
+                    textAlign = TextAlign.Center,
+                    color = colors.text
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(stringResource(R.string.expiry_date), color = colors.muted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(bottom = 5.dp))
         DatePickerField(
             label = stringResource(R.string.expiry_date),
             hint = stringResource(R.string.enter_expiry_date),
             value = expiryDate,
             onDateSelected = onExpiryDateChange,
         )
-        if (expiryDateError.isNotEmpty()) Text(
-            expiryDateError,
+        if (expiryDateError != null) Text(
+            expiryDateError!!.text,
             color = DANGER,
             fontSize = 10.sp,
             modifier = Modifier.padding(top = 4.dp)
@@ -449,20 +514,32 @@ fun SelectedPoultryMaterialCard(
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
         )
-        if (warehouseError.isNotEmpty()) Text(warehouseError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (warehouseError != null) Text(warehouseError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         
         Spacer(Modifier.height(10.dp))
-        CarNumberSpinner(
-            hint = stringResource(R.string.select_car_number),
-            items = carNumbersList,
-            onItemSelected = onCarNoSelected,
-            accent = accent,
-            label = stringResource(R.string.car_number),
-            searchText = carNumberSearchText,
-            onSearchTextChanged = { onCarNumberSearchTextChange(it) }
-        )
-        if (carNoError.isNotEmpty()) Text(carNoError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.bg.copy(alpha = 0.65f)).padding(10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.car_number),color = colors.muted)
+                Text(state.selectedMaterial?.carNo?:"", color = accent, fontWeight = FontWeight.Bold)
+            }
+        }
+//        CarNumberSpinner(
+//            hint = stringResource(R.string.select_car_number),
+//            items = carNumbersList,
+//            onItemSelected = onCarNoSelected,
+//            accent = accent,
+//            label = stringResource(R.string.car_number),
+//            searchText = carNumberSearchText,
+//            onSearchTextChanged = { onCarNumberSearchTextChange(it) }
+//        )
+//        if (carNoError.isNotEmpty()) Text(carNoError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(10.dp))
+
         Field(
             label = stringResource(R.string.unloading_point),
             hint = stringResource(R.string.enter_unloading_point),
@@ -471,7 +548,7 @@ fun SelectedPoultryMaterialCard(
             isNumber = false,
             center = true
             )
-        if (unloadingPointError.isNotEmpty()) Text(unloadingPointError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (unloadingPointError != null) Text(unloadingPointError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(10.dp))
         WorkersGroupsSpinner(
             hint = stringResource(R.string.select_workers_group),
@@ -482,7 +559,7 @@ fun SelectedPoultryMaterialCard(
             searchText = workersGroupSearchText,
             onSearchTextChanged = { onWorkersGroupSearchTextChange(it) }
         )
-        if (workersGroupError.isNotEmpty()) Text(workersGroupError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (workersGroupError != null) Text(workersGroupError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(10.dp))
         Field(
             label = stringResource(R.string.cont_no),
@@ -492,16 +569,36 @@ fun SelectedPoultryMaterialCard(
             isNumber = false,
             center = true
         )
-        if (contractNumberError.isNotEmpty()) Text(contractNumberError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
-        Spacer(Modifier.height(10.dp))
-        LoadingVendorSpinner(
-            items = loadingVendors,
-            onItemSelected = onLoadingVendorSelected,
-            accent = accent,
-            searchText = loadingVendorSearchText,
-            onSearchTextChanged = { onSearchLoadingVendorTextChange(it) }
-        )
-        if (loadingVendorError.isNotEmpty()) Text(loadingVendorError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (contractNumberError != null) Text(contractNumberError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (state.selectedMaterial?.isFactoryCar!=true) {
+            Spacer(Modifier.height(10.dp))
+            LoadingVendorSpinner(
+                items = loadingVendors,
+                onItemSelected = onLoadingVendorSelected,
+                accent = accent,
+                searchText = loadingVendorSearchText,
+                onSearchTextChanged = { onSearchLoadingVendorTextChange(it) }
+            )
+            if (loadingVendorError != null) Text(
+                loadingVendorError!!.text,
+                color = DANGER,
+                fontSize = 10.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        } else {
+            Spacer(Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(colors.bg.copy(alpha = 0.65f)).padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(stringResource(R.string.loading_vendor),color = colors.muted)
+                    Text(state.selectedLoadingVendor?.vendorName?:"", color = accent, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
         Spacer(Modifier.height(10.dp))
         PackingTypeSpinner(
             hint = stringResource(R.string.select_packing_type),
@@ -511,7 +608,7 @@ fun SelectedPoultryMaterialCard(
             searchText = packingTypeSearchText,
             onSearchTextChanged = { onSearchPackingTypeTextChange(it) }
         )
-        if (packingTypeError.isNotEmpty()) Text(packingTypeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (packingTypeError != null) Text(packingTypeError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(10.dp))
         NaolonCard(
             carTypes = carTypesList,
@@ -526,6 +623,7 @@ fun SelectedPoultryMaterialCard(
             naolonDescriptionErrorMessage = naolonDescriptionErrorMessage,
             accent = accent,
             naolonLoadingStatus = naolonLoadingStatus,
+            isFactoryCar = state.selectedMaterial?.isFactoryCar?:false,
         )
     }
 }
@@ -536,14 +634,15 @@ fun NaolonCard(
     onCarTypeSelected: (CarType) -> Unit,
     carTypeTextSearch: String,
     onCarTypeTextSearchChange: (String) -> Unit,
-    carTypesErrorMessage: String,
+    carTypesErrorMessage: Message?,
     naoloanDescriptions: List<NaolonDescription>,
     onNaolonDescriptionSelected: (NaolonDescription) -> Unit,
     naolonDescriptionTextSearch: String,
     onNaolonDescriptionTextSearchChange: (String) -> Unit,
-    naolonDescriptionErrorMessage: String,
+    naolonDescriptionErrorMessage: Message?,
     accent: Color,
-    naolonLoadingStatus: NaolonLoadingStatus
+    naolonLoadingStatus: NaolonLoadingStatus,
+    isFactoryCar: Boolean,
     ){
         val colors = AppTheme.colors
         Column(
@@ -558,45 +657,61 @@ fun NaolonCard(
                 searchText = carTypeTextSearch,
                 onSearchTextChanged = { onCarTypeTextSearchChange(it) }
             )
-            if (carTypesErrorMessage.isNotEmpty()) Text(carTypesErrorMessage, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+            if (carTypesErrorMessage != null) Text(carTypesErrorMessage!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
             Spacer(Modifier.height(10.dp))
-            NaolonDescriptionSpinner(
-                items = naoloanDescriptions,
-                onItemSelected = onNaolonDescriptionSelected,
-                accent = accent,
-                searchText = naolonDescriptionTextSearch,
-                onSearchTextChanged = { onNaolonDescriptionTextSearchChange(it) }
-            )
-            if (naolonDescriptionErrorMessage.isNotEmpty()) Text(naolonDescriptionErrorMessage, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
-            Spacer(Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
+            if (isFactoryCar) {
+                NaolonDescriptionSpinner(
+                    items = naoloanDescriptions,
+                    onItemSelected = onNaolonDescriptionSelected,
+                    accent = accent,
+                    searchText = naolonDescriptionTextSearch,
+                    onSearchTextChanged = { onNaolonDescriptionTextSearchChange(it) }
+                )
+                if (naolonDescriptionErrorMessage != null) Text(
+                    naolonDescriptionErrorMessage!!.text,
+                    color = DANGER,
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                Spacer(Modifier.height(10.dp))
+
+
                 when (naolonLoadingStatus) {
                     NaolonLoadingStatus.LOADING -> {
-                        CircularProgressIndicator(
-                            color = accent
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            CircularProgressIndicator(
+                                color = accent,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
                     }
+
                     is NaolonLoadingStatus.SUCCESS -> {
-                        Text(
-                            stringResource(R.string.naolon_cost),
-                            color = accent,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                        Text(
-                            naolonLoadingStatus.naolon,
-                            color = colors.text,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                stringResource(R.string.naolon_cost),
+                                color = accent,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            Text(
+                                naolonLoadingStatus.naolon,
+                                color = colors.text,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
                     is NaolonLoadingStatus.ERROR -> {
                         Text(
-                            naolonLoadingStatus.error,
+                            naolonLoadingStatus.error.text,
                             color = DANGER,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold
@@ -605,7 +720,8 @@ fun NaolonCard(
 
                     else -> {}
                 }
-        }
+            }
+
     }
 
 }
@@ -632,7 +748,7 @@ fun LoadingVendorSpinner(hint:String=stringResource(R.string.select_loading_vend
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.vendorName} (${it.vendorCode})" },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -662,7 +778,7 @@ fun PackingTypeSpinner(hint:String=stringResource(R.string.select_packing_type),
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.packTypeDescription} (${it.packTypeCode})" },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -692,7 +808,7 @@ fun CarTypeSpinner(hint:String=stringResource(R.string.select_car_type), items :
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.description} (${it.vehicleTypeName})" },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -722,7 +838,7 @@ fun NaolonDescriptionSpinner(hint:String=stringResource(R.string.select_naolon_d
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.naolonDescription}" },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -756,7 +872,7 @@ fun CarNumberSpinner(hint:String=stringResource(R.string.select_car_number), ite
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.carDescription} (${it.carNumber})" },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -777,7 +893,7 @@ fun AddPoultryLineButton(onClick: () -> Unit) {
 }
 
 @Composable
-fun ReceivingPoultryMaterialsLineItem(item: PoultryMaterialsLine, onDelete: () -> Unit) {
+fun ReceivingPoultryMaterialsLineItem(item: PoultryMaterialsLine, onDelete: () -> Unit, onEdit: () -> Unit) {
     val colors = AppTheme.colors
     val accent = GREEN
 
@@ -809,7 +925,7 @@ fun ReceivingPoultryMaterialsLineItem(item: PoultryMaterialsLine, onDelete: () -
                     if (item.carNo != null) {
                         Chip(stringResource(R.string.car_number) + ": " + item.carNo)
                     }
-                    Chip(stringResource(R.string.po_number) + ": " + item.purchaseOrder)
+                    Chip(stringResource(R.string.po_number) + ": #" + item.purchaseOrder)
                     if (!item.unloadingPoint.isNullOrBlank()) {
                         Chip(stringResource(R.string.unloading_point) + ": " + item.unloadingPoint)
                     }
@@ -835,8 +951,13 @@ fun ReceivingPoultryMaterialsLineItem(item: PoultryMaterialsLine, onDelete: () -
                         Chip(stringResource(R.string.expiry_date) + ": " + item.expirationDate.substring(0,10))
                     }
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = colors.text)
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = colors.danger)
+                    }
                 }
             }
         }
@@ -861,7 +982,7 @@ fun PoultryMaterialDialogItem(mat: PoultryMaterialsPurchaseOrderItem, accent: Co
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(mat.materialCode ?: "", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text(mat.uom ?: "", color = colors.muted, fontSize = 10.sp)
+            Text("#${mat.poNumber ?: ""}", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(4.dp))
         Text(mat.materialDescription ?: "", color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, lineHeight = 18.sp)
@@ -869,6 +990,7 @@ fun PoultryMaterialDialogItem(mat: PoultryMaterialsPurchaseOrderItem, accent: Co
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("${stringResource(R.string.required)}: ${mat.orderedQuantity}", color = colors.muted, fontSize = 10.sp)
             Text("$doneLabel: ${mat.receivedQuantity}", color = if (mat.receivedQuantity == mat.orderedQuantity) colors.succ else colors.muted, fontSize = 10.sp)
+            Text("${mat.uom ?: ""}", color = colors.muted, fontSize = 10.sp)
         }
     }
 }

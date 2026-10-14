@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ElectricCar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,10 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,14 +66,14 @@ fun ReceivingRawMaterialsFromVendorListScreen(
 
 
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
-        TopBar(title = "استلام", subtitle = "استلام مواد خام من مورد", accent = accent,
+        TopBar(title = stringResource(R.string.receiving), subtitle = stringResource(R.string.receiving_raw_materials_fron_vendor), accent = accent,
             onBack = { navController.popBackStack() })
 
         // Search
         SearchBox(
             value = state.searchText,
             onValueChange = { viewModel.onEvent(ReceivingRawMaterialsFromVendorOrdersListEvent.OnSearchTextChanged(it)) },
-            placeholder = "بحث بالرقم أو الاسم...",
+            placeholder = stringResource(R.string.search_by_number_or_name),
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
         )
 
@@ -86,7 +82,7 @@ fun ReceivingRawMaterialsFromVendorListScreen(
             modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("${state.poFilteredList.size} نتيجة", color = colors.muted, fontSize = 11.sp)
+            Text("${state.poFilteredList.size}"+stringResource(R.string.result), color = colors.muted, fontSize = 11.sp)
             Text("PO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         }
 
@@ -101,7 +97,7 @@ fun ReceivingRawMaterialsFromVendorListScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(status.statusMessage, color = colors.text, modifier = Modifier.padding(horizontal = 20.dp))
                         Spacer(Modifier.height(10.dp))
-                        OutlineBtn("إعادة المحاولة", accent) {
+                        OutlineBtn(stringResource(R.string.retry), accent) {
                             viewModel.onEvent(ReceivingRawMaterialsFromVendorOrdersListEvent.Refresh)
                         }
                     }
@@ -114,9 +110,9 @@ fun ReceivingRawMaterialsFromVendorListScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("📂", fontSize = 36.sp)
                             Spacer(Modifier.height(10.dp))
-                            Text("لا توجد نتائج", color = colors.muted, fontSize = 13.sp)
+                            Text(stringResource(R.string.no_result), color = colors.muted, fontSize = 13.sp)
                             Spacer(Modifier.height(10.dp))
-                            OutlineBtn("تحديث", accent) {
+                            OutlineBtn(stringResource(R.string.refresh), accent) {
                                 viewModel.onEvent(ReceivingRawMaterialsFromVendorOrdersListEvent.Refresh)
                             }
                         }
@@ -126,7 +122,7 @@ fun ReceivingRawMaterialsFromVendorListScreen(
                         itemsIndexed(list) { index, ord ->
                             RawMaterialsPurchaseOrderCard(order = ord, accent = accent,
                                 onClick = {
-                                    navController.navigate(Screens.ReceivingRawMaterialsFromVendorDetailsScreen.createRoute(ord.poNumber))
+                                    navController.navigate(Screens.ReceivingRawMaterialsFromVendorDetailsScreen.createRoute(ord.carNo ?: ""))
                                 }, onMaterialsNumberButtonClicked = {
                                     viewModel.onEvent(ReceivingRawMaterialsFromVendorOrdersListEvent.OnShowMaterialsClicked(index))
                                 }, isMaterialsShowed = state.isMaterialsShowed && state.showMaterialsClickedCardIndex == index)
@@ -160,15 +156,39 @@ fun RawMaterialsPurchaseOrderCard(
         ),
         border = BorderStroke(1.dp, if (hovered) colors.border2 else colors.border)
     ) {
-        Column(modifier = Modifier.padding(14.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "#${order.poNumber}",
-                color = accent,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
+        Column(modifier = Modifier.padding(14.dp).fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Lucide.Car,
+                        contentDescription = "Car",
+                        modifier = Modifier.size(18.dp),
+                        tint = accent
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "#${order.carNo ?: ""}",
+                        color = accent,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+                if (!order.factoryCarDescription.isNullOrBlank()) {
+                    Text(
+                        text = order.factoryCarDescription,
+                        color = colors.muted,
+                        fontSize = 10.sp
+                    )
+                }
+            }
             Spacer(Modifier.height(6.dp))
             Text(order.vendorName ?: "", color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)
+            Spacer(Modifier.height(4.dp))
+            Text("${stringResource(R.string.vendor_code)}: ${order.vendorCode ?: ""}", color = colors.muted, fontSize = 10.sp)
             Spacer(Modifier.height(6.dp))
             if (isMaterialsShowed){
                 order.purchaseOrderItems.forEachIndexed { index, material ->
@@ -177,7 +197,7 @@ fun RawMaterialsPurchaseOrderCard(
             }
             if(!isMaterialsShowed){
                 OutlineBtn(
-                    "${order.purchaseOrderItems.size} أصناف",
+                    "${order.purchaseOrderItems.size} "+stringResource(R.string.materials),
                     accent
                 ) {
                     onMaterialsNumberButtonClicked()
@@ -210,14 +230,14 @@ fun RawMaterialInfoCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-
                 Text(
-                    text = stringResource(R.string.remaining_quantity_) + " ${materialInfo.remainingQuantity} ${materialInfo.uom}",
-                    color = AppTheme.colors.muted,
-                    fontSize = 10.sp,
-                    maxLines = 1
+                    text = "#${materialInfo.poNumber ?: ""}",
+                    color = AppTheme.colors.green,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
+            Spacer(Modifier.height(4.dp))
             Row (
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -228,23 +248,16 @@ fun RawMaterialInfoCard(
                     text = materialInfo.materialDescription ?: "",
                     modifier = Modifier.weight(1f),
                     maxLines = 2,
-                    textAlign = TextAlign.Center,
                     overflow = TextOverflow.Ellipsis,
-                    fontSize = 10.sp
+                    fontSize = 10.sp,
+                    color = AppTheme.colors.text
                 )
-                Row {
-                    Icon(
-                        imageVector = Lucide.Car,
-                        contentDescription = "Car icon",
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(Modifier.width(2.dp))
-                    Text(
-                        text = materialInfo.carNo?:"",
-                        color = AppTheme.colors.text,
-                        fontSize = 10.sp
-                    )
-                }
+                Text(
+                    text = stringResource(R.string.remaining_quantity_) + " ${materialInfo.remainingQuantity} ${materialInfo.uom}",
+                    color = AppTheme.colors.muted,
+                    fontSize = 10.sp,
+                    maxLines = 1
+                )
             }
         }
     }
@@ -295,15 +308,18 @@ fun OrderCard(order: Order, accent: Color, onClick: () -> Unit,isMaterialsShowed
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text("#${order.id}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Pill(order.status, order.statusColor)
+            Pill(order.status, order.statusColor,)
         }
         Spacer(Modifier.height(6.dp))
         Text(order.info, color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)
         Spacer(Modifier.height(6.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(order.date, color = colors.muted, fontSize = 10.sp)
-            //    Text("${order.items} أصناف", color = MUTED, fontSize = 10.sp)
-            OutlineBtn("${order.items}أصناف", accent) { showMaterialsClicked() }
+            OutlineBtn(
+                if (isMaterialsShowed) stringResource(R.string.hide_items) else "${order.items} ${stringResource(
+                    R.string.items)}",
+                accent
+            ) { showMaterialsClicked() }
         }
         if (isMaterialsShowed) {
             MarginTenDp()

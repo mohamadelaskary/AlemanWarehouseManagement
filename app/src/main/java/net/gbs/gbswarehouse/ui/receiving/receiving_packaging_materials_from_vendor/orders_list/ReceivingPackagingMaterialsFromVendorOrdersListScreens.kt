@@ -78,7 +78,7 @@ fun ReceivingPackagingMaterialsFromVendorListScreen(
             value = state.searchText,
             onValueChange = { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorOrdersListEvent.OnSearchTextChanged(it)) },
             onSearchButtonClicked = { },
-            placeholder = stringResource(R.string.search_by_number),
+            placeholder = stringResource(R.string.search_by_number_or_name),
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
         )
 
@@ -126,7 +126,7 @@ fun ReceivingPackagingMaterialsFromVendorListScreen(
                         itemsIndexed(list) { index, ord ->
                             PackagingPurchaseOrderCard(order = ord, accent = accent,
                                 onClick = {
-                                    navController.navigate(Screens.ReceivingPackagingMaterialsFromVendorDetailsScreen.createRoute(ord.poNumber))
+                                    navController.navigate(Screens.ReceivingPackagingMaterialsFromVendorDetailsScreen.createRoute(ord.carNo ?: ""))
                                 }, onMaterialsNumberButtonClicked = {
                                     viewModel.onEvent(ReceivingPackagingMaterialsFromVendorOrdersListEvent.OnShowMaterialsButtonClicked(index))
                                 }, isMaterialsShowed = state.isMaterialsShowed && state.showMaterialsClickedCardIndex == index)
@@ -160,24 +160,48 @@ fun PackagingPurchaseOrderCard(
         ),
         border = BorderStroke(1.dp, if (hovered) colors.border2 else colors.border)
     ) {
-        Column(modifier = Modifier.padding(14.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "#${order.poNumber}",
-                color = accent,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
+        Column(modifier = Modifier.padding(14.dp).fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Lucide.Car,
+                        contentDescription = "Car",
+                        modifier = Modifier.size(18.dp),
+                        tint = accent
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "#${order.carNo ?: ""}",
+                        color = accent,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+                if (!order.factoryCarDescription.isNullOrBlank()) {
+                    Text(
+                        text = order.factoryCarDescription,
+                        color = colors.muted,
+                        fontSize = 10.sp
+                    )
+                }
+            }
             Spacer(Modifier.height(6.dp))
             Text(order.vendorName ?: "", color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)
+            Spacer(Modifier.height(4.dp))
+            Text("${stringResource(R.string.vendor_code)}: ${order.vendorCode ?: ""}", color = colors.muted, fontSize = 10.sp)
             Spacer(Modifier.height(6.dp))
             if (isMaterialsShowed){
                 order.purchaseOrderItems.forEachIndexed { index, material ->
                     PackagingMaterialInfoCard(material, index == order.purchaseOrderItems.lastIndex)
                 }
             }
-            if(!isMaterialsShowed){
+            if (!isMaterialsShowed){
                 OutlineBtn(
-                    "${order.purchaseOrderItems.size} ${stringResource(R.string.items)}",
+                    "${order.purchaseOrderItems.size} "+stringResource(R.string.items),
                     accent
                 ) {
                     onMaterialsNumberButtonClicked()
@@ -210,14 +234,14 @@ fun PackagingMaterialInfoCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-
                 Text(
-                    text = stringResource(R.string.remaining_quantity_) + " ${materialInfo.remainingQuantity} ${materialInfo.uom}",
-                    color = AppTheme.colors.muted,
-                    fontSize = 10.sp,
-                    maxLines = 1
+                    text = "#${materialInfo.poNumber ?: ""}",
+                    color = AppTheme.colors.green,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
+            Spacer(Modifier.height(4.dp))
             Row (
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -228,23 +252,16 @@ fun PackagingMaterialInfoCard(
                     text = materialInfo.materialDescription ?: "",
                     modifier = Modifier.weight(1f),
                     maxLines = 2,
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Start,
                     overflow = TextOverflow.Ellipsis,
+                    fontSize = 10.sp,
+                    color = AppTheme.colors.text
+                )
+                Text(
+                    text = "${materialInfo.remainingQuantity} ${materialInfo.uom}",
+                    color = AppTheme.colors.muted,
                     fontSize = 10.sp
                 )
-                Row {
-                    Icon(
-                        imageVector = Lucide.Car,
-                        contentDescription = "Car icon",
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(Modifier.width(2.dp))
-                    Text(
-                        text = materialInfo.carNo?:"",
-                        color = AppTheme.colors.text,
-                        fontSize = 10.sp
-                    )
-                }
             }
         }
     }

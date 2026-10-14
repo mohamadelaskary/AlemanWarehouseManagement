@@ -1,6 +1,7 @@
 package net.gbs.gbswarehouse.ui.issue.issuing_raw_materials_to_production_line.orders_list
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -31,6 +32,7 @@ class IssueOrdersListViewModel @Inject constructor(
     var orders by mutableStateOf<List<SparePartsReturnReservationOrder>>(emptyList())
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
+    var showMaterialsOrderIndex by mutableIntStateOf(-1)
 
     init {
         loadOrders()
@@ -74,6 +76,15 @@ class IssueOrdersListViewModel @Inject constructor(
 
     // list search
     var orderSearch by mutableStateOf("")
+    var expandedOrderNumbers by mutableStateOf<Set<String>>(emptySet())
+
+    fun toggleOrderExpanded(reservationNumber: String) {
+        expandedOrderNumbers = if (expandedOrderNumbers.contains(reservationNumber)) {
+            expandedOrderNumbers - reservationNumber
+        } else {
+            expandedOrderNumbers + reservationNumber
+        }
+    }
 
     // detail fields
     var matInput  by mutableStateOf("")

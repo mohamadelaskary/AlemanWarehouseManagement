@@ -41,6 +41,8 @@ import net.gbs.gbswarehouse.BLUE
 import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.LogoutButton
 import net.gbs.gbswarehouse.ORANGE
+import net.gbs.gbswarehouse.PURPLE
+import net.gbs.gbswarehouse.YELLOW
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.ui.theme.AppTheme
@@ -49,9 +51,11 @@ import net.gbs.gbswarehouse.ui.theme.AppTheme
 fun HomeScreen(navController: NavController) {
     val colors = AppTheme.colors
     val cards = listOf(
-        Triple("recv",  GREEN,  stringResource(R.string.receiving) to "↓"),
-        Triple("issue", ORANGE, stringResource(R.string.issuing)    to "↑") ,
-        Triple("audit", BLUE, stringResource(R.string.audit) to "")
+        Triple("recv",    GREEN,  stringResource(R.string.receiving) to "↓"),
+        Triple("putaway", YELLOW, stringResource(R.string.putaway)   to "⌘"),
+        Triple("issue",   ORANGE, stringResource(R.string.issuing)     to "↑"),
+        Triple("audit",   BLUE,   stringResource(R.string.audit)       to ""),
+        Triple("plc",     PURPLE, stringResource(R.string.plc_loading) to "")
     )
 
     val viewModel: HomeViewModel = hiltViewModel()
@@ -68,7 +72,6 @@ fun HomeScreen(navController: NavController) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // ── your existing logo + title group ──────────────────
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -96,8 +99,6 @@ fun HomeScreen(navController: NavController) {
                         }
                         viewModel.sessionManager.logout()
                     })
-//                    LanguageToggleButton()
-//                    ThemeToggleButton()
                 }
 
             }
@@ -124,16 +125,27 @@ fun HomeScreen(navController: NavController) {
             itemsIndexed(cards) { _, triple ->
                 val (id, accent, pair) = triple
                 val (label, icon) = pair
-                val cnt = if (id == "recv") "8 ${stringResource(R.string.operations)}" else "6 ${stringResource(R.string.operations)}"
-                val detail = if (id == "recv") "${stringResource(R.string.raw_materials)} · ${stringResource(R.string.spare_parts)} · ${stringResource(R.string.packaging)} · ${stringResource(R.string.finished_good)} · ${stringResource(R.string.returns)}"
-                else "${stringResource(R.string.production)} · ${stringResource(R.string.maintenance)} · ${stringResource(R.string.sales)} · ${stringResource(R.string.internal_order)} · ${stringResource(R.string.scrap)}"
+                val cnt = when (id) {
+                    "recv" -> "8 ${stringResource(R.string.operations)}"
+                    "putaway" -> "8 ${stringResource(R.string.operations)}"
+                    "issue" -> "9 ${stringResource(R.string.operations)}"
+                    else -> ""
+                }
+                val detail = when (id) {
+                    "recv" -> "${stringResource(R.string.raw_materials)} · ${stringResource(R.string.spare_parts)} · ${stringResource(R.string.packaging)} · ${stringResource(R.string.finished_good)} · ${stringResource(R.string.returns)}"
+                    "putaway" -> "${stringResource(R.string.raw_materials)} · ${stringResource(R.string.spare_parts)} · ${stringResource(R.string.packaging)} · ${stringResource(R.string.finished_good)} · ${stringResource(R.string.transfers)}"
+                    "issue" -> "${stringResource(R.string.production)} · ${stringResource(R.string.maintenance)} · ${stringResource(R.string.sales)} · ${stringResource(R.string.internal_order)} · ${stringResource(R.string.scrap)}"
+                    else -> "${stringResource(R.string.plc_loading_orders)} · ${stringResource(R.string.plc_conveyors)}"
+                }
 
-                HomeCard(label = label, icon = icon, cnt = cnt, detail = detail,id = id,
+                HomeCard(label = label, icon = icon, cnt = cnt, detail = detail, id = id,
                     accent = accent, onClick = {
                         navController.navigate(
-                            if (id == "audit") Screens.AuditOrders.createRoute()
-                            else
-                                Screens.SubMenu.createRoute(id)
+                            when (id) {
+                                "audit" -> Screens.AuditOrders.createRoute()
+                                "plc" -> Screens.LoadingOrders.createRoute()
+                                else -> Screens.SubMenu.createRoute(id)
+                            }
                         )
                     })
                 Spacer(Modifier.height(12.dp))
@@ -144,7 +156,7 @@ fun HomeScreen(navController: NavController) {
 
 @Composable
 fun HomeCard(label: String, icon: String, cnt: String, detail: String,
-             accent: Color,id:String, onClick: () -> Unit) {
+             accent: Color, id: String, onClick: () -> Unit) {
     val colors = AppTheme.colors
     var hovered by remember { mutableStateOf(false) }
     Column(
@@ -180,11 +192,11 @@ fun HomeCard(label: String, icon: String, cnt: String, detail: String,
         }
         Spacer(Modifier.height(12.dp))
         Text(label, color = colors.text, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold)
-        if (id == "recv" || id == "issue") {
+        if (id == "recv" || id == "putaway" || id == "issue") {
             Spacer(Modifier.height(3.dp))
             Text(cnt, color = accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
         }
-        if (id == "recv" || id == "issue") {
+        if (id == "recv" || id == "putaway" || id == "issue") {
             Spacer(Modifier.height(8.dp))
             Text(detail, color = colors.muted, fontSize = 11.sp, lineHeight = 18.sp)
         }

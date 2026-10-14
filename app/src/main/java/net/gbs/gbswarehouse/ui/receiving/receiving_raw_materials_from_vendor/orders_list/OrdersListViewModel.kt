@@ -9,12 +9,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.gbs.gbswarehouse.core.network.NetworkResult
-import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllRawMaterialsPurchaseOrdersUseCase
+import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllRawMaterialsPurchaseOrdersByCarNumberUseCase
 import javax.inject.Inject
 
 @HiltViewModel
 class OrdersListViewModel @Inject constructor(
-    private val getAllRawMaterialsPurchaseOrdersUseCase: GetAllRawMaterialsPurchaseOrdersUseCase
+    private val getAllRawMaterialsPurchaseOrdersByCarNumberUseCase: GetAllRawMaterialsPurchaseOrdersByCarNumberUseCase
 ): ViewModel() {
 
     private val _state = MutableStateFlow(ReceivingRawMaterialsFromVendorOrdersListState())
@@ -27,13 +27,23 @@ class OrdersListViewModel @Inject constructor(
     private fun getOrders() {
         viewModelScope.launch {
             _state.update { it.copy(loadingStatus = LoadingRawMaterialsPurchaseOrdersListStatus.LOADING) }
-            when (val result = getAllRawMaterialsPurchaseOrdersUseCase()) {
+            when (val result = getAllRawMaterialsPurchaseOrdersByCarNumberUseCase()) {
                 is NetworkResult.Success -> {
                     val orders = result.data
                     _state.update {
                         it.copy(
                             poList = orders,
-                            poFilteredList = orders,
+                            poFilteredList = if (it.searchText.isBlank()) orders else orders.filter { po ->
+                                po.carNo?.contains(it.searchText, ignoreCase = true) == true ||
+                                        po.factoryCarDescription?.contains(it.searchText, ignoreCase = true) == true ||
+                                        (po.vendorName?.contains(it.searchText, ignoreCase = true) == true) ||
+                                        (po.vendorCode?.contains(it.searchText, ignoreCase = true) == true) ||
+                                        po.purchaseOrderItems.any { item ->
+                                            item.materialCode?.contains(it.searchText, ignoreCase = true) == true ||
+                                                    item.materialDescription?.contains(it.searchText, ignoreCase = true) == true ||
+                                                    item.poNumber?.contains(it.searchText, ignoreCase = true) == true
+                                        }
+                            },
                             loadingStatus = LoadingRawMaterialsPurchaseOrdersListStatus.SUCCESS(orders)
                         )
                     }
@@ -63,12 +73,14 @@ class OrdersListViewModel @Inject constructor(
                         state.poList
                     } else {
                         state.poList.filter {
-                            it.poNumber.contains(event.searchText, ignoreCase = true) ||
-                                    (it.vendorName?.contains(event.searchText, ignoreCase = true) ?: false) ||
+                            it.carNo?.contains(event.searchText, ignoreCase = true) == true ||
+                                    it.factoryCarDescription?.contains(event.searchText, ignoreCase = true) == true ||
+                                    (it.vendorName?.contains(event.searchText, ignoreCase = true) == true) ||
+                                    (it.vendorCode?.contains(event.searchText, ignoreCase = true) == true) ||
                                     it.purchaseOrderItems.any { item ->
-                                        item.materialCode?.contains(event.searchText, ignoreCase = true) ?: false ||
-                                                item.materialDescription?.contains(event.searchText, ignoreCase = true) ?: false ||
-                                                item.carNo?.contains(event.searchText, ignoreCase = true) ?: false
+                                        item.materialCode?.contains(event.searchText, ignoreCase = true) == true ||
+                                                item.materialDescription?.contains(event.searchText, ignoreCase = true) == true ||
+                                                item.poNumber?.contains(event.searchText, ignoreCase = true) == true
                                     }
                         }
                     }

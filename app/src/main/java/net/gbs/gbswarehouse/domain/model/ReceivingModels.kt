@@ -44,14 +44,23 @@ data class SparePartsPurchaseOrderItem(
 )
 
 data class RawMaterialsPurchaseOrder(
-    val poNumber: String,
+    val purchaseOrderNumber: String,
     val vendorCode: String?,
     val vendorName: String?,
-    val companyCode: String,
+    val carNo: String?,
+    val isFactoryCar: Boolean?,
+    val factoryCarDescription: String?,
+    val itemCount: Int?,
     val purchaseOrderItems: List<RawMaterialsPurchaseOrderItem>
-)
+) {
+    val poNumber: String get() = purchaseOrderNumber
+}
 
 data class RawMaterialsPurchaseOrderItem(
+    val poNumber: String?,
+    val vendorCode: String?,
+    val vendorName: String?,
+    val companyCode: String?,
     val poItemNumber: String,
     val materialCode: String?,
     val materialDescription: String?,
@@ -60,18 +69,29 @@ data class RawMaterialsPurchaseOrderItem(
     val remainingQuantity: Double?,
     val uom: String?,
     val plantCode: String?,
-    val carNo: String?
+    val carNo: String?,
+    val isFactoryCar: Boolean?,
+    val factoryCarDescription: String?
 )
 
 data class PackagingMaterialsPurchaseOrder(
-    val poNumber: String,
+    val purchaseOrderNumber: String,
     val vendorCode: String?,
     val vendorName: String?,
-    val companyCode: String,
+    val carNo: String?,
+    val isFactoryCar: Boolean?,
+    val factoryCarDescription: String?,
+    val itemCount: Int?,
     val purchaseOrderItems: List<PackagingMaterialsPurchaseOrderItem>
-)
+) {
+    val poNumber: String get() = carNo ?: purchaseOrderNumber
+}
 
 data class PackagingMaterialsPurchaseOrderItem(
+    val poNumber: String?,
+    val vendorCode: String?,
+    val vendorName: String?,
+    val companyCode: String?,
     val poItemNumber: String,
     val materialCode: String?,
     val materialDescription: String?,
@@ -80,18 +100,29 @@ data class PackagingMaterialsPurchaseOrderItem(
     val remainingQuantity: Double?,
     val uom: String?,
     val plantCode: String?,
-    val carNo: String?
+    val carNo: String?,
+    val isFactoryCar: Boolean?,
+    val factoryCarDescription: String?
 )
 
 data class PoultryMaterialsPurchaseOrder(
-    val poNumber: String,
+    val purchaseOrderNumber: String,
     val vendorCode: String?,
     val vendorName: String?,
-    val companyCode: String,
+    val carNo: String?,
+    val isFactoryCar: Boolean?,
+    val factoryCarDescription: String?,
+    val itemCount: Int?,
     val purchaseOrderItems: List<PoultryMaterialsPurchaseOrderItem>
-)
+) {
+    val poNumber: String get() = carNo ?: purchaseOrderNumber
+}
 
 data class PoultryMaterialsPurchaseOrderItem(
+    val poNumber: String?,
+    val vendorCode: String?,
+    val vendorName: String?,
+    val companyCode: String?,
     val poItemNumber: String,
     val materialCode: String?,
     val materialDescription: String?,
@@ -100,29 +131,46 @@ data class PoultryMaterialsPurchaseOrderItem(
     val remainingQuantity: Double?,
     val uom: String?,
     val plantCode: String?,
-    val carNo: String?
+    val carNo: String?,
+    val isFactoryCar: Boolean = true,
+    val factoryCarDescription: String? = null
 )
 
 data class TransitOrderMaterialPurchaseOrder(
-    val poNumber: String,
-    val vendorCode: String?,
-    val vendorName: String?,
+    val purchaseOrderNumber: String = "",
+    val vendorCode: String? = null,
+    val vendorName: String? = null,
     val warehouseCode: String? = null,
     val warehouseDescription: String? = null,
-    val companyCode: String,
-    val purchaseOrderItems: List<TransitOrderMaterialPurchaseOrderItem>
-)
+    val companyCode: String = "",
+    val carNo: String?,
+    val isFactoryCar: Boolean? = null,
+    val factoryCarDescription: String? = null,
+    val itemCount: Int? = null,
+    val purchaseOrderItems: List<TransitOrderMaterialPurchaseOrderItem> = emptyList(),
+    val issuingPlantCode: String? = null,
+    val issuingPlantDescription: String? = null,
+) {
+    val poNumber: String get() = carNo ?: purchaseOrderNumber
+}
 
 data class TransitOrderMaterialPurchaseOrderItem(
-    val poItemNumber: String,
-    val materialCode: String?,
-    val materialDescription: String?,
-    val orderedQuantity: Double?,
-    val receivedQuantity: Double?,
-    val remainingQuantity: Double?,
-    val uom: String?,
-    val plantCode: String?,
-    val carNo: String?
+    val poNumber: String? = null,
+    val vendorCode: String? = null,
+    val vendorName: String? = null,
+    val companyCode: String? = null,
+    val poItemNumber: String = "",
+    val materialCode: String? = null,
+    val materialDescription: String? = null,
+    val orderedQuantity: Double? = null,
+    val receivedQuantity: Double? = null,
+    val remainingQuantity: Double? = null,
+    val uom: String? = null,
+    val plantCode: String? = null,
+    val plantDescription: String? = null,
+    val carNo: String?,
+    val isFactoryCar : Boolean = true,
+    val factoryCarDescription: String? = null
 )
 
 data class TransitOrderMaterialLine(
@@ -154,9 +202,9 @@ data class FinishedGoodsPlasticProductionOrderItem(
     @SerializedName("itemNumber"          ) var itemNumber          : String? = null,
     @SerializedName("materialCode"        ) var materialCode        : String? = null,
     @SerializedName("materialDescription" ) var materialDescription : String? = null,
-    @SerializedName("orderedQuantity"     ) var orderedQuantity     : Int?    = null,
-    @SerializedName("receivedQuantity"    ) var receivedQuantity    : Int?    = null,
-    @SerializedName("remainingQuantity"   ) var remainingQuantity   : Int?    = null,
+    @SerializedName("orderedQuantity"     ) var orderedQuantity     : Double?    = null,
+    @SerializedName("receivedQuantity"    ) var receivedQuantity    : Double?    = null,
+    @SerializedName("remainingQuantity"   ) var remainingQuantity   : Double?    = null,
     @SerializedName("uom"                 ) var uom                 : String? = null,
     @SerializedName("plantCode"           ) var plantCode           : String? = null,
     @SerializedName("warehouseCode"       ) var warehouseCode       : String? = null,
@@ -208,12 +256,11 @@ data class GoodsReceiptLineStatusResult(
 )
 
 data class ReceiveRawMaterialsResult(
-    val receiptStatus: GoodsReceiptStatusResult,
+    val receiptStatus: GoodsReceiptStatusResult?,
     val purchaseOrder: RawMaterialsPurchaseOrder?
 )
 
 data class ReceivePackagingMaterialsResult(
-    val receiptStatus: GoodsReceiptStatusResult,
     val purchaseOrder: PackagingMaterialsPurchaseOrder?
 )
 
@@ -223,12 +270,10 @@ data class ReceiveVendorPoultryMaterialsResult(
 )
 
 data class ReceiveTransitOrderMaterialResult(
-    val receiptStatus: GoodsReceiptStatusResult,
     val purchaseOrder: TransitOrderMaterialPurchaseOrder?
 )
 
 data class PostSparePartsReturnResult(
-    val receiptStatus: GoodsReceiptStatusResult,
     val reservationLines: List<SparePartsReturnReservationLine>
 )
 
@@ -248,16 +293,15 @@ data class SparePartsReturnReservationLine(
     @SerializedName("costCenterCode"        ) var costCenterCode        : String?                   = null,
     @SerializedName("costCenterDescription" ) var costCenterDescription : String?                   = null,
     @SerializedName("isBatchManaged"        ) var isBatchManaged        : Boolean?                  = null,
-    @SerializedName("valuationTypes"        ) var valuationTypes        : List<ValuationType> = arrayListOf()
+    @SerializedName("valuationTypes"        ) var valuationTypes        : List<ValuationType> = arrayListOf(),
+    var orderDescription: String
 )
 
 data class ReceiveFinishedGoodsPlasticResult(
-    val receiptStatus: GoodsReceiptStatusResult,
     val productionOrder: FinishedGoodsPlasticProductionOrder?
 )
 
 data class ReceiveFinishedGoodsFeedResult(
-    val receiptStatus: GoodsReceiptStatusResult,
     val productionOrder: FinishedGoodsFeedProductionOrder?
 )
 
@@ -270,7 +314,12 @@ data class PutAwayOrder(
     val orderNumber: String,
     val receiptType: String,
     val itemCount: Int,
-    val earliestReceivedAt: String
+    val earliestReceivedAt: String,
+    val materialCode: String? = null,
+    val materialDescription: String? = null,
+    val remainingQuantity: Double? = null,
+    val carNo: String? = null,
+    val lines: List<PutAwayOrderLine> = emptyList()
 )
 
 data class PutAwayOrderLine(
@@ -290,7 +339,8 @@ data class PutAwayOrderLine(
     val remainingQuantity: Double,
     val batch: String?,
     val expirationDate: String?,
-    val receivedAt: String
+    val receivedAt: String,
+    val carNo: String? = null
 )
 
 data class StorageBinLocation(
@@ -311,3 +361,58 @@ data class StorageBinLocation(
     val warehouseDescription: String,
     val plantCode: String
 )
+
+data class ReceivingOpenOrderCounts(
+    val spareParts: Int = 0,
+    val packagingMaterials: Int = 0,
+    val rawMaterials: Int = 0,
+    val poultryMaterials: Int = 0,
+    val finishedGoodsPlastic: Int = 0,
+    val finishedGoodsFeed: Int = 0,
+    val transitOrderMaterial: Int = 0,
+    val sparePartsReturn: Int = 0,
+    val total: Int = 0
+)
+
+data class PutAwayOpenOrderCounts(
+    val spareParts: Int = 0,
+    val packagingMaterials: Int = 0,
+    val rawMaterials: Int = 0,
+    val poultryMaterials: Int = 0,
+    val finishedGoodsPlastic: Int = 0,
+    val finishedGoodsFeed: Int = 0,
+    val transitOrderMaterial: Int = 0,
+    val sparePartsReturn: Int = 0,
+    val directTransfer: Int = 0,
+    val total: Int = 0
+)
+
+data class Plant(
+    val code: String,
+    val description: String
+) {
+    fun spinnerLabel(): String = "$description ($code)"
+}
+
+data class BlindReceiveMaterial(
+    val materialCode: String,
+    val materialDescription: String,
+    val uom: String,
+    val uomDescription: String
+) {
+    fun spinnerLabel(): String = "$materialCode - $materialDescription"
+}
+
+data class Uom(
+    val code: String,
+    val description: String
+) {
+    fun spinnerLabel(): String = "$description ($code)"
+}
+
+data class CreateBlindReceiveResult(
+    val blindReceiptId: Int,
+    val receiptNo: String,
+    val status: String?
+)
+

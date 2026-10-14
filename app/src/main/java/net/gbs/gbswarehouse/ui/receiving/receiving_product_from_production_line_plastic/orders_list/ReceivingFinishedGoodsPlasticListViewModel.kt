@@ -54,7 +54,12 @@ class ReceivingFinishedGoodsPlasticListViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 orderList = orders,
-                                orderFilteredList = orders,
+                                orderFilteredList = if (it.searchText.isBlank()) orders else orders.filter { order ->
+                                    order.orderNumber.contains(it.searchText, ignoreCase = true) ||
+                                            order.productionOrderItems.any { item ->
+                                                item.warehouseCode?.contains(it.searchText, ignoreCase = true) == true
+                                            }
+                                },
                                 loadingStatus = LoadingFinishedGoodsPlasticOrdersListStatus.SUCCESS(orders)
                             )
                         }

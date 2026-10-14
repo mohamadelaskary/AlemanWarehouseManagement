@@ -5,6 +5,8 @@ import net.gbs.gbswarehouse.domain.model.PackagingMaterialsLine
 import net.gbs.gbswarehouse.domain.model.PackagingMaterialsPurchaseOrderItem
 import net.gbs.gbswarehouse.domain.model.Warehouse
 
+import net.gbs.gbswarehouse.domain.model.Message
+
 data class ReceivingPackagingMaterialsFromVendorState (
     val orderNumber:String="",
     val purchaseOrderGetDataStatus: PackagingPurchaseOrderGetDataStatus = PackagingPurchaseOrderGetDataStatus.IDLE,
@@ -19,15 +21,17 @@ data class ReceivingPackagingMaterialsFromVendorState (
     val selectedWarehouse: Warehouse?=null,
     val quantity:String = "",
     val carNo: String = "",
+    val productionDate: String = "",
     val addedItems:List<PackagingMaterialsLine> = emptyList(),
-    val materialCodeError : String = "",
-    val searchError : String = "",
-    val quantityError: String = "",
-    val warehouseError: String = "",
-    val carNoError: String = "",
-    val error:String="",
-    val savingSuccessStatusMessage:String = "",
-    val savingErrorStatusMessage:String = "",
+    val materialCodeError : Message? = null,
+    val searchError : Message? = null,
+    val quantityError: Message? = null,
+    val warehouseError: Message? = null,
+    val carNoError: Message? = null,
+    val productionDateError: Message? = null,
+    val error:Message? = null,
+    val savingSuccessStatusMessage:Message? = null,
+    val savingErrorStatusMessage:Message? = null,
     val isSavingLoading:Boolean = false,
     val showSuccessDialog:Boolean = false,
     val showErrorDialog:Boolean = false,
@@ -37,11 +41,13 @@ data class ReceivingPackagingMaterialsFromVendorState (
     val purchaseOrderSearch: String = "",
     val showChangePoDialog: Boolean = false,
     val isAllPurchaseOrdersLoading: Boolean = false,
+    val showMaterialsList: Boolean = false,
+    val showMaterialsListOrderIndex:Int = -1,
 )
 
 sealed class PackagingPurchaseOrderGetDataStatus {
     data object IDLE : PackagingPurchaseOrderGetDataStatus()
     data object LOADING : PackagingPurchaseOrderGetDataStatus()
     data class SUCCESS(val po: PackagingMaterialsPurchaseOrder) : PackagingPurchaseOrderGetDataStatus()
-    data class ERROR(val error: String) : PackagingPurchaseOrderGetDataStatus()
+    data class ERROR(val error: Message) : PackagingPurchaseOrderGetDataStatus()
 }

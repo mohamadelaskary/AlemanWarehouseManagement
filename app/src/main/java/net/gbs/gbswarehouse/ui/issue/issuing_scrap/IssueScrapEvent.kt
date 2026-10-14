@@ -2,15 +2,11 @@ package net.gbs.gbswarehouse.ui.issue.issuing_scrap
 
 import net.gbs.gbswarehouse.domain.model.Company
 import net.gbs.gbswarehouse.domain.model.CostCenter
+import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
 import net.gbs.gbswarehouse.domain.model.SAPMaterialBatchValuationStock
-import net.gbs.gbswarehouse.domain.model.SAPWarehouse
 
 sealed class IssueScrapEvent {
     data class OnDocumentHeaderChanged(val text: String) : IssueScrapEvent()
-    
-    data class OnBinInputChanged(val text: String) : IssueScrapEvent()
-    data class OnScanBin(val binCode: String) : IssueScrapEvent()
-    object OnClearBin : IssueScrapEvent()
 
     data class OnMatInputChanged(val text: String) : IssueScrapEvent()
     data class OnScanMaterial(val matCode: String) : IssueScrapEvent()
@@ -18,6 +14,13 @@ sealed class IssueScrapEvent {
     object OnClearMaterial : IssueScrapEvent()
     object OnToggleMaterialDialog : IssueScrapEvent()
     data class OnMaterialSearchTextChanged(val text: String) : IssueScrapEvent()
+
+    data class OnBinInputChanged(val text: String) : IssueScrapEvent()
+    data class OnScanBin(val binCode: String) : IssueScrapEvent()
+    object OnClearBin : IssueScrapEvent()
+
+    data class OnStockSearchTextChanged(val text: String) : IssueScrapEvent()
+    data class OnOnHandStockSelected(val stock: MaterialOnHandStock) : IssueScrapEvent()
 
     data class OnCompanySelected(val company: Company) : IssueScrapEvent()
     data class OnCompanySearchTextChanged(val text: String) : IssueScrapEvent()
@@ -33,6 +36,7 @@ sealed class IssueScrapEvent {
     object OnIssueAll : IssueScrapEvent()
     
     data class OnDeleteLine(val index: Int) : IssueScrapEvent()
+    data class OnEditLine(val index: Int) : IssueScrapEvent()
     object OnDismissDialogs : IssueScrapEvent()
 
     data class OnBarcodeScanned(val barcode: String) : IssueScrapEvent()

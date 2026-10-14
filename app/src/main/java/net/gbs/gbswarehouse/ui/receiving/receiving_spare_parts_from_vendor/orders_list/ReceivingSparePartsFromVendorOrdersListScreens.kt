@@ -1,6 +1,5 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.orders_list
 
-import android.content.ContentValues.TAG
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -21,8 +20,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,36 +37,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.MarginTenDp
 import net.gbs.gbswarehouse.Order
 import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.Pill
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.TopBar
-import net.gbs.gbswarehouse.ui.theme.AppTheme
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.room.Index
-import androidx.room.util.TableInfo
-import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.domain.model.PurchaseOrder
 import net.gbs.gbswarehouse.domain.model.SparePartsMaterial
+import net.gbs.gbswarehouse.ui.theme.AppTheme
+
+private const val TAG = "SparePartsOrdersListScreen"
 
 @Composable
 fun ReceivingSparePartsFromVendorListScreen(
@@ -76,9 +76,20 @@ fun ReceivingSparePartsFromVendorListScreen(
         viewModel.onEvent(ReceivingSparePartsFromVendorOrdersListEvent.InitScreen)
     }
 
+    val purchasesCount = state.poList.count { !it.poNumber.endsWith("9") }
+    val transfersCount = state.poList.count { it.poNumber.endsWith("9") }
+
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         TopBar(title = stringResource(R.string.receiving), subtitle = stringResource(R.string.spare_parts_from_vendor), accent = accent,
             onBack = { navController.popBackStack() })
+
+        OrderGroupToggleRow(
+            selectedGroup = state.selectedGroup,
+            accent = accent,
+            onGroupSelected = { viewModel.onEvent(ReceivingSparePartsFromVendorOrdersListEvent.OnGroupSelected(it)) },
+            purchasesCount = purchasesCount,
+            transfersCount = transfersCount
+        )
 
         // Search
         SearchBox(
@@ -159,9 +170,20 @@ fun InspectingSparePartsFromVendorListScreen(
         viewModel.onEvent(ReceivingSparePartsFromVendorOrdersListEvent.InitScreen)
     }
 
+    val purchasesCount = state.poList.count { !it.poNumber.endsWith("9") }
+    val transfersCount = state.poList.count { it.poNumber.endsWith("9") }
+
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         TopBar(title = "مراجعة الجودة", subtitle = "قطع غيار من مورد", accent = accent,
             onBack = { navController.popBackStack() })
+
+        OrderGroupToggleRow(
+            selectedGroup = state.selectedGroup,
+            accent = accent,
+            onGroupSelected = { viewModel.onEvent(ReceivingSparePartsFromVendorOrdersListEvent.OnGroupSelected(it)) },
+            purchasesCount = purchasesCount,
+            transfersCount = transfersCount
+        )
 
         SearchBox(
             value = state.searchText,
@@ -238,9 +260,20 @@ fun PutAwaySparePartsFromVendorListScreen(
         viewModel.onEvent(ReceivingSparePartsFromVendorOrdersListEvent.InitScreen)
     }
 
+    val purchasesCount = state.poList.count { !it.poNumber.endsWith("9") }
+    val transfersCount = state.poList.count { it.poNumber.endsWith("9") }
+
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         TopBar(title = "تسكين", subtitle = "قطع غيار من مورد", accent = accent,
             onBack = { navController.popBackStack() })
+
+        OrderGroupToggleRow(
+            selectedGroup = state.selectedGroup,
+            accent = accent,
+            onGroupSelected = { viewModel.onEvent(ReceivingSparePartsFromVendorOrdersListEvent.OnGroupSelected(it)) },
+            purchasesCount = purchasesCount,
+            transfersCount = transfersCount
+        )
 
         // Search
         SearchBox(
@@ -301,6 +334,61 @@ fun PutAwaySparePartsFromVendorListScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun OrderGroupToggleRow(
+    selectedGroup: OrderGroup,
+    accent: Color,
+    onGroupSelected: (OrderGroup) -> Unit,
+    purchasesCount: Int,
+    transfersCount: Int
+) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        val isPurchasesSelected = selectedGroup == OrderGroup.PURCHASES
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (isPurchasesSelected) accent else colors.card)
+                .border(1.dp, if (isPurchasesSelected) accent else colors.border, RoundedCornerShape(8.dp))
+                .clickable { onGroupSelected(OrderGroup.PURCHASES) }
+                .padding(vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "${stringResource(R.string.purchases)} ($purchasesCount)",
+                color = if (isPurchasesSelected) Color.White else colors.text,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        val isTransfersSelected = selectedGroup == OrderGroup.TRANSFERS
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (isTransfersSelected) accent else colors.card)
+                .border(1.dp, if (isTransfersSelected) accent else colors.border, RoundedCornerShape(8.dp))
+                .clickable { onGroupSelected(OrderGroup.TRANSFERS) }
+                .padding(vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "${stringResource(R.string.transfers)} ($transfersCount)",
+                color = if (isTransfersSelected) Color.White else colors.text,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
@@ -385,7 +473,7 @@ fun MaterialInfoCard(
             Spacer(modifier = Modifier.width(8.dp))
 
             Text(
-                text = "${materialInfo.receivedQuantity}/${materialInfo.orderedQuantity}${materialInfo.uom}",
+                text = stringResource(R.string.remaining_quantity_)+" ${materialInfo.remainingQuantity} ${materialInfo.uom}",
                 color = AppTheme.colors.muted,
                 fontSize = 10.sp,
                 maxLines = 1
@@ -415,7 +503,7 @@ fun OrderCard(order: Order, accent: Color, onClick: () -> Unit,isMaterialsShowed
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text("#${order.id}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Pill(order.status, order.statusColor)
+            Pill(order.status, order.statusColor,)
         }
         Spacer(Modifier.height(6.dp))
         Text(order.info, color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)
@@ -452,8 +540,8 @@ fun SearchBox(value: String, onValueChange: (String) -> Unit,onSearchButtonClick
             onValueChange = onValueChange,
             singleLine = true,
             textStyle = TextStyle(color = colors.text, fontSize = 12.sp, textDirection = TextDirection.Rtl),
-            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
-            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = {
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = {
                 onSearchButtonClicked(value)
             }),
             cursorBrush = SolidColor(GREEN),

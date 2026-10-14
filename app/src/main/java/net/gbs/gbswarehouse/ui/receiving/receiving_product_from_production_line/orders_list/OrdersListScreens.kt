@@ -1,6 +1,5 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.orders_list
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,14 +33,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.gbswarehouse.MATERIALS
-import net.gbs.gbswarehouse.MarginTenDp
 import net.gbs.gbswarehouse.Order
-import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.Pill
 import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.TopBar
-import net.gbs.gbswarehouse.WarehouseViewModel
 
 @Composable
 fun ReceivingFinishedGoodFromProductionListScreenOld(
@@ -223,7 +219,7 @@ fun OrderCard(order: Order, accent: Color, onClick: () -> Unit) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text("#${order.id}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Pill(order.status, order.statusColor)
+            Pill(order.status, order.statusColor,)
         }
         Spacer(Modifier.height(6.dp))
         Text(order.info, color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)

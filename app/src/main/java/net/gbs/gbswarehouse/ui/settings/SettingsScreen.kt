@@ -73,6 +73,7 @@ fun SettingsScreen(
         }
     }
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -90,7 +91,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 14.dp, vertical = 16.dp),
+                .padding(horizontal = dims.padding, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
 
@@ -118,7 +119,7 @@ fun SettingsScreen(
                             label = {
                                 Text(
                                     text = option,
-                                    fontSize = 13.sp,
+                                    fontSize = dims.fontSizeButton,
                                     fontWeight = if (vm.protocol == option) FontWeight.Bold
                                     else FontWeight.Normal
                                 )
@@ -164,13 +165,13 @@ fun SettingsScreen(
                 ) {
                     Column {
                         Text(
-                            stringResource(R.string.check_url), color = colors.muted, fontSize = 10.sp,
+                            stringResource(R.string.check_url), color = colors.muted, fontSize = dims.fontSizeSubtitle,
                             fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = "${vm.protocol}://${vm.ip}:${vm.port}",
                             color = GREEN,
-                            fontSize = 12.sp,
+                            fontSize = dims.fontSizeBody,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -209,7 +210,7 @@ fun SettingsScreen(
                         tint = col,
                         modifier = Modifier.size(20.dp)
                     )
-                    Text(msg, color = col, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(msg, color = col, fontSize = dims.fontSizeButton, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -238,6 +239,7 @@ fun SettingsInputField(
     ltr: Boolean = false
 ) {
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
 
     val borderColor = when {
         error != null        -> DANGER.copy(alpha = 0.70f)
@@ -252,7 +254,7 @@ fun SettingsInputField(
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         textStyle = TextStyle(
             color = colors.text,
-            fontSize = 14.sp,
+            fontSize = dims.fontSizeTitle,
             fontWeight = FontWeight.SemiBold,
             textDirection = if (ltr) TextDirection.Ltr else TextDirection.Rtl
         ),
@@ -265,7 +267,7 @@ fun SettingsInputField(
             .padding(horizontal = 12.dp, vertical = 11.dp),
         decorationBox = { inner ->
             if (value.isEmpty()) {
-                Text(hint, color = colors.muted, fontSize = 14.sp)
+                Text(hint, color = colors.muted, fontSize = dims.fontSizeTitle)
             }
             inner()
         }
@@ -280,7 +282,7 @@ fun SettingsInputField(
         ) {
             Icon(Icons.Default.Warning, contentDescription = null,
                 tint = DANGER, modifier = Modifier.size(12.dp))
-            Text(error ?: "", color = DANGER, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+            Text(error ?: "", color = DANGER, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.SemiBold)
         }
     }
 }

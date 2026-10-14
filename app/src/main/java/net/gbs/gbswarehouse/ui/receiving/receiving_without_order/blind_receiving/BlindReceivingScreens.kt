@@ -2,236 +2,256 @@ package net.gbs.gbswarehouse.ui.receiving.receiving_without_order.blind_receivin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
-import net.gbs.gbswarehouse.Field
-import net.gbs.gbswarehouse.FullBtn
-import net.gbs.gbswarehouse.MATERIALS
-import net.gbs.gbswarehouse.MaterialsSpinner
-import net.gbs.gbswarehouse.OutlineBtn
-import net.gbs.gbswarehouse.QtyFieldWithUOMSpinner
-import net.gbs.gbswarehouse.QualityDecisionSpinner
-import net.gbs.gbswarehouse.SearchBox
-import net.gbs.gbswarehouse.Section
-import net.gbs.gbswarehouse.TopBar
-import net.gbs.gbswarehouse.WorksGroupSpinner
-import net.gbs.gbswarehouse.qualityDecisions
-import net.gbs.gbswarehouse.ui.receiving.receiving_packaging_materials_from_vendor.details_screen.BinDialogItem
-import net.gbs.gbswarehouse.ui.receiving.receiving_packaging_materials_from_vendor.details_screen.BottomSheetDialog
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.BinCodeInput
-import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.SelectedBinCard
-import net.gbs.gbswarehouse.uoms
-import net.gbs.gbswarehouse.workersGroup
+import net.gbs.gbswarehouse.*
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 
 @Composable
 fun BlindReceivingScreen(
-    navController : NavController,
+    navController: NavController,
 ) {
-    val viewModel: BlindReceivingViewModel = viewModel()
+    val viewModel: BlindReceivingViewModel = hiltViewModel()
     val colors = AppTheme.colors
     val accent = colors.purple
+
     Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
             TopBar(
-                title = "استلام", subtitle = "استلام بدون مرجع",
+                title = stringResource(R.string.receiving),
+                subtitle = stringResource(R.string.blind_receiving),
                 accent = accent, onBack = {
-                    //  vm.back()
                     navController.popBackStack()
-                })
-            LazyColumn {
+                }
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 14.dp),
+                contentPadding = PaddingValues(bottom = 32.dp)
+            ) {
                 item {
-                    Section(label = "بيانات المادة — إدخال يدوي", accent = colors.purple) {
+                    Spacer(Modifier.height(12.dp))
+                    Section(label = stringResource(R.string.material_data_manual_entry), accent = accent) {
                         // Info hint
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(colors.purple.copy(alpha = 0.1f))
-                                .border(1.dp, colors.purple.copy(0.15f), RoundedCornerShape(8.dp))
+                                .background(accent.copy(alpha = 0.1f))
+                                .border(1.dp, accent.copy(0.15f), RoundedCornerShape(8.dp))
                                 .padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text("ℹ️", fontSize = 13.sp)
                             Text(
-                                "لا يوجد أمر شراء — أدخل بيانات المادة يدوياً",
-                                color = colors.purple, fontSize = 10.sp, lineHeight = 16.sp,
+                                stringResource(R.string.no_purchase_order_hint),
+                                color = accent, fontSize = 11.sp, lineHeight = 16.sp,
                                 modifier = Modifier.weight(1f)
                             )
                         }
                         Spacer(Modifier.height(12.dp))
-                        MaterialsSpinner(
-                            label = "كود الصنف (اختياري)",
-                            hint = "اكتب او اختر كود الصنف",
-                            MATERIALS,
-                            onItemSelected = { viewModel.selectedMaterial = it }
-                        )
-                        Spacer(Modifier.height(10.dp))
+
+                        // Material code input / search
+                        Text(stringResource(R.string.material_code_optional), color = colors.muted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(4.dp))
                         Field(
-                            "وصف المادة (اختياري)",
-                            "أدخل وصف المادة...",
-                            viewModel.bDesc,
-                            { viewModel.bDesc = it })
-                        Spacer(Modifier.height(10.dp))
-                        Field(
-                            "المورد (اختياري)",
-                            "أدخل اسم المورد...",
-                            viewModel.vendorName,
-                            { viewModel.vendorName = it })
-                        Spacer(Modifier.height(20.dp))
-
-
-                        WorksGroupSpinner("مجموعة العمال (اختياري)", workersGroup, onItemSelected = {
-                            viewModel.selectedWorkersGroup = it
-                        })
-
-
-
-
-                        Spacer(Modifier.height(10.dp))
-                        QtyFieldWithUOMSpinner(
-                            label = "الكمية",
-                            hint = "ادخل الكمية",
-                            value = viewModel.qty,
-                            isNumber = true,
-                            onValueChange = { viewModel.qty = it },
-                            onItemSelected = { viewModel.selectedUOM = it },
-                            uOMItems = uoms
+                            label = "",
+                            hint = stringResource(R.string.search_material_code_hint),
+                            value = viewModel.materialCodeInput,
+                            onValueChange = { viewModel.onMaterialCodeChanged(it) }
                         )
-                        Spacer(Modifier.height(10.dp))
-                        QualityDecisionSpinner(
-                            hint = "قرار الجودة (اختياري)",
-                            items = qualityDecisions,
-                            onItemSelected = {
-                                viewModel.selectedQualityDecision = it
-                            }
-                        )
-                        Section(label = "بيانات التسكين", accent = accent) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+
+                        // Searched materials dropdown list if searching
+                        if (viewModel.searchedMaterials.isNotEmpty()) {
+                            Spacer(Modifier.height(6.dp))
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(colors.card, RoundedCornerShape(8.dp))
+                                    .border(1.dp, colors.border2, RoundedCornerShape(8.dp))
+                                    .padding(8.dp)
                             ) {
-                                BinCodeInput(
-                                    value = viewModel.binInput,
-                                    onValueChange = { viewModel.binInput = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlineBtn("اختر Bin", accent) { viewModel.binDlg = true }
-                            }
-                            if (viewModel.selBin != null) {
-                                Spacer(Modifier.height(8.dp))
-                                SelectedBinCard(
-                                    bin = viewModel.selBin!!,
-                                    accent = accent,
-                                    qty = viewModel.qty,
-                                    onQtyChange = { viewModel.qty = it },
-                                    onClear = { viewModel.clearBin() }
-                                )
-                            }
-                        }
-                        // ── Bin Dialog ────────────────────────────────────────────────────────
-                        if (viewModel.binDlg) {
-                            BottomSheetDialog(title = "اختيار موقع التسكين", onClose = { viewModel.binDlg = false }) {
-                                SearchBox(viewModel.binInput, { viewModel.binInput = it }, "بحث عن Bin...",
-                                    Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-                                LazyColumn(contentPadding = PaddingValues(
-                                    start = 14.dp, end = 14.dp, bottom = 20.dp
-                                )) {
-                                    itemsIndexed(viewModel.filteredBins) { _, b ->
-                                        BinDialogItem(b, viewModel.accent) { viewModel.selectBin(b) }
-                                        Spacer(Modifier.height(6.dp))
+                                Text(stringResource(R.string.select_item), color = colors.muted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(4.dp))
+                                viewModel.searchedMaterials.forEach { mat ->
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(colors.dark)
+                                            .clickable { viewModel.selectMaterial(mat) }
+                                            .padding(10.dp)
+                                    ) {
+                                        Text("${mat.materialCode} - ${mat.materialDescription} (${mat.uom})", color = colors.text, fontSize = 12.sp)
                                     }
+                                    Spacer(Modifier.height(4.dp))
                                 }
                             }
                         }
-                        if (viewModel.showSaveButton) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            0f to Color.Transparent, 0.35f to colors.bg
-                                        )
-                                    )
-                                    .padding(horizontal = 14.dp, vertical = 12.dp)
-                            ) {
-                                FullBtn(
-                                    "حفظ", accent, { viewModel.doSave("save") },
-                                    saving = viewModel.saving
+
+                        Spacer(Modifier.height(10.dp))
+                        Field(
+                            stringResource(
+                                if (viewModel.materialCodeInput.isBlank())
+                                    R.string.material_description_required
+                                else R.string.material_description_optional
+                            ),
+                            stringResource(R.string.enter_material_description),
+                            viewModel.materialDescription,
+                            { viewModel.materialDescription = it },
+                            enabled = viewModel.selectedMaterial == null
+                        )
+
+                        Spacer(Modifier.height(10.dp))
+                        Field(
+                            stringResource(R.string.vendor_optional),
+                            stringResource(R.string.enter_vendor_name),
+                            viewModel.vendorName,
+                            { viewModel.vendorName = it }
+                        )
+
+                        Spacer(Modifier.height(10.dp))
+                        Text(stringResource(R.string.plant_required), color = colors.muted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(4.dp))
+                        SearchableSpinner(
+                            hint = stringResource(R.string.select_plant),
+                            items = viewModel.plantsList,
+                            itemLabel = { "${it.description} (${it.code})" },
+                            onItemSelected = { viewModel.selectPlant(it) },
+                            searchText = viewModel.selectedPlant?.let { "${it.description} (${it.code})" } ?: ""
+                        )
+
+                        Spacer(Modifier.height(10.dp))
+                        Text(stringResource(R.string.warehouse_required), color = colors.muted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(4.dp))
+                        SearchableSpinner(
+                            hint = stringResource(R.string.select_warehouse),
+                            items = viewModel.warehousesList,
+                            itemLabel = { "${it.warehouseDescription} (${it.warehouseCode})" },
+                            onItemSelected = { viewModel.selectWarehouse(it) },
+                            searchText = viewModel.selectedWarehouse?.let { "${it.warehouseDescription} (${it.warehouseCode})" } ?: ""
+                        )
+
+                        Spacer(Modifier.height(10.dp))
+                        Text(stringResource(R.string.workers_group_optional), color = colors.muted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(4.dp))
+                        WorkersGroupsSpinner(
+                            hint = stringResource(R.string.select_workers_group),
+                            items = viewModel.workersGroupsList,
+                            onItemSelected = { viewModel.selectWorkersGroup(it) },
+                            accent = accent,
+                            searchText = viewModel.workerGroupSearchText,
+                            onSearchTextChanged = { viewModel.onWorkersGroupSearchTextChanged(it) }
+                        )
+
+                        Spacer(Modifier.height(10.dp))
+                        Text(stringResource(R.string.quantity_and_uom), color = colors.muted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Field(
+                                label = "",
+                                hint = stringResource(R.string.enter_quantity),
+                                value = viewModel.quantity,
+                                onValueChange = { viewModel.quantity = it },
+                                isNumber = true,
+                                withLabel = false,
+                                modifier = Modifier.weight(1.5f)
+                            )
+                            if (viewModel.selectedMaterial == null) {
+                                SearchableSpinner(
+                                    hint = stringResource(R.string.select_or_enter_uom),
+                                    items = viewModel.uomsList,
+                                    itemLabel = { it.spinnerLabel() },
+                                    onItemSelected = { viewModel.selectUom(it) },
+                                    searchText = viewModel.uomInput,
+                                    onSearchTextChanged = { viewModel.onUomInputChanged(it) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            } else {
+                                Field(
+                                    label = "",
+                                    hint = stringResource(R.string.uom),
+                                    value = viewModel.uomInput,
+                                    onValueChange = {},
+                                    withLabel = false,
+                                    enabled = false,
+                                    modifier = Modifier.weight(1f)
                                 )
                             }
-
                         }
 
-                    }
-                    if (viewModel.saved) {
-                        SuccessCard(kind = viewModel.saveKind, accent = accent)
+                        Spacer(Modifier.height(10.dp))
+                        Text(stringResource(R.string.quality_decision_optional), color = colors.muted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(4.dp))
+                        QualityDecisionSpinner(
+                            hint = stringResource(R.string.select_quality_decision),
+                            items = viewModel.qualityDecisionsList,
+                            onItemSelected = { viewModel.selectQualityDecision(it) }
+                        )
+
+                        Spacer(Modifier.height(10.dp))
+                        Field(
+                            stringResource(R.string.purchasing_officer_optional),
+                            stringResource(R.string.enter_purchasing_officer_name),
+                            viewModel.purchasingOfficer,
+                            { viewModel.purchasingOfficer = it }
+                        )
+
+                        Spacer(Modifier.height(20.dp))
+
+                        FullBtn(
+                            label = stringResource(R.string.save_receiving),
+                            color = accent,
+                            onClick = { viewModel.saveBlindReceive() },
+                            saving = viewModel.isSaving,
+                            enabled = viewModel.isValid
+                        )
                     }
                 }
             }
         }
 
-    }
-}
-// ── SuccessCard ───────────────────────────────────────────────────────────────
-@Composable
-fun SuccessCard(kind: String?, accent: Color) {
-    val isAccept = kind == "accept"
-    val isReject = kind == "reject"
-    val colors = AppTheme.colors
-    val col   = if (isAccept) colors.succ else if (isReject) colors.danger else accent
-    val label = if (isAccept) "تم القبول بنجاح" else if (isReject) "تم الرفض وتسجيل النتيجة" else "تم الحفظ بنجاح"
-    val icon  = if (isReject) "✕" else "✓"
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(col.copy(0.07f))
-            .border(1.dp, col.copy(0.28f), RoundedCornerShape(12.dp))
-            .padding(24.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(54.dp)
-                .clip(CircleShape)
-                .background(col.copy(0.14f))
-                .border(2.dp, col, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(icon, color = col, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        if (viewModel.successResult != null) {
+            SuccessDialog(
+                accent = accent,
+                message = viewModel.successResult?.text ?: stringResource(R.string.success_save),
+                onClose = {
+                    viewModel.successResult = null
+                    viewModel.isSaved = false
+                    viewModel.clearAllData()
+                }
+            )
         }
-        Spacer(Modifier.height(12.dp))
-        Text(label, color = col, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
-        Spacer(Modifier.height(4.dp))
-        Text("تم تسجيل الحركة في النظام", color = colors.muted, fontSize = 11.sp)
+
+        if (viewModel.errorMessage != null) {
+            ErrorDialog(
+                accent = colors.danger,
+                message = viewModel.errorMessage!!.text,
+                onClose = {
+                    viewModel.errorMessage = null
+                }
+            )
+        }
     }
 }

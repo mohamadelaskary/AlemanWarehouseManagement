@@ -79,7 +79,10 @@ class ReceivingSparePartsFromProductionOrdersListViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             orders = ordersList,
-                            filteredOrders = ordersList,
+                            filteredOrders = if (it.searchText.isBlank()) ordersList else ordersList.filter { order ->
+                                order.reservationNumber?.contains(it.searchText, ignoreCase = true) == true ||
+                                        order.orderNumber?.contains(it.searchText, ignoreCase = true) == true
+                            },
                             isLoadingOrders = false
                         )
                     }

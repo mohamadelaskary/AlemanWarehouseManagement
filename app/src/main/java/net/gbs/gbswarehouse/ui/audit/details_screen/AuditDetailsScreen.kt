@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,17 +45,20 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
 import net.gbs.gbswarehouse.BLUE
 
 import net.gbs.gbswarehouse.Bin
 import net.gbs.gbswarehouse.Field
 import net.gbs.gbswarehouse.FullBtn
+import net.gbs.gbswarehouse.InfoCell
 import net.gbs.gbswarehouse.MarginTenDp
 import net.gbs.gbswarehouse.Material
 import net.gbs.gbswarehouse.ORDERS
 import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.Section
+import net.gbs.gbswarehouse.BottomSheetDialog
 import net.gbs.gbswarehouse.SuccessCard
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.ValuationTypeSpinner
@@ -71,8 +75,16 @@ fun AuditDetailsScreen(
     val viewModel: AuditDetailsViewModel = viewModel()
     val ord = ORDERS["AUDIT"]?.find { it.id == orderId }!!
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     val accent = BLUE
     val doneLabel = "الكمية المصروفة"
+
+    LaunchedEffect(viewModel.saved) {
+        if (viewModel.saved) {
+            delay(1000)
+            navController.popBackStack()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
@@ -84,9 +96,9 @@ fun AuditDetailsScreen(
 
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
+                    start = dims.padding, end = dims.padding,
                     top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
+                    bottom = if (viewModel.showFixedSave) dims.bottomBarHeight else 20.dp
                 )
             ) {
 
@@ -235,7 +247,7 @@ fun AuditDetailsScreen(
                             0f to Color.Transparent, 0.35f to colors.bg
                         )
                     )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(
                     "حفظ", accent, { viewModel.doSave("save") },
@@ -248,9 +260,9 @@ fun AuditDetailsScreen(
     if (viewModel.binDlg) {
         BottomSheetDialog(title = "اختيار الموقع", onClose = { viewModel.binDlg = false }) {
             SearchBox(viewModel.binInput, { viewModel.binInput = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
             LazyColumn(contentPadding = PaddingValues(
-                start = 14.dp, end = 14.dp, bottom = 20.dp
+                start = dims.padding, end = dims.padding, bottom = 20.dp
             )) {
                 itemsIndexed(viewModel.filteredBins) { _, b ->
                     BinDialogItem(b, viewModel.accent) { viewModel.selectBin(b) }
@@ -265,11 +277,11 @@ fun AuditDetailsScreen(
         BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
             SearchBox(
                 viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp)
             )
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
+                    start = dims.padding, end = dims.padding, bottom = 20.dp,
                 )
             ) {
                 itemsIndexed(viewModel.filteredMaterials) { _, m ->
@@ -561,45 +573,4 @@ fun BottomSheetDialog(title: String, onClose: () -> Unit, content: @Composable C
     }
 }
 
-// ── FullBtn overload with Modifier ────────────────────────────────────────────
-@Composable
-fun FullBtn(label: String, color: Color, onClick: () -> Unit,
-            saving: Boolean = false, enabled: Boolean = true, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    val bg     = if (!enabled) colors.dim.copy(0.22f) else color.copy(0.12f)
-    val border = if (!enabled) colors.dim else color.copy(0.35f)
-    val txtCol = if (!enabled) colors.dim else color
 
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .border(1.dp, border, RoundedCornerShape(10.dp))
-            .clickable(enabled = enabled && !saving) { onClick() }
-            .padding(vertical = 13.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (saving) {
-            CircularProgressIndicator(
-                color = color, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-        } else {
-            Text(label, color = txtCol, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-        }
-    }
-}
-
-// ── InfoCell with Modifier ────────────────────────────────────────────────────
-@Composable
-fun InfoCell(label: String, value: String, color: Color , modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(colors.dark)
-            .padding(all = 8.dp)
-    ) {
-        Text(label, color = colors.muted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 2.dp))
-        Text(value, color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-    }
-}

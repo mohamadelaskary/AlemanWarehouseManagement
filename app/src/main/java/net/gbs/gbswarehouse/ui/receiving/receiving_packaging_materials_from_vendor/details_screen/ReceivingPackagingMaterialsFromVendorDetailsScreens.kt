@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -36,13 +37,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
+import net.gbs.gbswarehouse.DatePickerField
 import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.Field
 import net.gbs.gbswarehouse.FullBtn
@@ -56,6 +61,7 @@ import net.gbs.gbswarehouse.Section
 import net.gbs.gbswarehouse.SuccessDialog
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.WarehousesSpinner
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.PackagingMaterialsLine
 import net.gbs.gbswarehouse.domain.model.PackagingMaterialsPurchaseOrder
 import net.gbs.gbswarehouse.domain.model.PackagingMaterialsPurchaseOrderItem
@@ -68,6 +74,7 @@ import net.gbs.gbswarehouse.ui.receiving.ReceivingInfoCell
 import net.gbs.gbswarehouse.ui.receiving.ReceivingMatCodeInput
 import net.gbs.gbswarehouse.ui.receiving.ReceivingMaterialDialogItem
 import net.gbs.gbswarehouse.ui.theme.AppTheme
+import net.gbs.gbswarehouse.ui.theme.AppTheme.dims
 import net.gbs.gbswarehouse.ui.theme.DANGER
 import net.gbs.honeywellscanner.ScannerEffect
 
@@ -82,7 +89,7 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
     val accent = colors.green
     val doneLabel = stringResource(R.string.received_qty)
 
-    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    val focusManager = LocalFocusManager.current
     LaunchedEffect(state.purchaseOrderGetDataStatus) {
         if (state.purchaseOrderGetDataStatus is PackagingPurchaseOrderGetDataStatus.SUCCESS) {
             focusManager.clearFocus()
@@ -117,7 +124,7 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
                 is PackagingPurchaseOrderGetDataStatus.ERROR -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(state.searchError, color = colors.text)
+                            Text(state.searchError?.text ?: "", color = colors.text)
                             Spacer(Modifier.height(10.dp))
                             OutlineBtn(stringResource(R.string.retry), accent) {
                                 viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnScreenLoaded(orderId))
@@ -136,17 +143,27 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
                         ) {
                             item {
                                 Section(label = stringResource(R.string.order_data), accent = accent) {
-                                    Row(
-                                        Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        ReceivingInfoCell(stringResource(R.string.po_number), order.poNumber, accent, Modifier.weight(1f))
-                                        OutlineBtn(stringResource(R.string.change_po), accent) {
-                                            viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnChangePoButtonClicked)
+                                    val fields = listOf(
+                                        Triple(stringResource(R.string.car_number), order.carNo ?: "", null),
+                                        Triple(stringResource(R.string.vendor), order.vendorName ?: "", null),
+                                        Triple(stringResource(R.string.vendor_code), order.vendorCode ?: "", null),
+                                        Triple(stringResource(R.string.items_count), "${order.purchaseOrderItems.size} " + stringResource(R.string.items), null),
+                                    )
+                                    for (i in fields.indices step 2) {
+                                        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            val f1 = fields[i]
+                                            val f2 = if (i + 1 < fields.size) fields[i + 1] else null
+                                            ReceivingInfoCell(f1.first, f1.second, f1.third ?: colors.text, modifier = Modifier.weight(1f))
+                                            if (f2 != null) {
+                                                ReceivingInfoCell(f2.first, f2.second, f2.third ?: colors.text, modifier = Modifier.weight(1f))
+                                            }
                                         }
                                     }
-                                    ReceivingInfoCell(stringResource(R.string.vendor), order.vendorName ?: "", colors.text, Modifier.fillMaxWidth())
+                                    if (!order.factoryCarDescription.isNullOrBlank()) {
+                                        Spacer(Modifier.height(4.dp))
+                                        ReceivingInfoCell(stringResource(R.string.car_number), order.factoryCarDescription ?: "", colors.text)
+                                    }
                                 }
                             }
 
@@ -163,8 +180,8 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
                                                 onValueChange = { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnMaterialCodeInputEntered(it)) },
                                                 onKeyboardAction = { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnMaterialSelected(state.materialCodeInput)) }
                                             )
-                                            if (state.materialCodeError.isNotEmpty()){
-                                                Text(state.materialCodeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
+                                            if (state.materialCodeError != null){
+                                                Text(state.materialCodeError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
                                             }
                                         }
                                         OutlineBtn(stringResource(R.string.select_item), accent) { viewModel.matDlg = true }
@@ -182,9 +199,12 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
                                             onWarehouseSelected = { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnWarehouseSelected(it)) },
                                             carNo = state.carNo,
                                             onCarNoChange = { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnCarNoEntered(it)) },
+                                            productionDate = state.productionDate,
+                                            onProductionDateChange = { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnProductionDateEntered(it)) },
                                             quantityError = state.quantityError,
                                             warehouseError = state.warehouseError,
                                             carNoError = state.carNoError,
+                                            productionDateError = state.productionDateError,
                                             searchText = state.warehouseSearchText,
                                             onSearchTextChanged = { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnWarehouseSearchTextChange(it)) }
                                         )
@@ -202,9 +222,14 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
                             }
 
                             itemsIndexed(state.addedItems) { index, item ->
-                                ReceivingPackagingMaterialsLineItem(item) {
-                                    viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnDeleteAddedMaterialButtonClicked(index))
-                                }
+                                ReceivingPackagingMaterialsLineItem(item,
+                                    onDelete = {
+                                        viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnDeleteAddedMaterialButtonClicked(index))
+                                    },
+                                    onEdit = {
+                                        viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnEditAddedMaterialButtonClicked(index))
+                                    }
+                                )
                             }
                         }
                     }
@@ -227,20 +252,29 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
                 )
             }
         }
-        
+
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage) {
+            SuccessDialog(colors.succ, state.savingSuccessStatusMessage?.text.orEmpty()) {
                 viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.HideSuccessDialog)
             }
-            navController.popBackStack()
         }
         if (state.showErrorDialog) {
-            ErrorDialog(DANGER, state.savingErrorStatusMessage) {
+            ErrorDialog(DANGER, state.savingErrorStatusMessage?.text.orEmpty()) {
                 viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.HideErrorDialog)
             }
         }
     }
-
+    if (state.isSavingLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.3f))
+                .clickable(enabled = false) { },
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = accent)
+        }
+    }
     if (viewModel.matDlg) {
         ReceivingBottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
             SearchBox(state.materialSearch, { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnMaterialSearchTextEntered(it)) },
@@ -254,7 +288,8 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
                         orderedQty = m.orderedQuantity.toString(),
                         receivedQty = m.receivedQuantity.toString(),
                         doneLabel = doneLabel,
-                        accent = accent
+                        accent = accent,
+                        poNumber = m.poNumber
                     ) {
                         viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnMaterialSelected(m.materialCode ?: ""))
                         viewModel.matDlg = false
@@ -269,7 +304,7 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
         LaunchedEffect(Unit) {
             focusManager.clearFocus()
         }
-        ReceivingBottomSheetDialog(title = stringResource(R.string.po_number), onClose = { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnDismissChangePoDialog) }) {
+        ReceivingBottomSheetDialog(title = stringResource(R.string.car_number), onClose = { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnDismissChangePoDialog) }) {
             SearchBox(state.purchaseOrderSearch, { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnPurchaseOrderSearchTextEntered(it)) },
                 stringResource(R.string.search_by_number), Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
             if (state.isAllPurchaseOrdersLoading) {
@@ -278,10 +313,14 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
                 }
             } else {
                 LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
-                    itemsIndexed(state.filteredPurchaseOrders) { _, po ->
-                        PackagingPurchaseOrderCard(order = po, accent = accent,
+                    itemsIndexed(state.filteredPurchaseOrders) { index, po ->
+                        PackagingPurchaseOrderCard(order = po, accent = accent, isMaterialsShowed = state.showMaterialsList && state.showMaterialsListOrderIndex == index,
                             onClick = { viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnPurchaseOrderSelected(po.poNumber)) },
-                            onMaterialsNumberButtonClicked = { /* maybe just navigate or something else */ })
+                            onMaterialsNumberButtonClicked = {
+                                    viewModel.onEvent(
+                                        ReceivingPackagingMaterialsFromVendorEvent.OnShowMaterialsListButtonClicked(index)
+                                    )
+                            })
                         Spacer(Modifier.height(8.dp))
                     }
                 }
@@ -302,9 +341,12 @@ fun SelectedPackagingMaterialCard(
     onWarehouseSelected: (Warehouse) -> Unit,
     carNo: String,
     onCarNoChange: (String) -> Unit,
-    quantityError: String = "",
-    warehouseError: String = "",
-    carNoError: String = "",
+    productionDate: String,
+    onProductionDateChange: (String) -> Unit,
+    quantityError: Message? = null,
+    warehouseError: Message? = null,
+    carNoError: Message? = null,
+    productionDateError: Message? = null,
     searchText: String = "",
     onSearchTextChanged: (String) -> Unit
 ) {
@@ -318,7 +360,13 @@ fun SelectedPackagingMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.materialCode ?: "", color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(mat.materialCode ?: "", color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                if (!mat.poNumber.isNullOrBlank()) {
+                    Spacer(Modifier.width(8.dp))
+                    Text("#${mat.poNumber}", color = colors.green, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
             Text("✕", color = colors.muted, fontSize = 12.sp,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
@@ -349,7 +397,7 @@ fun SelectedPackagingMaterialCard(
         }
         Spacer(Modifier.height(10.dp))
         Field("${stringResource(R.string.receiving_qty)} (${mat.uom ?: ""})", "", qty, onQtyChange, isNumber = true, center = true)
-        if (quantityError.isNotEmpty()) Text(quantityError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (quantityError != null) Text(quantityError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         
         Spacer(Modifier.height(10.dp))
         WarehousesSpinner(
@@ -360,17 +408,31 @@ fun SelectedPackagingMaterialCard(
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
         )
-        if (warehouseError.isNotEmpty()) Text(warehouseError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (warehouseError != null) Text(warehouseError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         
         Spacer(Modifier.height(10.dp))
         Field(stringResource(R.string.car_number), stringResource(R.string.car_number_hint), carNo, onCarNoChange, center = true)
-        if (carNoError.isNotEmpty()) Text(carNoError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (carNoError != null) Text(carNoError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        
+        Spacer(Modifier.height(10.dp))
+        Text(
+            stringResource(R.string.production_date),
+            color = colors.muted,
+            fontSize = dims.fontSizeTitle,
+        )
+        DatePickerField(
+            value = productionDate,
+            onDateSelected = onProductionDateChange,
+            label = stringResource(R.string.production_date),
+            hint = stringResource(R.string.production_date)
+        )
+        if (productionDateError != null) Text(productionDateError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
 
 @Composable
-fun ReceivingPackagingMaterialsLineItem(item: PackagingMaterialsLine, onDelete: () -> Unit) {
+fun ReceivingPackagingMaterialsLineItem(item: PackagingMaterialsLine, onDelete: () -> Unit, onEdit: () -> Unit) {
     val colors = AppTheme.colors
     val accent = GREEN
 
@@ -402,13 +464,20 @@ fun ReceivingPackagingMaterialsLineItem(item: PackagingMaterialsLine, onDelete: 
                     if (item.carNo != null) {
                         ReceivingChip(stringResource(R.string.car_number) + ": " + item.carNo)
                     }
+                    if (item.productionDate != null) {
+                        ReceivingChip(stringResource(R.string.production_date) + ": " + item.productionDate.take(10))
+                    }
                     ReceivingChip(stringResource(R.string.po_number) + ": " + item.purchaseOrder)
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = colors.text)
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = colors.danger)
+                    }
                 }
             }
         }
     }
 }
-

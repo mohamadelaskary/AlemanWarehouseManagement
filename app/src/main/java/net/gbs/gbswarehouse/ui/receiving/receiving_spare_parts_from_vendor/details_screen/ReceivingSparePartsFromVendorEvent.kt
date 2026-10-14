@@ -11,6 +11,7 @@ sealed interface ReceivingSparePartsFromVendorEvent {
     data class OnScreenLoaded(val poData: String) : ReceivingSparePartsFromVendorEvent
 
     data class OnDeleteAddedMaterialButtonClicked(val index: Int) : ReceivingSparePartsFromVendorEvent
+    data class OnEditAddedMaterialButtonClicked(val index: Int) : ReceivingSparePartsFromVendorEvent
     data object OnClearButtonClicked : ReceivingSparePartsFromVendorEvent
     data class OnMaterialSelected(
         val materialCode: String

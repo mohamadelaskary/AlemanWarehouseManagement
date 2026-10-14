@@ -12,6 +12,6 @@ data class FinishedGoodsPlasticLine(
     val unloadingPoint: String? = null,
     val naolon: Double? = null,
     val workerGroupCode: String? = null,
-    val workerGroupName: String? = null,
+//    val workerGroupName: String? = null,
     val palletWeight: Double? =null,
 )

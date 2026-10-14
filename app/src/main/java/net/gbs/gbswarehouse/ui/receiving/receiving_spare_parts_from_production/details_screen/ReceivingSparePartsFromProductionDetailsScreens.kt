@@ -22,8 +22,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -46,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
 import net.gbs.gbswarehouse.DatePickerField
 import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.Field
@@ -61,6 +64,7 @@ import net.gbs.gbswarehouse.SuccessDialog
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.ValuationTypeSpinner
 import net.gbs.gbswarehouse.WarehousesSpinner
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.SparePartsLine
 import net.gbs.gbswarehouse.domain.model.SparePartsMaterial
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnLine
@@ -235,8 +239,8 @@ fun ReceivingSparePartsFromProductionDetailsScreen(
                                             viewModel.onEvent(ReceivingSparePartsFromProductionDetailsEvent.OnMaterialSelected(state.materialCodeInput))
                                         }
                                     )
-                                    if (state.materialCodeError.isNotEmpty()){
-                                        Text(state.materialCodeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                                    if (state.materialCodeError != null){
+                                        Text(state.materialCodeError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
                                     }
                                 }
                             OutlineBtn(stringResource(R.string.select_item), accent) { matDlg = true }
@@ -367,6 +371,9 @@ fun ReceivingSparePartsFromProductionDetailsScreen(
                             ),
                             onDeleteAddedMaterialButtonClicked = {
                                 viewModel.onEvent(ReceivingSparePartsFromProductionDetailsEvent.OnDeleteAddedItemClicked(index))
+                            },
+                            onEditAddedItemClicked = {
+                                viewModel.onEvent(ReceivingSparePartsFromProductionDetailsEvent.OnEditAddedItemClicked(index))
                             }
                         )
                     }
@@ -399,23 +406,38 @@ fun ReceivingSparePartsFromProductionDetailsScreen(
         if (state.showSuccessDialog) {
             SuccessDialog(
                 accent = accent,
-                message = state.successMessage,
+                message = state.successMessage?.text.orEmpty(),
                 onClose = {
                     viewModel.onEvent(ReceivingSparePartsFromProductionDetailsEvent.HideSuccessDialog)
-                    navController.popBackStack()
                 }
             )
         }
+//        LaunchedEffect(state.showSuccessDialog) {
+//            if (state.showSuccessDialog) {
+//                delay(1000)
+//                navController.popBackStack()
+//            }
+//        }
 
         if (state.showErrorDialog) {
             ErrorDialog(
                 accent = accent,
-                message = state.error,
+                message = state.error?.text.orEmpty(),
                 onClose = { viewModel.onEvent(ReceivingSparePartsFromProductionDetailsEvent.HideErrorDialog) }
             )
         }
     }
-
+    if (state.isSaving) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.3f))
+                .clickable(enabled = false) { },
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = accent)
+        }
+    }
     // Material Selection Dialog
     if (matDlg) {
         ReceivingBottomSheetDialog(title = stringResource(R.string.select_item), onClose = { matDlg = false }) {
@@ -462,7 +484,8 @@ fun ReceivingSparePartsFromProductionDetailsScreen(
 @Composable
 fun ReceivingSparePartsReturnLineItem(
     item: SparePartsReturnLine,
-    onDeleteAddedMaterialButtonClicked: () -> Unit
+    onDeleteAddedMaterialButtonClicked: () -> Unit,
+    onEditAddedItemClicked: () -> Unit
 ) {
     val colors = AppTheme.colors
     val accent = GREEN
@@ -539,7 +562,7 @@ fun ReceivingSparePartsReturnLineItem(
                             stringResource(R.string.warehouse) + ": " + item.warehouseCode
                         )
 
-                        if (item.valuationType.isNullOrEmpty()) {
+                        if (!item.valuationType.isNullOrEmpty()) {
                             Chip(
                                 stringResource(R.string.valuation_type_) + " ${item.valuationType}"
                             )
@@ -559,13 +582,18 @@ fun ReceivingSparePartsReturnLineItem(
                         }
                     }
 
-                    IconButton(
-                        onClick = onDeleteAddedMaterialButtonClicked
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete"
-                        )
+                    Row {
+                        IconButton(onClick = onEditAddedItemClicked) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = colors.text)
+                        }
+                        IconButton(
+                            onClick = onDeleteAddedMaterialButtonClicked
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete", tint = colors.danger
+                            )
+                        }
                     }
                 }
             }
@@ -647,14 +675,14 @@ fun SelectedMaterialCard(
     onWarehouseSelected: (Warehouse) -> Unit,
     expiryDate: String?,
     onExpiryDateChange: (String?) -> Unit,
-    quantityError: String = "",
-    warehouseError: String = "",
-    valuationTypeError: String = "",
+    quantityError: Message? = null,
+    warehouseError: Message? = null,
+    valuationTypeError: Message? = null,
     warehouseSearchText:String,
     onWarehouseSearchTextChanged: (String) -> Unit,
     valuationTypeSearchText:String,
     onValuationTypeSearchTextChanged: (String) -> Unit,
-    recipientName:String, recipientNameError: String, onRecipientNameChange: (String) -> Unit,
+    recipientName:String, recipientNameError: Message?, onRecipientNameChange: (String) -> Unit,
     itemText:String?, onNotesTextChange: (String) -> Unit
 ) {
     val progress = if (mat.orderedQuantity > 0) mat.receivedQuantity / mat.orderedQuantity else 0f
@@ -713,8 +741,8 @@ fun SelectedMaterialCard(
         val qLabel = "${stringResource(R.string.receiving_qty)} (${mat.uom})"
         Field(qLabel, hint="", value = qty, {
             onQtyChange(it)}, isNumber = true, center = true)
-        if (quantityError.isNotEmpty()) {
-            Text(quantityError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (quantityError != null) {
+            Text(quantityError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         }
         Spacer(Modifier.height(10.dp))
         WarehousesSpinner(
@@ -726,8 +754,8 @@ fun SelectedMaterialCard(
             onSearchTextChanged = onWarehouseSearchTextChanged
         )
 
-        if (warehouseError.isNotEmpty()) {
-            Text(warehouseError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (warehouseError != null) {
+            Text(warehouseError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         }
         if (mat.valuationTypes.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
@@ -743,17 +771,18 @@ fun SelectedMaterialCard(
                     onValuationTypeSearchTextChanged(it)
                 }
             )
-            if (valuationTypeError.isNotEmpty()) {
-                Text(valuationTypeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+            if (valuationTypeError != null) {
+                Text(valuationTypeError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
             }
+        }
             Spacer(Modifier.height(10.dp))
             Field(stringResource(R.string.receipient_name),
                 stringResource(R.string.enter_receipient_name),recipientName, onRecipientNameChange, center = true)
-            if (recipientNameError.isNotEmpty()) Text(recipientNameError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+            if (recipientNameError != null) Text(recipientNameError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
             Spacer(Modifier.height(10.dp))
             Field(stringResource(R.string.notes),
                 stringResource(R.string.notes),itemText?:"", onNotesTextChange, center = true)
-        }
+
         Spacer(Modifier.height(10.dp))
         if (mat.isBatchManaged) {
             DatePickerField(

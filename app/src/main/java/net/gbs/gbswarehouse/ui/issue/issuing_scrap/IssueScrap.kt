@@ -25,6 +25,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -47,13 +49,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.Field
 import net.gbs.gbswarehouse.FullBtn
 import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.MarginTenDp
+import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.Section
@@ -62,14 +65,14 @@ import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.YELLOW
 import net.gbs.gbswarehouse.domain.model.Company
 import net.gbs.gbswarehouse.domain.model.CostCenter
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.SAPMaterialBatchValuationStock
-import net.gbs.gbswarehouse.ui.issue.WarehousesSpinner
+import net.gbs.gbswarehouse.ui.issue.OnHandStockSection
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.honeywellscanner.ScannerEffect
 import net.gbs.gbswarehouse.SearchableSpinner
+import net.gbs.gbswarehouse.ui.issue.issuing_direct_transfer.IssuingSelectedBinCard
 import net.gbs.gbswarehouse.ui.theme.AppColors
-
-
 
 @Composable
 fun IssueScrapScreen(navController: NavController) {
@@ -94,6 +97,7 @@ fun IssueScrapScreen(navController: NavController) {
                     bottom = if (state.addedLines.isNotEmpty()) 90.dp else 20.dp
                 )
             ) {
+                // 1. Maintenance Order Number
                 item {
                     Field(
                         label = stringResource(R.string.maintenance_order_number),
@@ -105,89 +109,59 @@ fun IssueScrapScreen(navController: NavController) {
                         modifier = Modifier.fillMaxWidth()
                     )
                     if (state.documentHeaderError != null) {
-                        Text(state.documentHeaderError?:"", color = colors.danger, fontSize = 10.sp)
+                        Text(state.documentHeaderError!!.text, color = colors.danger, fontSize = 10.sp)
                     }
                     MarginTenDp()
                 }
 
-                // 2. Bin Section
+                // 2. Material Section (First step now)
                 item {
-                    Section(label = stringResource(R.string.issued_from_warehouse_location_data), accent = accent) {
-                        BinCodeInput(
-                            value = state.binInput,
-                            onValueChange = { 
-                                viewModel.onEvent(IssueScrapEvent.OnBinInputChanged(it))
-                                if (it.length >= 4) viewModel.onEvent(IssueScrapEvent.OnScanBin(it))
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = colors
-                        )
-                        if (!state.binErrorMessage.isNullOrEmpty()){
-                            Text(state.binErrorMessage?:"", color = colors.danger, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
-                        }
-                        if (state.binData != null) {
-                            Spacer(Modifier.height(8.dp))
-                            net.gbs.gbswarehouse.ui.issue.issuing_direct_transfer.IssuingSelectedBinCard(
-                                bin = state.binData!!,
-                                accent = accent,
-                                onClear = { viewModel.onEvent(IssueScrapEvent.OnClearBin) }
-                            )
-                        }
-                    }
-                }
-
-                // 3. Material Section
-                if (state.binData != null) {
-                    item {
-                        Section(label = stringResource(R.string.item_data), accent = accent) {
-                            Row (modifier = Modifier.fillMaxWidth()){
-                                Column(modifier = Modifier.weight(1f),) {
-                                    MatCodeInput(
-                                        value = state.matInput,
-                                        onValueChange = {
-                                            viewModel.onEvent(IssueScrapEvent.OnMatInputChanged(it))
-                                            if (it.length >= 4) viewModel.onEvent(
-                                                IssueScrapEvent.OnScanMaterial(
-                                                    it
-                                                )
-                                            )
-                                        },
-
-                                        colors = colors
-                                    )
-                                    if (!state.matErrorMessage.isNullOrEmpty()) {
-                                        Text(
-                                            state.matErrorMessage ?: "",
-                                            color = colors.danger,
-                                            fontSize = 12.sp,
-                                            modifier = Modifier.padding(top = 4.dp)
+                    Section(label = stringResource(R.string.item_data), accent = accent) {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                MatCodeInput(
+                                    value = state.matInput,
+                                    onValueChange = {
+                                        viewModel.onEvent(IssueScrapEvent.OnMatInputChanged(it))
+                                        if (it.length >= 4) viewModel.onEvent(
+                                            IssueScrapEvent.OnScanMaterial(it)
                                         )
-                                    }
-                                }
-                                net.gbs.gbswarehouse.OutlineBtn(
-                                    stringResource(R.string.select_item),
-                                    accent
-                                ) {
-                                    viewModel.onEvent(IssueScrapEvent.OnToggleMaterialDialog)
+                                    },
+                                    colors = colors
+                                )
+                                if (state.matErrorMessage != null) {
+                                    Text(
+                                        state.matErrorMessage!!.text,
+                                        color = colors.danger,
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
                                 }
                             }
-
+                            OutlineBtn(
+                                stringResource(R.string.select_item),
+                                accent
+                            ) {
+                                viewModel.onEvent(IssueScrapEvent.OnToggleMaterialDialog)
+                            }
                         }
+                    }
 
-                        if (state.selectedMatStock != null) {
-                            Spacer(Modifier.height(8.dp))
-                            IssueScrapSelectedMaterialCard(
-                                state = state,
-                                accent = accent,
-                                viewModel = viewModel,
-                                onClear = { viewModel.onEvent(IssueScrapEvent.OnClearMaterial) }
-                            )
-                        }
+                    if (state.selectedMatStock != null) {
+                        Spacer(Modifier.height(8.dp))
+                        IssueScrapSelectedMaterialCard(
+                            state = state,
+                            accent = accent,
+                            viewModel = viewModel,
+                            onClear = { viewModel.onEvent(IssueScrapEvent.OnClearMaterial) }
+                        )
                     }
                 }
 
+                // 3. Added Items Section
                 if (state.addedLines.isNotEmpty()) {
                     item {
+                        Spacer(Modifier.height(10.dp))
                         Section(label = stringResource(R.string.added_items), accent = accent) {
                             state.addedLines.forEachIndexed { index, line ->
                                 ScrapAddedLineItem(
@@ -197,8 +171,12 @@ fun IssueScrapScreen(navController: NavController) {
                                     uom = line.uom,
                                     costCenter = line.costCenterCode,
                                     itemText = line.itemText ?: "",
+                                    company = line.companyCode,
+                                    batch = line.batch,
+                                    valuationType = line.valuationType,
                                     accent = accent,
-                                    onDelete = { viewModel.onEvent(IssueScrapEvent.OnDeleteLine(index)) }
+                                    onDelete = { viewModel.onEvent(IssueScrapEvent.OnDeleteLine(index)) },
+                                    onEdit = { viewModel.onEvent(IssueScrapEvent.OnEditLine(index)) }
                                 )
                                 Spacer(Modifier.height(8.dp))
                             }
@@ -228,17 +206,27 @@ fun IssueScrapScreen(navController: NavController) {
         }
 
         if (state.savingSuccessMessage != null) {
-            SuccessDialog(accent = colors.green, message = state.savingSuccessMessage!!, onClose = {
+            SuccessDialog(accent = colors.green, message = state.savingSuccessMessage!!.text, onClose = {
                 viewModel.onEvent(IssueScrapEvent.OnDismissDialogs)
             })
         }
         if (state.savingErrorMessage != null) {
-            ErrorDialog(accent = colors.danger, message = state.savingErrorMessage!!, onClose = {
+            ErrorDialog(accent = colors.danger, message = state.savingErrorMessage!!.text, onClose = {
                 viewModel.onEvent(IssueScrapEvent.OnDismissDialogs)
             })
         }
     }
-
+    if (state.isSaving) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.3f))
+                .clickable(enabled = false) { },
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = accent)
+        }
+    }
     if (state.matDlg) {
         BottomSheetDialog(title = stringResource(R.string.select_item), colors = colors, onClose = { viewModel.onEvent(IssueScrapEvent.OnToggleMaterialDialog) }) {
             SearchBox(
@@ -260,9 +248,9 @@ fun IssueScrapScreen(navController: NavController) {
         }
     }
 }
+
 @Composable
-fun BottomSheetDialog(title: String, colors: AppColors
-                      ,onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+fun BottomSheetDialog(title: String, colors: AppColors, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -310,8 +298,9 @@ fun BottomSheetDialog(title: String, colors: AppColors
         }
     }
 }
+
 @Composable
-fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier,colors: AppColors) {
+fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier, colors: AppColors) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
@@ -335,6 +324,7 @@ fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
         )
     }
 }
+
 @Composable
 fun IssueScrapSelectedMaterialCard(
     state: IssueScrapState,
@@ -360,6 +350,47 @@ fun IssueScrapSelectedMaterialCard(
                 Icon(imageVector = Icons.Default.Close, contentDescription = "Clear", tint = colors.muted)
             }
         }
+
+        Spacer(Modifier.height(8.dp))
+        Text(stringResource(R.string.issued_from_warehouse_location_data), color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(4.dp))
+        BinCodeInput(
+            value = state.binInput,
+            onValueChange = {
+                viewModel.onEvent(IssueScrapEvent.OnBinInputChanged(it))
+                if (it.length >= 4) viewModel.onEvent(IssueScrapEvent.OnScanBin(it))
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = colors
+        )
+        if (state.binCodeError != null){
+            Text(state.binCodeError!!.text, color = colors.danger, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+        }
+
+        if (state.selBinData != null) {
+            Spacer(Modifier.height(8.dp))
+            IssuingSelectedBinCard(
+                bin = state.selBinData,
+                accent = accent,
+                onClear = { viewModel.onEvent(IssueScrapEvent.OnClearBin) }
+            )
+        }
+
+        if (state.selBinData != null) {
+            Spacer(Modifier.height(8.dp))
+            OnHandStockSection(
+                stockList = state.stockOnHandList,
+                selectedStock = state.selectedOnHandStock,
+                availableQty = state.availableStock,
+                isStockLoading = state.isStockLoading,
+                stockError = state.stockError,
+                stockSearchText = state.stockSearch,
+                onSearchTextChanged = { viewModel.onEvent(IssueScrapEvent.OnStockSearchTextChanged(it)) },
+                onStockSelected = { viewModel.onEvent(IssueScrapEvent.OnOnHandStockSelected(it)) },
+                accent = accent,
+                colors = colors
+            )
+        }
         
         MarginTenDp()
         
@@ -382,14 +413,13 @@ fun IssueScrapSelectedMaterialCard(
             )
         }
 
-
         MarginTenDp()
         Field(label = stringResource(R.string.notes), hint = stringResource(R.string.notes), value = state.notes?:"",
             onValueChange = { viewModel.onEvent(IssueScrapEvent.OnNotesChanged(it)) })
 
         MarginTenDp()
         Field(
-            label = "${stringResource(R.string.issued_qty)} (${mat.quantity ?: 0})",
+            label = "${stringResource(R.string.issued_qty)} (${state.maxQty})",
             hint = stringResource(R.string.enter_quantity),
             value = state.quantity,
             onValueChange = { viewModel.onEvent(IssueScrapEvent.OnQuantityChanged(it)) },
@@ -397,7 +427,7 @@ fun IssueScrapSelectedMaterialCard(
             withLabel = true
         )
         if (state.quantityError != null) {
-            Text(state.quantityError, color = colors.danger, fontSize = 10.sp)
+            Text(state.quantityError!!.text, color = colors.danger, fontSize = 10.sp)
         }
 
         Spacer(Modifier.height(16.dp))
@@ -406,6 +436,7 @@ fun IssueScrapSelectedMaterialCard(
             color = accent,
             onClick = { viewModel.onEvent(IssueScrapEvent.OnAddLine) },
             enabled = state.selectedCostCenter != null &&
+                      state.selBinData != null &&
                       state.quantity.isNotBlank() && state.quantityError == null
         )
     }
@@ -493,8 +524,12 @@ fun ScrapAddedLineItem(
     uom: String,
     costCenter: String,
     itemText: String,
+    company: String? = null,
+    batch: String? = null,
+    valuationType: String? = null,
     accent: Color,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit
 ) {
     val colors = AppTheme.colors
     Column(
@@ -519,11 +554,22 @@ fun ScrapAddedLineItem(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ScrapChip(stringResource(R.string.cost_center) + ": $costCenter", accent)
+                if (company != null)
+                    ScrapChip(stringResource(R.string.company) + ": $company", accent)
+                if (batch != null)
+                    ScrapChip(stringResource(R.string.batch) + ": $batch", accent)
+                if (valuationType != null)
+                    ScrapChip(stringResource(R.string.valuation_type) + ": $valuationType", accent)
                 if (itemText.isNotEmpty())
                     ScrapChip(itemText, accent)
             }
-            IconButton(onClick = onDelete) {
-                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
+            Row {
+                IconButton(onClick = onEdit) {
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = colors.text)
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = colors.danger)
+                }
             }
         }
     }
@@ -547,7 +593,7 @@ fun ScrapChip(text: String, accent: Color) {
 }
 
 @Composable
-fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier,colors: AppColors) {
+fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier, colors: AppColors) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))

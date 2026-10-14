@@ -21,12 +21,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,7 +52,9 @@ import net.gbs.gbswarehouse.ORANGE
 import net.gbs.gbswarehouse.OpType
 import net.gbs.gbswarehouse.Operation
 import net.gbs.gbswarehouse.PURPLE
+import net.gbs.gbswarehouse.PUT_AWAY_OPS
 import net.gbs.gbswarehouse.RECV_OPS
+import net.gbs.gbswarehouse.YELLOW
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.ReceivingScreenNames
 import net.gbs.gbswarehouse.Screens
@@ -61,40 +67,102 @@ import net.gbs.gbswarehouse.ui.theme.AppTheme
 @Composable
 fun SubMenu(
     navController: NavController,
-    category: String?
+    category: String?,
+    viewModel: SubMenuViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(category) {
+        viewModel.loadCounts(category)
+    }
+
     val isRecv = category == "recv"
-    val ops    = if (isRecv) RECV_OPS else ISSUE_OPS
-    val accent = if (isRecv) GREEN else ORANGE
+    val isPutAway = category == "putaway"
+    val ops = when (category) {
+        "recv" -> RECV_OPS
+        "putaway" -> PUT_AWAY_OPS
+        else -> ISSUE_OPS
+    }
+    val accent = when (category) {
+        "recv" -> GREEN
+        "putaway" -> YELLOW
+        else -> ORANGE
+    }
+    val titleText = when (category) {
+        "recv" -> stringResource(R.string.receiving)
+        "putaway" -> stringResource(R.string.putaway)
+        else -> stringResource(R.string.issuing)
+    }
     val colors = AppTheme.colors
     Column(
         modifier = Modifier.fillMaxSize().background(colors.bg)
     ) {
         TopBar(
-            title    = stringResource(R.string.list_of, if (isRecv) stringResource(R.string.receiving) else stringResource(R.string.issuing)),
+            title    = stringResource(R.string.list_of, titleText),
             accent   = accent,
             onBack   = { navController.popBackStack() },
             navController = navController
         )
+        if (uiState.isLoading) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(),
+                color = accent
+            )
+        }
         LazyColumn(
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
         ) {
             itemsIndexed(ops) { index, op ->
+                val count = uiState.countsMap[op.id]
                 SubmenuItem(
                     index  = index,
                     op     = op,
                     accent = accent,
+                    count  = count,
                     onClick = {
-                        if (isRecv) {
-                            if (op.id=="recv-blind")
-                                  navController.navigate(
-                            Screens.BlindReceiving.createRoute()
-                            )
-                             else
-                                navController.navigate(
+                        if (isPutAway) {
+                            if (op.id == "issue-direct-transfer-putaway") {
+                                navController.navigate(Screens.DirectTransferPutAwayOrders.createRoute())
+                            } else {
+                                navController.navigate(Screens.PutAwayOrders.createRoute(op.id))
+                            }
+                        } else if (isRecv) {
+                            when (op.id) {
+                                ReceivingScreenNames.RawMaterialsFromVendor -> navController.navigate(
+                                    Screens.ReceivingRawMaterialsFromVendor.createRoute()
+                                )
+                                ReceivingScreenNames.SparePartsFromVendor -> navController.navigate(
+                                    Screens.ReceivingSparePartsFromVendorPOsList.createRoute()
+                                )
+                                ReceivingScreenNames.PackagingMaterialsFromVendor -> navController.navigate(
+                                    Screens.ReceivingPackagingMaterialsFromVendor.createRoute()
+                                )
+                                ReceivingScreenNames.PoultryMaterialsFromVendor -> navController.navigate(
+                                    Screens.ReceivingPoultryFromVendorOrdersListScreen.createRoute()
+                                )
+                                "recv-blind" -> navController.navigate(
+                                    Screens.BlindReceiving.createRoute()
+                                )
+                                ReceivingScreenNames.FinishedGoodsFeedFromProductionOrder -> navController.navigate(
+                                    Screens.ReceivingFinishedGoodFromProduction.createRoute()
+                                )
+                                ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder -> navController.navigate(
+                                    Screens.ReceivingFinishedGoodFromProductionPlastic.createRoute()
+                                )
+                                ReceivingScreenNames.SparePartsReturn -> navController.navigate(
+                                    Screens.ReceivingSparePartsFromProduction.createRoute()
+                                )
+                                ReceivingScreenNames.TransitOrderMaterial -> navController.navigate(
+                                    Screens.ReceivingProductFromBranch.createRoute()
+                                )
+                                "recv-return" -> navController.navigate(
+                                    Screens.ReceivingReturnedProduct.createRoute()
+                                )
+                                else -> navController.navigate(
                                     Screens.OpTypeScreen.createRoute(op.id)
                                 )
-                        }else {
+                            }
+                        } else {
                             when(op.id) {
                                 "issue-sub" -> navController.navigate(
                                     Screens.IssuingToVendor.createRoute()
@@ -126,6 +194,12 @@ fun SubMenu(
                                 "issue-direct-transfer" ->navController.navigate(
                                     Screens.IssuingDirectTransferScreen.createRoute()
                                 )
+                                "issue-transfer-plants" -> navController.navigate(
+                                    Screens.IssuingTransferPlants.createRoute()
+                                )
+                                "issue-direct-transfer-putaway" -> navController.navigate(
+                                    Screens.DirectTransferPutAwayOrders.createRoute()
+                                )
                             }
                         }
                     }
@@ -137,7 +211,13 @@ fun SubMenu(
 }
 
 @Composable
-fun SubmenuItem(index: Int, op: Operation, accent: Color, onClick: () -> Unit) {
+fun SubmenuItem(
+    index: Int,
+    op: Operation,
+    accent: Color,
+    count: Int? = null,
+    onClick: () -> Unit
+) {
     var hovered by remember { mutableStateOf(false) }
     val colors = AppTheme.colors
     val lang = SettingsPrefs(context = LocalContext.current).getLanguage()
@@ -167,6 +247,23 @@ fun SubmenuItem(index: Int, op: Operation, accent: Color, onClick: () -> Unit) {
                 Text(
                     stringResource(R.string.no_reference_manual_entry), color = PURPLE, fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp))
+            }
+        }
+        if (count != null) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(accent.copy(0.12f))
+                    .border(1.dp, accent.copy(0.3f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "$count",
+                    color = accent,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
         Text(stringResource(R.string.go_forward), color = colors.dim, fontSize = 18.sp)

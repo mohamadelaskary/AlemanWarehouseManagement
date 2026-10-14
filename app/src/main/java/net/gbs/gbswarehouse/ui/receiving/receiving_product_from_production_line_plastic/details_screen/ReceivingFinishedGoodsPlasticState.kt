@@ -3,6 +3,7 @@ package net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsPlasticProductionOrder
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsPlasticLine
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsPlasticProductionOrderItem
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.model.WorkersGroup
 
@@ -19,24 +20,24 @@ data class ReceivingFinishedGoodsPlasticState (
     val selectedMaterial: FinishedGoodsPlasticProductionOrderItem? = null,
     val warehouses: List<Warehouse> = emptyList(),
     val selectedWarehouse: Warehouse? = null,
-    val workersGroups: List<WorkersGroup> = emptyList(),
-    val selectedWorkersGroup: WorkersGroup? = null,
+    val workersGroups: List<Int> = listOf(1,2,3),
+    val selectedWorkersGroup: Int? = null,
     val quantity: String = "",
     val unloadingPoint: String = "",
     val naolon: String = "",
     val warehouseSearchText: String = "",
     val workersGroupSearchText: String = "",
     val addedItems: List<FinishedGoodsPlasticLine> = emptyList(),
-    val materialCodeError: String = "",
-    val searchError: String = "",
-    val quantityError: String = "",
-    val warehouseError: String = "",
-    val workersGroupError: String = "",
-    val unloadingPointError: String = "",
-    val naolonError: String = "",
-    val error: String = "",
-    val savingSuccessStatusMessage: String = "",
-    val savingErrorStatusMessage: String = "",
+    val materialCodeError: Message? = null,
+    val searchError: Message? = null,
+    val quantityError: Message? = null,
+    val warehouseError: Message? = null,
+    val workersGroupError: Message? = null,
+    val unloadingPointError: Message? = null,
+    val naolonError: Message? = null,
+    val error: Message? = null,
+    val savingSuccessStatusMessage: Message? = null,
+    val savingErrorStatusMessage: Message? = null,
     val isSavingLoading: Boolean = false,
     val showSuccessDialog: Boolean = false,
     val showErrorDialog: Boolean = false,
@@ -54,5 +55,5 @@ sealed class FinishedGoodsPlasticOrderGetDataStatus {
     data object IDLE : FinishedGoodsPlasticOrderGetDataStatus()
     data object LOADING : FinishedGoodsPlasticOrderGetDataStatus()
     data class SUCCESS(val order: FinishedGoodsPlasticProductionOrder) : FinishedGoodsPlasticOrderGetDataStatus()
-    data class ERROR(val error: String) : FinishedGoodsPlasticOrderGetDataStatus()
+    data class ERROR(val error: Message) : FinishedGoodsPlasticOrderGetDataStatus()
 }

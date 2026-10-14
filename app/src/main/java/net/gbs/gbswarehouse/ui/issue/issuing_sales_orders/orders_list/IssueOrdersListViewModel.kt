@@ -1,137 +1,103 @@
 package net.gbs.gbswarehouse.ui.issue.issuing_sales_orders.orders_list
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.gbs.gbswarehouse.BINS
-import net.gbs.gbswarehouse.Bin
-import net.gbs.gbswarehouse.GREEN
-import net.gbs.gbswarehouse.Material
-import net.gbs.gbswarehouse.ORANGE
-import net.gbs.gbswarehouse.ORDERS
-import net.gbs.gbswarehouse.OpType
-import net.gbs.gbswarehouse.Operation
-import net.gbs.gbswarehouse.Order
-import net.gbs.gbswarehouse.RAW_MATERIALS
-import net.gbs.gbswarehouse.Screens
+import net.gbs.gbswarehouse.core.network.NetworkResult
+import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedOrder
+import net.gbs.gbswarehouse.domain.usecase.GetFinishedGoodsFeedOrdersUseCase
+import javax.inject.Inject
 
-class IssueOrdersListViewModel: ViewModel() {
-    var currentClickedOrderIndex by mutableStateOf(-1)
-    var showMaterials by mutableStateOf(false)
-    var screen    by mutableStateOf(Screens.Home)
-    var mainCat   by mutableStateOf<String?>(null)       // "recv" | "issue"
-    var selOp     by mutableStateOf<Operation?>(null)
-    var selOpType by mutableStateOf<OpType?>(null)
-    var selOrder  by mutableStateOf<Order?>(null)
+@HiltViewModel
+class IssueOrdersListViewModel @Inject constructor(
+    private val getFinishedGoodsFeedOrdersUseCase: GetFinishedGoodsFeedOrdersUseCase
+) : ViewModel() {
 
-    // list search
-    var orderSearch by mutableStateOf("")
+    private val _state = MutableStateFlow(IssueOrdersListState())
+    val state = _state.asStateFlow()
 
-    // detail fields
-    var matInput  by mutableStateOf("")
-    var matDlg    by mutableStateOf(false)
-    var matSearch by mutableStateOf("")
-    var selMat    by mutableStateOf<Material?>(null)
-    var qty       by mutableStateOf("")
-    var smpQty    by mutableStateOf("")
-
-    var binInput  by mutableStateOf("")
-    var binDlg    by mutableStateOf(false)
-    var selBin    by mutableStateOf<Bin?>(null)
-
-    // blind receive
-    var bCode  by mutableStateOf("")
-    var bDesc  by mutableStateOf("")
-    var vendorName  by mutableStateOf("")
-    var bQty   by mutableStateOf("")
-
-    // save state
-    var saved    by mutableStateOf(false)
-    var saveKind by mutableStateOf<String?>(null)  // "save" | "accept" | "reject"
-    var saving   by mutableStateOf(false)
-
-    // ── Computed ─────────────────────────────────────────────────────────────
-    val variant: String get() = when {
-        mainCat == "issue"            -> "issue"
-        selOpType?.id == "quality"    -> "quality"
-        selOpType?.id == "putaway"    -> "putaway"
-        else                          -> "normal"
+    init {
+        onEvent(IssueOrdersListEvent.Refresh)
     }
 
-    val accent: androidx.compose.ui.graphics.Color get() =
-        if (mainCat == "issue") ORANGE else selOpType?.accent ?: GREEN
-
-    val filteredOrders: List<Order> get() {
-        val list = ORDERS["SO"] ?: emptyList()
-        return if (orderSearch.isBlank()) list
-        else list.filter { it.id.contains(orderSearch) || it.info.contains(orderSearch) }
-    }
-
-    val filteredMaterials: List<Material> get() {
-        return if (matSearch.isBlank()) RAW_MATERIALS
-        else RAW_MATERIALS.filter {
-            it.code.lowercase().contains(matSearch.lowercase()) || it.desc.contains(matSearch)
+    fun onEvent(event: IssueOrdersListEvent) {
+        when (event) {
+            is IssueOrdersListEvent.Refresh -> getOrders()
+            is IssueOrdersListEvent.OnSearchTextChanged -> {
+                _state.update { it.copy(orderSearch = event.text) }
+                filterOrders()
+            }
+            is IssueOrdersListEvent.OnToggleOrderItems -> {
+                _state.update {
+                    val current = it.expandedCarNumbers
+                    val newSet = if (current.contains(event.carNo)) {
+                        current - event.carNo
+                    } else {
+                        current + event.carNo
+                    }
+                    it.copy(expandedCarNumbers = newSet)
+                }
+            }
         }
     }
 
-    val filteredBins: List<Bin> get() {
-        return if (binInput.isBlank()) BINS
-        else BINS.filter {
-            it.code.lowercase().contains(binInput.lowercase()) ||
-                    it.zone.contains(binInput) || it.aisle.contains(binInput)
-        }
-    }
-
-    val blindOk: Boolean get() = bCode.trim().isNotEmpty() && bDesc.trim().isNotEmpty() && vendorName.trim().isNotEmpty() && bQty.isNotEmpty()
-
-    val showFixedSave: Boolean get() {
-        if (variant == "quality" || saved) return false
-        val isBlind = selOp?.blind == true
-        return when {
-            isBlind  -> blindOk
-            variant == "putaway" -> selBin != null && qty.isNotEmpty()
-            else -> selMat != null && qty.isNotEmpty()
-        }
-    }
-
-    val saveLabel: String get() = when (variant) {
-        "putaway" -> "⌘  تأكيد التسكين"
-        "issue"   -> "↑  حفظ الصرف"
-        else      -> "↓  حفظ الاستلام"
-    }
-
-    // ── Navigation ─────────────────────────────────────────────────────────
-
-
-    // ── Detail actions ──────────────────────────────────────────────────────
-    fun selectMaterial(mat: Material) {
-        selMat = mat; matInput = mat.code; matDlg = false; matSearch = ""
-    }
-
-    fun clearMaterial() { selMat = null; matInput = ""; qty = ""; smpQty = "" }
-
-    fun selectBin(bin: Bin) { selBin = bin; binInput = bin.code; binDlg = false }
-
-    fun clearBin() { selBin = null; binInput = ""; qty = "" }
-
-    fun doSave(kind: String) {
+    private fun getOrders() {
         viewModelScope.launch {
-            saving = true
-            delay(1200)
-            saving = false
-            saved = true
-            saveKind = kind
+            _state.update { it.copy(isLoading = true, error = null) }
+            when (val result = getFinishedGoodsFeedOrdersUseCase()) {
+                is NetworkResult.Success -> {
+                    val orders = result.data
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            orders = orders,
+                            filteredOrders = orders
+                        )
+                    }
+                    filterOrders()
+                }
+                is NetworkResult.BusinessError -> {
+                    _state.update { it.copy(isLoading = false, error = result.message) }
+                }
+                is NetworkResult.HttpError -> {
+                    _state.update { it.copy(isLoading = false, error = result.message) }
+                }
+                is NetworkResult.NetworkError -> {
+                    _state.update { it.copy(isLoading = false, error = result.message) }
+                }
+                is NetworkResult.UnknownError -> {
+                    _state.update { it.copy(isLoading = false, error = result.message) }
+                }
+                is NetworkResult.Loading -> {
+                    _state.update { it.copy(isLoading = true) }
+                }
+            }
         }
     }
 
-    private fun resetDetail() {
-        selMat = null; qty = ""; smpQty = ""; selBin = null
-        binInput = ""; matInput = ""; matSearch = ""
-        saved = false; saveKind = null; saving = false
-        bCode = ""; bDesc = ""; bQty = "";vendorName=""
+    private fun filterOrders() {
+        val query = _state.value.orderSearch
+        val filtered = if (query.isEmpty()) {
+            _state.value.orders
+        } else {
+            _state.value.orders.filter { matchesSearch(it, query) }
+        }
+        _state.update { it.copy(filteredOrders = filtered) }
+    }
+
+    private fun matchesSearch(order: FinishedGoodsFeedOrder, query: String): Boolean {
+        return order.carNo?.contains(query, ignoreCase = true) == true ||
+                order.factoryCarDescription?.contains(query, ignoreCase = true) == true ||
+                order.customerName?.contains(query, ignoreCase = true) == true ||
+                order.customerCode?.contains(query, ignoreCase = true) == true ||
+                order.lines.any {
+                    it.salesOrder?.contains(query, ignoreCase = true) == true ||
+                            it.materialCode?.contains(query, ignoreCase = true) == true ||
+                            it.materialDescription?.contains(query, ignoreCase = true) == true
+                }
     }
 }

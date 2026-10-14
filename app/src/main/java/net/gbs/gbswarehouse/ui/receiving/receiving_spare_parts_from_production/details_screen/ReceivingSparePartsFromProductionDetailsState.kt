@@ -1,5 +1,6 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_production.details_screen
 
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnLine
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationLine
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationOrder
@@ -28,22 +29,22 @@ data class ReceivingSparePartsFromProductionDetailsState(
     val isWarehousesLoading: Boolean = false,
     val isSaving: Boolean = false,
 
-    val materialCodeError: String = "",
-    val quantityError: String = "",
-    val warehouseError: String = "",
-    val goodsRecipientError: String = "",
-    val error: String = "",
-    val successMessage: String = "",
+    val materialCodeError: Message? = null,
+    val quantityError: Message? = null,
+    val warehouseError: Message? = null,
+    val goodsRecipientError: Message? = null,
+    val error: Message? = null,
+    val successMessage: Message? = null,
     val showSuccessDialog: Boolean = false,
     val showErrorDialog: Boolean = false,
 
     val selectedValuationType: ValuationType? = null,
-    val valuationTypeError: String = "",
+    val valuationTypeError: Message? = null,
     val returnReason: String?= null,
     val recipientName: String = "",
-    val recipientNameError: String = "",
+    val recipientNameError: Message? = null,
     val itemText: String? = null,
-    val itemTextError: String = "",
+    val itemTextError: Message? = null,
 )
 
 data class SparePartsReturnReservationLineWithDetails(

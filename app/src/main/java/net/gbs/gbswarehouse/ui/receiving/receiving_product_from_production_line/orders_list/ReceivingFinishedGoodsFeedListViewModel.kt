@@ -54,7 +54,9 @@ class ReceivingFinishedGoodsFeedListViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 orderList = orders,
-                                orderFilteredList = orders,
+                                orderFilteredList = if (it.searchText.isBlank()) orders else orders.filter { order ->
+                                    order.orderNumber.contains(it.searchText, ignoreCase = true)
+                                },
                                 loadingStatus = LoadingFinishedGoodsFeedOrdersListStatus.SUCCESS(orders)
                             )
                         }

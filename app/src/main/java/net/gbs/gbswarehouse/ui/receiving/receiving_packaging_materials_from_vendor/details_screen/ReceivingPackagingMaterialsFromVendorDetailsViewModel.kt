@@ -1,7 +1,5 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_packaging_materials_from_vendor.details_screen
 
-import android.content.ContentValues.TAG
-import android.content.Context
 import android.util.Log
 import android.util.Log.d
 import androidx.compose.runtime.getValue
@@ -10,11 +8,12 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.data.remote.dto.response.ReceivePackagingMaterialsDto
@@ -25,27 +24,29 @@ import net.gbs.gbswarehouse.domain.model.PackagingMaterialsPurchaseOrder
 import net.gbs.gbswarehouse.domain.model.PackagingMaterialsPurchaseOrderItem
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.usecase.GetPlantWarehousesUseCase
-import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllPackagingMaterialsPurchaseOrdersUseCase
+import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllPackagingMaterialsPurchaseOrdersByCarNumberUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetPackagingMaterialsPurchaseOrderDataUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.ReceivePackagingMaterialsFromDiffPOsUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.ReceivePackagingMaterialsUseCase
 import javax.inject.Inject
+import net.gbs.gbswarehouse.formatQty
+import net.gbs.gbswarehouse.spinnerLabel
+import net.gbs.gbswarehouse.domain.model.Message
 
-@HiltViewModel
-class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val getPackagingMaterialsPurchaseOrderDataUseCase: GetPackagingMaterialsPurchaseOrderDataUseCase,
-    private val getAllPackagingMaterialsPurchaseOrdersUseCase: GetAllPackagingMaterialsPurchaseOrdersUseCase,
-    private val getPlantWarehousesUseCase: GetPlantWarehousesUseCase,
-    private val receivePackagingMaterialsUseCase: ReceivePackagingMaterialsUseCase,
-    private val receivePackagingMaterialsFromDiffPOsUseCase: ReceivePackagingMaterialsFromDiffPOsUseCase
-) : ViewModel() {
+    @HiltViewModel
+    class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
+        private val getPackagingMaterialsPurchaseOrderDataUseCase: GetPackagingMaterialsPurchaseOrderDataUseCase,
+        private val getAllPackagingMaterialsPurchaseOrdersByCarNumberUseCase: GetAllPackagingMaterialsPurchaseOrdersByCarNumberUseCase,
+        private val getPlantWarehousesUseCase: GetPlantWarehousesUseCase,
+        private val receivePackagingMaterialsUseCase: ReceivePackagingMaterialsUseCase,
+        private val receivePackagingMaterialsFromDiffPOsUseCase: ReceivePackagingMaterialsFromDiffPOsUseCase
+    ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReceivingPackagingMaterialsFromVendorState())
     val uiState = _uiState.asStateFlow()
 
     var matDlg by mutableStateOf(false)
-    val accent = net.gbs.gbswarehouse.GREEN
+    val accent = GREEN
 
     fun onBarcodeScanned(barcode: String) {
         onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnMaterialCodeInputEntered(barcode))
@@ -60,7 +61,7 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
                 }
             }
             is ReceivingPackagingMaterialsFromVendorEvent.OnMaterialCodeInputEntered -> {
-                _uiState.update { it.copy(materialCodeInput = event.materialCode, materialCodeError = "") }
+                _uiState.update { it.copy(materialCodeInput = event.materialCode, materialCodeError = null) }
             }
             is ReceivingPackagingMaterialsFromVendorEvent.OnMaterialSelected -> {
                 selectMaterial(event.materialCode)
@@ -75,13 +76,16 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
                 }
             }
             is ReceivingPackagingMaterialsFromVendorEvent.OnQuantityEntered -> {
-                _uiState.update { it.copy(quantity = event.quantity, quantityError = "") }
+                _uiState.update { it.copy(quantity = event.quantity, quantityError = null) }
             }
             is ReceivingPackagingMaterialsFromVendorEvent.OnWarehouseSelected -> {
-                _uiState.update { it.copy(selectedWarehouse = event.warehouse, warehouseError = "") }
+                _uiState.update { it.copy(selectedWarehouse = event.warehouse, warehouseError = null) }
             }
             is ReceivingPackagingMaterialsFromVendorEvent.OnCarNoEntered -> {
-                _uiState.update { it.copy(carNo = event.carNo, carNoError = "") }
+                _uiState.update { it.copy(carNo = event.carNo, carNoError = null) }
+            }
+            is ReceivingPackagingMaterialsFromVendorEvent.OnProductionDateEntered -> {
+                _uiState.update { it.copy(productionDate = event.date, productionDateError = null) }
             }
             ReceivingPackagingMaterialsFromVendorEvent.OnAddButtonClicked -> {
                 addItem()
@@ -93,11 +97,12 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
                     state.copy(addedItems = newList)
                 }
             }
+            is ReceivingPackagingMaterialsFromVendorEvent.OnEditAddedMaterialButtonClicked -> editAddedMaterial(event.index)
             ReceivingPackagingMaterialsFromVendorEvent.OnSaveButtonClicked -> {
                 saveReceiving()
             }
             ReceivingPackagingMaterialsFromVendorEvent.OnClearMaterialButtonClicked -> {
-                _uiState.update { it.copy(selectedMaterial = null, quantity = "", selectedWarehouse = null, carNo = "", materialCodeInput = "", materialCodeError = "") }
+                _uiState.update { it.copy(selectedMaterial = null, quantity = "", selectedWarehouse = null, carNo = "", productionDate = "", materialCodeInput = "", materialCodeError = null) }
             }
             ReceivingPackagingMaterialsFromVendorEvent.HideSuccessDialog -> {
                 _uiState.update { it.copy(showSuccessDialog = false) }
@@ -112,8 +117,10 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
             is ReceivingPackagingMaterialsFromVendorEvent.OnPurchaseOrderSearchTextEntered -> {
                 _uiState.update { state ->
                     val filtered = state.allPurchaseOrders.filter {
-                        it.poNumber.contains(event.text, ignoreCase = true) ||
-                                (it.vendorName?.contains(event.text, ignoreCase = true) == true)
+                        it.carNo?.contains(event.text, ignoreCase = true) == true ||
+                                it.factoryCarDescription?.contains(event.text, ignoreCase = true) == true ||
+                                (it.vendorName?.contains(event.text, ignoreCase = true) == true) ||
+                                (it.vendorCode?.contains(event.text, ignoreCase = true) == true)
                     }
                     state.copy(purchaseOrderSearch = event.text, filteredPurchaseOrders = filtered)
                 }
@@ -127,13 +134,19 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
             }
 
             is ReceivingPackagingMaterialsFromVendorEvent.OnWarehouseSearchTextChange -> _uiState.update { it.copy(warehouseSearchText = event.searchText) }
+            is ReceivingPackagingMaterialsFromVendorEvent.OnShowMaterialsListButtonClicked ->
+                if (event.index == _uiState.value.showMaterialsListOrderIndex) {
+                    _uiState.update { it.copy(showMaterialsList = !_uiState.value.showMaterialsList) }
+                } else {
+                    _uiState.update { it.copy(showMaterialsList = true, showMaterialsListOrderIndex = event.index) }
+                }
         }
     }
 
-    private fun getPOData(poNumber: String) {
+    private fun getPOData(carNo: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(purchaseOrderGetDataStatus = PackagingPurchaseOrderGetDataStatus.LOADING) }
-            val result = getPackagingMaterialsPurchaseOrderDataUseCase(poNumber)
+            val result = getPackagingMaterialsPurchaseOrderDataUseCase(carNo)
             when (result) {
                 is NetworkResult.Success -> {
                     val po = result.data
@@ -151,12 +164,12 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
                         is NetworkResult.BusinessError -> result.message
                         is NetworkResult.HttpError -> result.message
                         is NetworkResult.NetworkError -> result.message
-                        else -> "Error loading PO data"
+                        else -> "Error loading order data"
                     }
                     _uiState.update {
                         it.copy(
-                            searchError = message,
-                            purchaseOrderGetDataStatus = PackagingPurchaseOrderGetDataStatus.ERROR(message)
+                            searchError = Message.real(message),
+                            purchaseOrderGetDataStatus = PackagingPurchaseOrderGetDataStatus.ERROR(Message.real(message))
                         )
                     }
                 }
@@ -165,14 +178,15 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
     }
 
     private fun loadAllPOs() {
+        val selectedCarNumber = _uiState.value.addedItems.firstOrNull()?.carNo
         viewModelScope.launch {
             _uiState.update { it.copy(isAllPurchaseOrdersLoading = true) }
-            val result = getAllPackagingMaterialsPurchaseOrdersUseCase()
+            val result = getAllPackagingMaterialsPurchaseOrdersByCarNumberUseCase()
             if (result is NetworkResult.Success) {
                 _uiState.update {
                     it.copy(
                         allPurchaseOrders = result.data,
-                        filteredPurchaseOrders = result.data,
+                        filteredPurchaseOrders = if (selectedCarNumber == null) result.data else result.data.filter { po -> po.purchaseOrderItems.any { item -> item.carNo == selectedCarNumber } },
                         isAllPurchaseOrdersLoading = false
                     )
                 }
@@ -188,20 +202,23 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
         if (material != null) {
             val alreadyAdded = state.addedItems.any { it.purchaseOrder == state.purchaseOrder?.poNumber && it.purchaseOrderItem == material.poItemNumber }
             if (alreadyAdded) {
-                _uiState.update { it.copy(materialCodeError = context.getString(R.string.material_already_added)) }
+                    _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added)) }
                 return
             }
             _uiState.update {
                 it.copy(
                     selectedMaterial = material,
                     materialCodeInput = materialCode,
-                    materialCodeError = "",
-                    carNo = material.carNo?:"",
+                    materialCodeError = null,
+                    carNo = material.carNo ?: "",
+                    productionDate = "",
+                    productionDateError = null,
                     quantity = material.remainingQuantity.toString()
-                ) }
+                )
+            }
             loadWarehouses(material.plantCode ?: "")
         } else {
-            _uiState.update { it.copy(materialCodeError = context.getString(R.string.wrong_material_code)) }
+            _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.wrong_material_code)) }
         }
     }
 
@@ -223,28 +240,34 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
         val qty = state.quantity.toDoubleOrNull() ?: 0.0
         val carNo = state.carNo
         val wh = state.selectedWarehouse
+        val productionDate = state.productionDate
 
         if (mat == null) return
         if (qty <= 0) {
-            _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
+            _uiState.update { it.copy(quantityError = Message.Resource(R.string.please_enter_a_valid_quantity)) }
             return
         }
         if (qty > (mat.remainingQuantity ?: 0.0)) {
-            _uiState.update { it.copy(quantityError = context.getString(R.string.quantity_cannot_exceed_remaining_quantity, mat.remainingQuantity.toString())) }
+            _uiState.update { it.copy(quantityError = Message.Resource(R.string.quantity_cannot_exceed_remaining_quantity, mat.remainingQuantity.toString())) }
             return
         }
         if (wh == null) {
-            _uiState.update { it.copy(warehouseError = context.getString(R.string.please_select_a_warehouse)) }
+            _uiState.update { it.copy(warehouseError = Message.Resource(R.string.please_select_a_warehouse)) }
+            return
+        }
+
+        if (productionDate.isEmpty()) {
+            _uiState.update { it.copy(productionDateError = Message.Resource(R.string.please_select_production_date)) }
             return
         }
 
         val alreadyAdded = state.addedItems.any { it.purchaseOrder == state.purchaseOrder?.poNumber && it.purchaseOrderItem == mat.poItemNumber }
         if (alreadyAdded) {
-            _uiState.update { it.copy(materialCodeError = context.getString(R.string.material_already_added)) }
+            _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added)) }
             return
         }
-        if (carNo.isEmpty()){
-            _uiState.update { it.copy(carNoError = context.getString(R.string.please_enter_car_number)) }
+        if (carNo.isEmpty()) {
+            _uiState.update { it.copy(carNoError = Message.Resource(R.string.please_enter_car_number)) }
             return
         }
 
@@ -253,11 +276,12 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
             materialDescription = mat.materialDescription ?: "",
             plantCode = mat.plantCode ?: "",
             warehouseCode = wh.warehouseCode,
-            purchaseOrder = state.purchaseOrder?.poNumber ?: "",
+            purchaseOrder = mat.poNumber ?: state.purchaseOrder?.poNumber ?: "",
             purchaseOrderItem = mat.poItemNumber,
             uom = mat.uom ?: "",
             receivedQuantity = qty,
-            carNo = state.carNo.ifBlank { null }
+            carNo = state.carNo.ifBlank { null },
+            productionDate = state.productionDate + "T00:00:00.000Z"
         )
 
         _uiState.update {
@@ -267,6 +291,7 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
                 quantity = "",
                 selectedWarehouse = null,
                 carNo = "",
+                productionDate = "",
                 materialCodeInput = "",
                 warehouseSearchText = ""
             )
@@ -276,12 +301,21 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
     private fun saveReceiving() {
         val state = _uiState.value
         if (state.addedItems.isEmpty()) return
+        if (state.addedItems.size!=state.materials.size){
+            _uiState.update {
+                it.copy(
+                    showErrorDialog = true,
+                    savingErrorStatusMessage = Message.Resource(R.string.please_add_all_car_items_to_save_receiving)
+                )
+            }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingLoading = true) }
-            
+
             val poNumbers = state.addedItems.map { it.purchaseOrder }.distinct()
-            val result = if (poNumbers.size == 1 && poNumbers[0] == state.purchaseOrder?.poNumber) {
+            val result = if (poNumbers.size == 1) {
                 receivePackagingMaterialsUseCase(
                     ReceivePackagingMaterialsDto(
                         poNumber = poNumbers[0],
@@ -298,16 +332,38 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
 
             when (result) {
                 is NetworkResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isSavingLoading = false,
-                            showSuccessDialog = true,
-                            savingSuccessStatusMessage = context.getString(R.string.success_save),
-                            addedItems = emptyList()
-                        )
+                    val updatedPo = result.data.purchaseOrder
+                    if (updatedPo != null) {
+                        _uiState.update {
+                            it.copy(
+                                isSavingLoading = false,
+                                showSuccessDialog = true,
+                                savingSuccessStatusMessage = Message.real(result.message),
+                                addedItems = emptyList(),
+                                purchaseOrder = updatedPo,
+                                materials = updatedPo.purchaseOrderItems,
+                                filteredMaterials = updatedPo.purchaseOrderItems,
+                                purchaseOrderGetDataStatus = PackagingPurchaseOrderGetDataStatus.SUCCESS(updatedPo),
+                                selectedMaterial = null,
+                                materialCodeInput = "",
+                                quantity = "",
+                                selectedWarehouse = null,
+                                carNo = "",
+                                productionDate = "",
+                                warehouseSearchText = ""
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isSavingLoading = false,
+                                showSuccessDialog = true,
+                                savingSuccessStatusMessage = Message.real(result.message),
+                                addedItems = emptyList()
+                            )
+                        }
+                        state.purchaseOrder?.carNo?.let { getPOData(it) }
                     }
-                    // Refresh current PO if still on same screen
-                    state.purchaseOrder?.poNumber?.let { getPOData(it) }
                 }
                 else -> {
                     val message = when (result) {
@@ -320,11 +376,38 @@ class ReceivingPackagingMaterialsFromVendorDetailsViewModel @Inject constructor(
                         it.copy(
                             isSavingLoading = false,
                             showErrorDialog = true,
-                            savingErrorStatusMessage = message
+                            savingErrorStatusMessage = Message.real(message)
                         )
                     }
                 }
             }
+        }
+    }
+
+    private fun editAddedMaterial(index: Int) {
+        val state = _uiState.value
+        val item = state.addedItems.getOrNull(index) ?: return
+        val newList = state.addedItems.toMutableList().apply { removeAt(index) }
+        val material = state.materials.find { it.materialCode == item.materialCode && it.poItemNumber == item.purchaseOrderItem }
+            ?: state.materials.find { it.materialCode == item.materialCode }
+        val warehouse = state.warehouses.find { it.warehouseCode == item.warehouseCode }
+        _uiState.update {
+            it.copy(
+                addedItems = newList,
+                selectedMaterial = material,
+                materialCodeInput = item.materialCode,
+                quantity = formatQty(item.receivedQuantity),
+                carNo = item.carNo ?: "",
+                productionDate = item.productionDate?.take(10).orEmpty(),
+                selectedWarehouse = warehouse,
+                warehouseSearchText = warehouse?.spinnerLabel().orEmpty(),
+                materialCodeError = null,
+                quantityError = null,
+                warehouseError = null,
+                carNoError = null,
+                productionDateError = null,
+                isWarehousesLoading = false
+            )
         }
     }
 }

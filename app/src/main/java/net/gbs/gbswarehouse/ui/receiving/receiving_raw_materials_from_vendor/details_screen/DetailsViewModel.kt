@@ -1,6 +1,6 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_raw_materials_from_vendor.details_screen
 
-import android.content.ContentValues.TAG
+import android.util.Log.d
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -9,9 +9,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.data.remote.dto.response.RawMaterialsLineDto
 import net.gbs.gbswarehouse.data.remote.dto.response.ReceiveRawMaterialsDto
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.RawMaterialsPurchaseOrderItem
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllCarNumbersUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllCarTypesUseCase
@@ -23,17 +25,16 @@ import net.gbs.gbswarehouse.domain.usecase.receiving.GetNaolonPerTonValueUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetPlantWarehousesUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetRawMaterialsPurchaseOrderDataUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.ReceiveRawMaterialsUseCase
-import android.content.Context
-import android.util.Log
-import android.util.Log.d
-import dagger.hilt.android.qualifiers.ApplicationContext
-import net.gbs.gbswarehouse.R
+import net.gbs.gbswarehouse.formatQty
+import net.gbs.gbswarehouse.spinnerLabel
 import net.gbs.gbswarehouse.transportationTypes
+import net.gbs.gbswarehouse.ui.receiving.receiving_raw_materials_from_vendor.details_screen.RawMaterialsPurchaseOrderGetDataStatus.*
 import javax.inject.Inject
+
+private const val TAG = "RawMaterialsDetailsViewModel"
 
 @HiltViewModel
 class DetailsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val getRawMaterialsPurchaseOrderDataUseCase: GetRawMaterialsPurchaseOrderDataUseCase,
     private val receiveRawMaterialsUseCase: ReceiveRawMaterialsUseCase,
     private val getPlantWarehousesUseCase: GetPlantWarehousesUseCase,
@@ -80,65 +81,65 @@ class DetailsViewModel @Inject constructor(
                 if (material != null) {
                     selectMaterial(material)
                 } else {
-                    _state.update { it.copy(materialCodeError = context.getString(R.string.material_not_found)) }
+                    _state.update { it.copy(materialCodeError = Message.Resource(R.string.material_not_found)) }
                 }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnClearMaterial -> {
-                _state.update { it.copy(selectedMaterial = null, quantity = "", quantityError = "") }
+                _state.update { it.copy(selectedMaterial = null, quantity = "", quantityError = null) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnWarehouseSearchTextChanged -> {
                 _state.update { it.copy(warehouseSearchText = event.text) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnWarehouseSelected -> {
-                _state.update { it.copy(selectedWarehouse = event.warehouse, warehouseError = "") }
+                _state.update { it.copy(selectedWarehouse = event.warehouse, warehouseError = null) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnCarNumberSearchTextChanged -> {
                 _state.update { it.copy(carNumberSearchText = event.text) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnCarNumberSelected -> {
-                _state.update { it.copy(selectedCarNumber = event.carNumber, carNumberError = "") }
+                _state.update { it.copy(selectedCarNumber = event.carNumber, carNumberError = null) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnUnloadingPointChanged -> {
-                _state.update { it.copy(unloadingPoint = event.text, unloadingPointError = "") }
+                _state.update { it.copy(unloadingPoint = event.text, unloadingPointError = null) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnWorkerGroupSearchTextChanged -> {
                 _state.update { it.copy(workerGroupSearchText = event.text) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnWorkerGroupSelected -> {
-                _state.update { it.copy(selectedWorkerGroup = event.workerGroup, workerGroupError = "") }
+                _state.update { it.copy(selectedWorkerGroup = event.workerGroup, workerGroupError = null) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnNaolonDescriptionSearchTextChanged -> {
                 _state.update { it.copy(naolonDescriptionSearchText = event.text) }
 
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnNaolonDescriptionSelected -> {
-                _state.update { it.copy(selectedNaolonDescription = event.naolonDescription, naolonDescriptionError = "") }
+                _state.update { it.copy(selectedNaolonDescription = event.naolonDescription, naolonDescriptionError = null) }
                 fetchNaolonValue()
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnCarTypeSearchTextChanged -> {
                 _state.update { it.copy(carTypeSearchText = event.text) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnCarTypeSelected -> {
-                _state.update { it.copy(selectedCarType = event.carType, carTypeError = "") }
+                _state.update { it.copy(selectedCarType = event.carType, carTypeError = null) }
                 fetchNaolonValue()
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnContNoChanged -> {
-                _state.update { it.copy(contNo = event.text, contNoError = "") }
+                _state.update { it.copy(contNo = event.text, contNoError = null) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnLoadingVendorSearchTextChanged -> {
                 _state.update { it.copy(loadingVendorSearchText = event.text) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnLoadingVendorSelected -> {
-                _state.update { it.copy(selectedLoadingVendor = event.loadingVendor, loadingVendorError = "") }
+                _state.update { it.copy(selectedLoadingVendor = event.loadingVendor, loadingVendorError = null) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnPackageTypeSearchTextChanged -> {
                 _state.update { it.copy(packageTypeSearchText = event.text) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnPackageTypeSelected -> {
-                _state.update { it.copy(selectedPackageType = event.packageType, packageTypeError = "") }
+                _state.update { it.copy(selectedPackageType = event.packageType, packageTypeError = null) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnQuantityChanged -> {
-                _state.update { it.copy(quantity = event.text, quantityError = "") }
+                _state.update { it.copy(quantity = event.text, quantityError = null) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnAddItem -> {
                 addItem()
@@ -148,6 +149,7 @@ class DetailsViewModel @Inject constructor(
                     it.copy(addedItems = it.addedItems.toMutableList().apply { removeAt(event.index) })
                 }
             }
+            is ReceivingRawMaterialsFromVendorDetailsEvent.OnEditItem -> editItem(event.index)
             ReceivingRawMaterialsFromVendorDetailsEvent.OnSave -> {
                 saveReceiving()
             }
@@ -172,54 +174,74 @@ class DetailsViewModel @Inject constructor(
     private fun selectMaterial(material: RawMaterialsPurchaseOrderItem) {
         val alreadyAdded = _state.value.addedItems.any { it.purchaseOrderItem == material.poItemNumber }
         if (alreadyAdded) {
-            _state.update { it.copy(materialCodeError = context.getString(R.string.material_already_added)) }
+            _state.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added)) }
             return
         }
+        setTransportingType(material.isFactoryCar)
         val emanTransportationType = _state.value.loadingVendors.find { it.vendorCode == "11800005" }
+
         _state.update { it.copy(
             selectedMaterial = material,
             materialSearchText = "",
             filteredMaterials = emptyList(),
             quantity = material.remainingQuantity?.toString() ?: "",
-            materialCodeError = "",
+            materialCodeError = null,
             selectedCarNumber = material.carNo?:"",
             selectedLoadingVendor = emanTransportationType
         ) }
         loadWarehouses(material.plantCode ?: "")
         fetchNaolonValue()
     }
+
+    private fun setTransportingType(
+        factoryCar: Boolean?
+    ) {
+        if (factoryCar == true)
+            _state.update {
+                it.copy(
+                    transportationVendor = transportationTypes.first()
+                )
+            }
+        else
+            _state.update {
+                it.copy(
+                    transportationVendor = transportationTypes[1]
+                )
+            }
+    }
+
     fun clearMaterial(){
         _state.update {
             it.copy(
                 selectedMaterial = null,
                 quantity = "",
-                quantityError = "",
-                materialCodeError = "",
+                quantityError = null,
+                materialCodeError = null,
                 selectedCarNumber = null,
                 selectedWarehouse = null,
                 warehouseSearchText = "",
-                warehouseError = "",
-                workerGroupError = "",
+                warehouseError = null,
+                workerGroupError = null,
                 selectedWorkerGroup = null,
                 workerGroupSearchText = "",
-                loadingVendorError = "",
+                loadingVendorError = null,
                 selectedLoadingVendor = null,
                 loadingVendorSearchText = "",
-                packageTypeError = "",
+                packageTypeError = null,
                 selectedPackageType = null,
                 packageTypeSearchText = "",
-                naolonDescriptionError = "",
+                naolonDescriptionError = null,
                 selectedNaolonDescription = null,
                 naolonDescriptionSearchText = "",
-                carTypeError = "",
+                carTypeError = null,
                 selectedCarType = null,
                 carTypeSearchText = "",
-                contNoError = "",
+                contNoError = null,
                 unloadingPoint = "",
-                unloadingPointError = "",
+                unloadingPointError = null,
                 naolonValue = null,
                 naolonLoadingStatus = NaolonLoadingStatus.IDLE,
-
+                contNo = "",
 
             )
         }
@@ -230,12 +252,12 @@ class DetailsViewModel @Inject constructor(
             _state.update { it.copy(getDataStatus = RawMaterialsPurchaseOrderGetDataStatus.LOADING) }
             when (val result = getRawMaterialsPurchaseOrderDataUseCase(poNumber)) {
                 is NetworkResult.Success -> {
-                    _state.update { it.copy(purchaseOrder = result.data, getDataStatus = RawMaterialsPurchaseOrderGetDataStatus.SUCCESS(result.data)) }
+                    _state.update { it.copy(purchaseOrder = result.data, getDataStatus = RawMaterialsPurchaseOrderGetDataStatus.SUCCESS(result.data, Message.real(result.message))) }
                 }
-                is NetworkResult.HttpError -> _state.update { it.copy(getDataStatus = RawMaterialsPurchaseOrderGetDataStatus.ERROR(result.message)) }
-                is NetworkResult.NetworkError -> _state.update { it.copy(getDataStatus = RawMaterialsPurchaseOrderGetDataStatus.ERROR(result.message)) }
-                is NetworkResult.BusinessError -> _state.update { it.copy(getDataStatus = RawMaterialsPurchaseOrderGetDataStatus.ERROR(result.message)) }
-                is NetworkResult.UnknownError -> _state.update { it.copy(getDataStatus = RawMaterialsPurchaseOrderGetDataStatus.ERROR(result.message)) }
+                is NetworkResult.HttpError -> _state.update { it.copy(getDataStatus = RawMaterialsPurchaseOrderGetDataStatus.ERROR(Message.Real(result.message))) }
+                is NetworkResult.NetworkError -> _state.update { it.copy(getDataStatus = RawMaterialsPurchaseOrderGetDataStatus.ERROR(Message.Real(result.message))) }
+                is NetworkResult.BusinessError -> _state.update { it.copy(getDataStatus = RawMaterialsPurchaseOrderGetDataStatus.ERROR(Message.Real(result.message))) }
+                is NetworkResult.UnknownError -> _state.update { it.copy(getDataStatus = RawMaterialsPurchaseOrderGetDataStatus.ERROR(Message.Real(result.message))) }
                 else -> {}
             }
         }
@@ -287,7 +309,7 @@ class DetailsViewModel @Inject constructor(
                         _state.update { it.copy(naolonValue = value.toString(), naolonLoadingStatus = NaolonLoadingStatus.SUCCESS(value)) }
                     }
                     else -> {
-                        _state.update { it.copy(naolonValue = "0", naolonLoadingStatus = NaolonLoadingStatus.ERROR(context.getString(R.string.failed_to_load))) }
+                        _state.update { it.copy(naolonValue = "0", naolonLoadingStatus = NaolonLoadingStatus.ERROR(Message.Resource(R.string.failed_to_load))) }
                     }
                 }
             }
@@ -300,45 +322,47 @@ class DetailsViewModel @Inject constructor(
         var hasError = false
 
         if (st.selectedWarehouse == null) {
-            _state.update { it.copy(warehouseError = context.getString(R.string.required_field)) }
+            _state.update { it.copy(warehouseError = Message.Resource(R.string.required_field)) }
             hasError = true
         }
         if (st.selectedCarNumber == null) {
-            _state.update { it.copy(carNumberError = context.getString(R.string.required_field)) }
+            _state.update { it.copy(carNumberError = Message.Resource(R.string.required_field)) }
             hasError = true
         }
         if (st.unloadingPoint.isEmpty()) {
-            _state.update { it.copy(unloadingPointError = context.getString(R.string.required_field)) }
+            _state.update { it.copy(unloadingPointError = Message.Resource(R.string.required_field)) }
             hasError = true
         }
         if (st.selectedWorkerGroup == null) {
-            _state.update { it.copy(workerGroupError = context.getString(R.string.required_field)) }
+            _state.update { it.copy(workerGroupError = Message.Resource(R.string.required_field)) }
             hasError = true
         }
-        if (st.transportationVendor==transportationTypes.first()&&st.selectedNaolonDescription == null) {
-            _state.update { it.copy(naolonDescriptionError = context.getString(R.string.required_field)) }
-            hasError = true
-        }
+//        if (st.transportationVendor==transportationTypes.first()&&st.selectedNaolonDescription == null) {
+//            _state.update { it.copy(naolonDescriptionError = context.getString(R.string.required_field)) }
+//            hasError = true
+//        }
         if (st.selectedCarType == null) {
-            _state.update { it.copy(carTypeError = context.getString(R.string.required_field)) }
+            _state.update { it.copy(carTypeError = Message.Resource(R.string.required_field)) }
             hasError = true
         }
-        if (st.contNo.isEmpty()) {
-            _state.update { it.copy(contNoError = context.getString(R.string.required_field)) }
-            hasError = true
-        }
+//        if (st.contNo.isEmpty()) {
+//            _state.update { it.copy(contNoError = context.getString(R.string.required_field)) }
+//            hasError = true
+//        }
         if (st.selectedLoadingVendor == null) {
-            _state.update { it.copy(loadingVendorError = context.getString(R.string.required_field)) }
+            _state.update { it.copy(loadingVendorError = Message.Resource(R.string.required_field)) }
             hasError = true
         }
         if (st.selectedPackageType == null) {
-            _state.update { it.copy(packageTypeError = context.getString(R.string.required_field)) }
+            _state.update { it.copy(packageTypeError = Message.Resource(R.string.required_field)) }
             hasError = true
         }
         if (st.quantity.isEmpty() || (st.quantity.toDoubleOrNull() ?: 0.0) <= 0.0) {
-            _state.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
+            _state.update { it.copy(quantityError = Message.Resource(R.string.please_enter_a_valid_quantity)) }
             hasError = true
         }
+
+
 
         if (!hasError && st.selectedMaterial != null) {
             val newItem = RawMaterialsLineDto(
@@ -356,7 +380,8 @@ class DetailsViewModel @Inject constructor(
                 loadingVendorCode = st.selectedLoadingVendor?.vendorCode,
                 wrokerGroupCode = st.selectedWorkerGroup?.workerGroupCode,
                 naolonDescription = st.selectedNaolonDescription?.naolonDescription,
-                packTypeCode = st.selectedPackageType?.packTypeCode
+                packTypeCode = st.selectedPackageType?.packTypeCode,
+                carType = st.selectedCarType?.vehicleTypeName
             )
             _state.update { it.copy(addedItems = it.addedItems + newItem) }
             clearMaterial()
@@ -366,21 +391,114 @@ class DetailsViewModel @Inject constructor(
     private fun saveReceiving() {
         val st = _state.value
         if (st.addedItems.isEmpty() || st.isSaving) return
-
+        if (st.addedItems.size!=st.purchaseOrder?.purchaseOrderItems?.size){
+            _state.update {
+                it.copy(
+                    showErrorDialog = true,
+                    saveErrorMessage = Message.Resource(R.string.please_add_all_car_items_to_save_receiving)
+                )
+            }
+            return
+        }
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true) }
             val request = ReceiveRawMaterialsDto(
-                poNumber = st.purchaseOrder?.poNumber ?: "",
+                poNumber = st.purchaseOrder.poNumber,
                 lines = st.addedItems
             )
             when (val result = receiveRawMaterialsUseCase(request)) {
                 is NetworkResult.Success -> {
-                    _state.update { it.copy(isSaving = false, saveSuccess = true, showSuccessDialog = true, addedItems = emptyList()) }
+                    val updatedOrder = result.data.purchaseOrder
+                    if (updatedOrder != null) {
+                        val filtered = if (st.materialSearchText.isEmpty()) {
+                            updatedOrder.purchaseOrderItems
+                        } else {
+                            updatedOrder.purchaseOrderItems.filter {
+                                it.materialCode?.contains(st.materialSearchText, ignoreCase = true) == true ||
+                                        it.materialDescription?.contains(st.materialSearchText, ignoreCase = true) == true
+                            }
+                        }
+                        _state.update {
+                            it.copy(
+                                purchaseOrder = updatedOrder,
+                                filteredMaterials = filtered,
+                                getDataStatus = SUCCESS(updatedOrder, Message.real(result.message))
+                            )
+                        }
+                    }
+                    clearMaterial()
+                    _state.update { 
+                        it.copy(
+                            isSaving = false, 
+                            saveSuccess = true, 
+                            saveSuccessMessage = Message.real(result.message), 
+                            showSuccessDialog = true, 
+                            addedItems = emptyList()
+                        ) 
+                    }
                 }
-                else -> {
-                    _state.update { it.copy(isSaving = false, saveError = context.getString(R.string.failed_to_save), showErrorDialog = true) }
+                is NetworkResult.HttpError -> {
+                    _state.update { it.copy(isSaving = false, saveErrorMessage = Message.real(result.message), showErrorDialog = true) }
                 }
+
+                is NetworkResult.BusinessError -> _state.update { it.copy(isSaving = false, saveErrorMessage = Message.real(result.message), showErrorDialog = true) }
+                NetworkResult.Loading -> {_state.update { it.copy(isSaving = true) }}
+                is NetworkResult.NetworkError -> _state.update { it.copy(isSaving = false, saveErrorMessage = Message.real(result.message), showErrorDialog = true) }
+                is NetworkResult.UnknownError -> _state.update { it.copy(isSaving = false, saveErrorMessage = Message.real(result.message), showErrorDialog = true) }
             }
+        }
+    }
+
+    private fun editItem(index: Int) {
+        val state = _state.value
+        val item = state.addedItems.getOrNull(index) ?: return
+        val newList = state.addedItems.toMutableList().apply { removeAt(index) }
+        val items = state.purchaseOrder?.purchaseOrderItems.orEmpty()
+        val material = items.find { it.materialCode == item.materialCode && it.poItemNumber == item.purchaseOrderItem }
+            ?: items.find { it.materialCode == item.materialCode }
+        val warehouse = state.warehouses.find { it.warehouseCode == item.warehouseCode }
+        val carNumber = state.carNumbers.find { it.carNumber == item.carNo }
+        val workerGroup = state.workerGroups.find { it.workerGroupCode == item.wrokerGroupCode }
+        val naolonDescription = state.naolonDescriptions.find { it.naolonDescription == item.naolonDescription }
+        val loadingVendor = state.loadingVendors.find { it.vendorCode == item.loadingVendorCode }
+        val packageType = state.packageTypes.find { it.packTypeCode == item.packTypeCode }
+        val carType = state.carTypes.find {
+            it.vehicleTypeName == item.carType || it.description == item.carType
+        }
+        _state.update {
+            it.copy(
+                addedItems = newList,
+                selectedMaterial = material,
+                quantity = formatQty(item.receivedQuantity),
+                selectedWarehouse = warehouse,
+                warehouseSearchText = warehouse?.spinnerLabel().orEmpty(),
+                selectedCarNumber = item.carNo,
+                carNumberSearchText = carNumber?.spinnerLabel().orEmpty(),
+                unloadingPoint = item.unloadingPoint.orEmpty(),
+                selectedWorkerGroup = workerGroup,
+                workerGroupSearchText = workerGroup?.spinnerLabel().orEmpty(),
+                selectedNaolonDescription = naolonDescription,
+                naolonDescriptionSearchText = naolonDescription?.spinnerLabel().orEmpty(),
+                naolonValue = item.naolon?.let { q -> formatQty(q) },
+                naolonLoadingStatus = NaolonLoadingStatus.SUCCESS(item.naolon?.toInt() ?: 0),
+                contNo = item.contNo.orEmpty(),
+                selectedLoadingVendor = loadingVendor,
+                loadingVendorSearchText = loadingVendor?.spinnerLabel().orEmpty(),
+                selectedPackageType = packageType,
+                packageTypeSearchText = packageType?.spinnerLabel().orEmpty(),
+                selectedCarType = carType,
+                carTypeSearchText = carType?.spinnerLabel().orEmpty(),
+                materialCodeError = null,
+                quantityError = null,
+                warehouseError = null,
+                carNumberError = null,
+                unloadingPointError = null,
+                workerGroupError = null,
+                naolonDescriptionError = null,
+                loadingVendorError = null,
+                packageTypeError = null,
+                carTypeError = null
+            )
         }
     }
 }

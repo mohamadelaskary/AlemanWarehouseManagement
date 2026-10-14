@@ -1,10 +1,9 @@
 package net.gbs.gbswarehouse.ui.issue.issuing_cost_center.details_screen
 
-import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,26 +13,34 @@ import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.data.remote.dto.response.DirectIssueOnCostCenterLineDto
 import net.gbs.gbswarehouse.data.remote.dto.response.PostDirectIssueOnCostCenterDto
-import net.gbs.gbswarehouse.domain.model.SAPMaterialBatchValuationStock
-import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationLine
+import net.gbs.gbswarehouse.domain.model.DirectIssueReservationLine
+import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.usecase.issuing.DirectIssueOnCostCenterUseCase
 import net.gbs.gbswarehouse.domain.usecase.issuing.GetDirectIssueOnCostCenterReservationLinesUseCase
-import net.gbs.gbswarehouse.domain.usecase.issuing.GetMaterialStockUseCase
+import net.gbs.gbswarehouse.domain.usecase.issuing.GetMaterialOnHandStockUseCase
 import net.gbs.gbswarehouse.domain.usecase.issuing.GetStorageBinLocationIssuingUseCase
 import net.gbs.gbswarehouse.ui.issue.issuing_cost_center.details_screen.IssueDetailsEvent.*
 import javax.inject.Inject
+import net.gbs.gbswarehouse.StockSelectionRestore
+import net.gbs.gbswarehouse.resolveStockSelection
 
 @HiltViewModel
 class IssueDetailsViewModel @Inject constructor(
     private val getDirectIssueOnCostCenterReservationLinesUseCase: GetDirectIssueOnCostCenterReservationLinesUseCase,
     private val getStorageBinLocationIssuingUseCase: GetStorageBinLocationIssuingUseCase,
-    private val getMaterialStockUseCase: GetMaterialStockUseCase,
+    private val getMaterialOnHandStockUseCase: GetMaterialOnHandStockUseCase,
     private val directIssueOnCostCenterUseCase: DirectIssueOnCostCenterUseCase,
-    @ApplicationContext private val context: Context
 ): ViewModel() {
 
     private val _state = MutableStateFlow(IssueDetailsState())
     val state: StateFlow<IssueDetailsState> = _state.asStateFlow()
+
+    /**
+     * Batch / valuation type + quantity of the line being edited, held until the stock
+     * list for its bin has been re-fetched by loadStock.
+     */
+    private var pendingStockRestore: StockSelectionRestore? = null
 
     fun onBarcodeScanned(barcode: String) {
         onEvent(OnBarcodeScanned(barcode))
@@ -43,25 +50,30 @@ class IssueDetailsViewModel @Inject constructor(
         when (event) {
             is LoadOrderDetails -> loadOrderDetails(event.reservationNumber)
             is OnBarcodeScanned -> {
-                if (_state.value.binInput.isEmpty()) {
-                    onEvent(OnScanBin(event.barcode))
-                } else {
+                if (_state.value.selReservationLine == null) {
                     val material = _state.value.reservationLines.find { it.materialCode == event.barcode }
                     if (material != null) {
                         onEvent(OnMaterialSelected(material))
                     } else {
                         _state.update {
                             it.copy(
-                                matErrorMessage = "المادة غير موجودة في القائمة",
+                                matErrorMessage = Message.Resource(R.string.material_not_found_in_list),
                                 matDlg = false
                             )
                         }
                     }
+                } else if (_state.value.binInput.isEmpty() || _state.value.selBinData == null) {
+                    onEvent(OnScanBin(event.barcode))
+                } else {
+                    val material = _state.value.reservationLines.find { it.materialCode == event.barcode }
+                    if (material != null) {
+                        onEvent(OnMaterialSelected(material))
+                    }
                 }
             }
-            is OnBinInputChanged -> _state.update { it.copy(binInput = event.text) }
+            is OnBinInputChanged -> _state.update { it.copy(binInput = event.text, binCodeError = null) }
             is OnScanBin -> scanBin(event.binCode)
-            OnClearBin -> _state.update { it.copy(selBinData = null, binInput = "", qty = "") }
+            OnClearBin -> clearBin()
             
             is OnMaterialSearchTextChanged -> {
                 _state.update { state ->
@@ -81,25 +93,13 @@ class IssueDetailsViewModel @Inject constructor(
             OnToggleMaterialDialog -> _state.update { it.copy(matDlg = !it.matDlg) }
             
             is OnStockSearchTextChanged -> _state.update { it.copy(stockSearch = event.text) }
-            is OnStockSelected -> {
-                val maxQty = (event.stock.quantity?.toDouble()
-                    ?: 0.0).coerceAtMost(_state.value.selReservationLine?.remainingQuantity ?: 0.0)
-                _state.update {
-                    it.copy(
-                        maxQty = maxQty,
-                        qty = maxQty.toString(),
-                        selectedStock = event.stock,
-                        stockSearch = "${event.stock.batch} (${event.stock.quantity})",
-                        stockError = ""
-                    )
-                }
-            }
+            is OnOnHandStockSelected -> onOnHandStockSelected(event.stock)
             
             is OnQtyChanged -> {
                 val maxQty = _state.value.maxQty
                 val qtyValue = event.text.toDoubleOrNull() ?: 0.0
                 val error = if (qtyValue > maxQty) {
-                    context.getString(R.string.qty_exceed_max_qty) + maxQty
+                    Message.Resource(R.string.qty_exceed_max_qty) + formatQty(maxQty)
                 } else null
                 _state.update { it.copy(qty = event.text, qtyError = error) }
             }
@@ -109,6 +109,7 @@ class IssueDetailsViewModel @Inject constructor(
             is OnDeleteLine -> {
                 removeItem(event.materialCode)
             }
+            is OnEditLine -> editLine(event.addedLine)
 
             OnDismissSuccess -> {
                 _state.update {
@@ -121,11 +122,35 @@ class IssueDetailsViewModel @Inject constructor(
         }
     }
 
+    private fun formatQty(qty: Double): String {
+        return if (qty % 1.0 == 0.0) qty.toLong().toString() else qty.toString()
+    }
+
     private fun removeItem(materialCode: String) {
         val lineWithMaterialCode = _state.value.addedLines.find { it.materialCode == materialCode }
         if (lineWithMaterialCode != null) {
             _state.update { it.copy(addedLines = it.addedLines - lineWithMaterialCode) }
         }
+    }
+
+    private fun editLine(addedLine: DirectIssueOnCostCenterLineDto) {
+        removeItem(addedLine.materialCode)
+        val line = _state.value.reservationLines.find { it.reservationItem == addedLine.reservationItem } ?: return
+        selectReservationLine(line)
+        _state.update { it.copy(binInput = addedLine.storageBinCode) }
+        if (addedLine.storageBinCode.isEmpty()) {
+            pendingStockRestore = null
+            _state.update { it.copy(qty = formatQty(addedLine.quantity)) }
+            return
+        }
+        // Re-scan the bin to rebuild the stock list, then re-apply the saved batch /
+        // valuation type and quantity once that list arrives.
+        pendingStockRestore = StockSelectionRestore(
+            batch = addedLine.batch,
+            valuationType = addedLine.valuationType,
+            qty = formatQty(addedLine.quantity)
+        )
+        scanBin(addedLine.storageBinCode)
     }
 
     private fun loadOrderDetails(reservationNumber: String) {
@@ -136,10 +161,10 @@ class IssueDetailsViewModel @Inject constructor(
                     val lines = result.data ?: emptyList()
                     _state.update { it.copy(reservationLines = lines, filteredMaterials = lines) }
                 }
-                is NetworkResult.BusinessError -> _state.update { it.copy(loadingErrorMessage = result.message) }
-                is NetworkResult.HttpError -> _state.update { it.copy(loadingErrorMessage = result.message) }
-                is NetworkResult.NetworkError -> _state.update { it.copy(loadingErrorMessage = result.message) }
-                is NetworkResult.UnknownError -> _state.update { it.copy(loadingErrorMessage = result.message) }
+                is NetworkResult.BusinessError -> _state.update { it.copy(loadingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.HttpError -> _state.update { it.copy(loadingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.NetworkError -> _state.update { it.copy(loadingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.UnknownError -> _state.update { it.copy(loadingErrorMessage = Message.Real(result.message)) }
                 else -> {}
             }
             _state.update { it.copy(isLoading = false) }
@@ -147,121 +172,212 @@ class IssueDetailsViewModel @Inject constructor(
     }
 
     private fun scanBin(binCode: String) {
+        val line = _state.value.selReservationLine
+        if (line == null) {
+            _state.update { it.copy(binCodeError = Message.Resource(R.string.please_scan_bin_code_first)) }
+            return
+        }
+
         viewModelScope.launch {
-            _state.update { it.copy(isBinLoading = true) }
+            _state.update { it.copy(isBinLoading = true, binCodeError = null) }
             when (val result = getStorageBinLocationIssuingUseCase(binCode)) {
                 is NetworkResult.Success -> {
-                    _state.update { it.copy(selBinData = result.data, binInput = result.data?.storageBinCode ?: binCode, binCodeError = "") }
+                    val binData = result.data
+                    _state.update {
+                        it.copy(
+                            selBinData = binData,
+                            binInput = binData?.storageBinCode ?: binCode,
+                            binCodeError = Message.Real("")
+                        )
+                    }
+                    loadStock(line, binData?.storageBinCode ?: binCode)
                 }
-                is NetworkResult.BusinessError -> _state.update { it.copy(binCodeError = result.message) }
-                is NetworkResult.HttpError -> _state.update { it.copy(binCodeError = result.message) }
-                is NetworkResult.NetworkError -> _state.update { it.copy(binCodeError = result.message) }
-                is NetworkResult.UnknownError -> _state.update { it.copy(binCodeError = result.message) }
+                is NetworkResult.BusinessError -> _state.update {
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                }
+                is NetworkResult.HttpError -> _state.update {
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                }
+                is NetworkResult.NetworkError -> _state.update {
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                }
+                is NetworkResult.UnknownError -> _state.update {
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                }
                 else -> {}
             }
             _state.update { it.copy(isBinLoading = false) }
         }
     }
 
-    private fun selectReservationLine(line: SparePartsReturnReservationLine) {
-        if (_state.value.selBinData==null){
-            _state.update { it.copy(
-                matErrorMessage = context.getString(R.string.please_scan_bin_code_first),
-                matDlg = false
+    private fun clearBin() {
+        _state.update {
+            it.copy(
+                selBinData = null,
+                binInput = "",
+                binCodeError = null,
+                qty = "",
+                selectedOnHandStock = null,
+                stockOnHandList = emptyList(),
+                availableStock = 0.0,
+                maxQty = 0.0
             )
-            }
-            return
         }
+    }
 
-        val alreadyAddedLine = _state.value.addedLines.find { it.materialCode == line.materialCode }
+    private fun selectReservationLine(line: DirectIssueReservationLine) {
+        val alreadyAddedLine = _state.value.addedLines.find {
+                    it.reservationItem == line.reservationItem
+        }
         if (alreadyAddedLine != null){
             _state.update {
                 it.copy(
-                    matErrorMessage = context.getString(R.string.material_already_added),
+                    matErrorMessage = Message.Resource(R.string.material_already_added),
                     matDlg = false
                 )
             }
             return
         }
 
-        if (line.isBatchManaged == true || line.valuationTypes.isNotEmpty()) {
-            loadStock(line, _state.value.selBinData?.warehouseCode)
-        } else {
-            _state.update {
-                it.copy(selReservationLine = line,
-                    matInput = line.materialCode ?: "",
-                    matErrorMessage = null,
-                    maxQty = line.remainingQuantity ?: 0.0,
-                    qty = line.remainingQuantity.toString(),
-                    stockSearch = "",
-                    selectedStock = null,
-                    matDlg = false,
-                )
-            }
+        _state.update {
+            it.copy(
+                selReservationLine = line,
+                matInput = line.materialCode ?: "",
+                matErrorMessage = null,
+                matDlg = false,
+                selBinData = null,
+                binInput = "",
+                binCodeError = null,
+                stockOnHandList = emptyList(),
+                selectedOnHandStock = null,
+                availableStock = 0.0,
+                maxQty = 0.0,
+                qty = ""
+            )
         }
     }
 
-    private fun loadStock(line: SparePartsReturnReservationLine, storageLocationCode: String?) {
+    private fun loadStock(line: DirectIssueReservationLine, storageBinCode: String) {
         viewModelScope.launch {
-            _state.update { it.copy(isStockLoading = true) }
-            when (val result = getMaterialStockUseCase(line.plantCode?:"",line.materialCode?:"", storageLocationCode)) {
+            _state.update { it.copy(isStockLoading = true, stockError = null) }
+            when (val result = getMaterialOnHandStockUseCase(storageBinCode, line.materialCode ?: "")) {
                 is NetworkResult.Success -> {
-                    _state.update {
-                        it.copy(selReservationLine = line,
-                            matInput = line.materialCode ?: "",
-                            matErrorMessage = null,
-                            maxQty = line.remainingQuantity ?: 0.0,
-                            qty = _state.value.maxQty.toString(),
-                            stockSearch = "",
-                            selectedStock = null,
-                            matDlg = false,
-                            stockList = result.data ?: emptyList(),
-                            stockError = ""
+                    val stockList = result.data ?: emptyList()
+                    if (stockList.isEmpty()) {
+                        _state.update {
+                            it.copy(
+                                stockOnHandList = emptyList(),
+                                selectedOnHandStock = null,
+                                availableStock = 0.0,
+                                maxQty = 0.0,
+                                qty = "0",
+                                stockError = Message.Resource(R.string.no_stock_available)
+                            )
+                        }
+                    } else {
+                        val isBatchManaged = stockList.any { it.isBatchManaged == true }
+                        val hasValuationType = !isBatchManaged && stockList.any { !it.valuationType.isNullOrEmpty() }
+
+                        val resolved = resolveStockSelection(
+                            stockList = stockList,
+                            remainingQty = line.remainingQuantity ?: 0.0,
+                            pending = pendingStockRestore
                         )
+                        pendingStockRestore = null
+                        _state.update {
+                            it.copy(
+                                stockOnHandList = stockList,
+                                selectedOnHandStock = resolved.selected,
+                                availableStock = resolved.availableQty,
+                                maxQty = resolved.maxQty,
+                                qty = resolved.qty,
+                                stockSearch = resolved.searchText,
+                                qtyError = null,
+                                stockError = null
+                            )
+                        }
                     }
                 }
+                is NetworkResult.BusinessError -> _state.update { it.copy(stockError = Message.Real(result.message)) }
+                is NetworkResult.HttpError -> _state.update { it.copy(stockError = Message.Real(result.message)) }
+                is NetworkResult.NetworkError -> _state.update { it.copy(stockError = Message.Real(result.message)) }
+                is NetworkResult.UnknownError -> _state.update { it.copy(stockError = Message.Real(result.message)) }
                 else -> {}
             }
             _state.update { it.copy(isStockLoading = false) }
         }
     }
 
+    private fun onOnHandStockSelected(stock: MaterialOnHandStock) {
+        val availQty = stock.availableQty ?: 0.0
+        val remainingQty = _state.value.selReservationLine?.remainingQuantity ?: 0.0
+        val maxQty = minOf(remainingQty, availQty)
+        _state.update {
+            it.copy(
+                selectedOnHandStock = stock,
+                availableStock = availQty,
+                maxQty = maxQty,
+                qty = if (maxQty > 0) formatQty(maxQty) else "0",
+                stockError = null,
+                qtyError = null
+            )
+        }
+    }
+
     private fun clearMaterial() {
         _state.update { it.copy(
             selReservationLine = null,
-            selectedStock = null,
+            selectedOnHandStock = null,
             matInput = "",
             qty = "",
-            stockList = emptyList(),
+            stockOnHandList = emptyList(),
             stockSearch = "",
             matSearchText = "",
             matErrorMessage = null,
             binInput = "",
             selBinData = null,
-            binCodeError = null
+            binCodeError = null,
+            availableStock = 0.0,
+            maxQty = 0.0,
+            qtyError = null,
+            stockError = null
         ) }
     }
 
     private fun addLine() {
         val st = _state.value
+        Log.e("IssueDetailsViewModel", "addLine: line  ${st.selReservationLine} ", )
+        Log.e("IssueDetailsViewModel", "addLine: bin ${st.selBinData} ", )
         val line = st.selReservationLine ?: return
         val bin = st.selBinData ?: return
+
         
         var hasError = false
-        if ((line.isBatchManaged == true || line.valuationTypes.isNotEmpty()) && st.selectedStock == null) {
-            _state.update { it.copy(stockError = context.getString(R.string.select_a_batch)) }
+        val isBatchManaged = st.stockOnHandList.any { it.isBatchManaged == true }
+        val hasValuationType = !isBatchManaged && st.stockOnHandList.any { !it.valuationType.isNullOrEmpty() }
+
+        if ((isBatchManaged || hasValuationType) && st.selectedOnHandStock == null) {
+            val err: Message = if (isBatchManaged) {
+                Message.Resource(R.string.select_a_batch)
+            } else {
+                Message.Resource(R.string.select_valuation_type)
+            }
+            _state.update { it.copy(stockError = err) }
             hasError = true
+            Log.e("IssueDetailsViewModel", "addLine:  $err ", )
         }
         
         val qtyValue = st.qty.toDoubleOrNull() ?: 0.0
         if (qtyValue <= 0) {
-            _state.update { it.copy(qtyError = context.getString(R.string.please_enter_valid_quantity)) }
+            _state.update { it.copy(qtyError = Message.Resource(R.string.please_enter_valid_quantity)) }
             hasError = true
+            Log.d("IssueDetailsViewModel", "addLine: qty <=0")
         }
 
-        if (st.selectedStock != null && qtyValue > (st.selectedStock.quantity?.toDouble() ?: 0.0)) {
-            _state.update { it.copy(qtyError = context.getString(R.string.qty_exceed_max_qty) + st.selectedStock.quantity) }
+        if (qtyValue > st.maxQty) {
+            _state.update { it.copy(qtyError = Message.Resource(R.string.qty_exceed_max_qty) ) }
             hasError = true
+            Log.d("IssueDetailsViewModel", "addLine: qtyValue > st.maxQty")
         }
 
         if (hasError) return
@@ -275,8 +391,8 @@ class IssueDetailsViewModel @Inject constructor(
             reservationNumber = line.reservationNumber ?: "",
             reservationItem = line.reservationItem ?: "",
             storageBinCode = bin.storageBinCode ?: "",
-            valuationType = if (line.isBatchManaged == false && line.valuationTypes.isNotEmpty()) st.selectedStock?.batch else null,
-            batch = if (line.isBatchManaged == true) st.selectedStock?.batch else null,
+            valuationType = st.selectedOnHandStock?.valuationType,
+            batch = st.selectedOnHandStock?.batch,
         )
         
         _state.update { it.copy(
@@ -293,12 +409,20 @@ class IssueDetailsViewModel @Inject constructor(
             val request = PostDirectIssueOnCostCenterDto(lines = st.addedLines)
             when (val result = directIssueOnCostCenterUseCase(request)) {
                 is NetworkResult.Success -> {
-                    _state.update { it.copy(saved = true, savingSuccessMessage = result.message, addedLines = emptyList()) }
+                    _state.update {
+                        it.copy(
+                            saved = true,
+                            savingSuccessMessage = Message.Real(result.message?:""),
+                            addedLines = emptyList(),
+                            reservationLines = result.data.reservationLines,
+                            filteredMaterials = result.data.reservationLines
+                        )
+                    }
                 }
-                is NetworkResult.BusinessError -> _state.update { it.copy(savingErrorMessage = result.message) }
-                is NetworkResult.HttpError -> _state.update { it.copy(savingErrorMessage = result.message) }
-                is NetworkResult.NetworkError -> _state.update { it.copy(savingErrorMessage = result.message) }
-                is NetworkResult.UnknownError -> _state.update { it.copy(savingErrorMessage = result.message) }
+                is NetworkResult.BusinessError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.HttpError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.NetworkError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.UnknownError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
                 else -> {}
             }
             _state.update { it.copy(isSaving = false) }

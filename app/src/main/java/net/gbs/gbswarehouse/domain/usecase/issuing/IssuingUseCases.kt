@@ -3,6 +3,7 @@ package net.gbs.gbswarehouse.domain.usecase.issuing
 data class IssuingUseCases(
     val getPlantWarehousesUseCase: GetPlantWarehousesUseCase,
     val getMaterialStockUseCase: GetMaterialStockUseCase,
+    val getMaterialOnHandStockUseCase: GetMaterialOnHandStockUseCase,
     val getScrapEligibleStockUseCase: GetScrapEligibleStockUseCase,
     val getStorageBinLocationIssuingUseCase: GetStorageBinLocationIssuingUseCase,
     val getTransferToProductionReservationsUseCase: GetTransferToProductionReservationsUseCase,
@@ -17,5 +18,11 @@ data class IssuingUseCases(
     val directTransferUseCase: DirectTransferUseCase,
     val getDirectIssueOnCostCenterReservationsUseCase: GetDirectIssueOnCostCenterReservationsUseCase,
     val getDirectIssueOnCostCenterReservationLinesUseCase: GetDirectIssueOnCostCenterReservationLinesUseCase,
-    val directIssueOnCostCenterUseCase: DirectIssueOnCostCenterUseCase
+    val directIssueOnCostCenterUseCase: DirectIssueOnCostCenterUseCase,
+    val getTransferOrdersUseCase: GetTransferOrdersUseCase,
+    val getTransferOrderDataUseCase: GetTransferOrderDataUseCase,
+    val issueTransferOrderUseCase: IssueTransferOrderUseCase,
+    val getDirectTransferPutAwayDocumentsUseCase: GetDirectTransferPutAwayDocumentsUseCase,
+    val getDirectTransferPutAwayLinesUseCase: GetDirectTransferPutAwayLinesUseCase,
+    val confirmDirectTransferPutAwayUseCase: ConfirmDirectTransferPutAwayUseCase
 )

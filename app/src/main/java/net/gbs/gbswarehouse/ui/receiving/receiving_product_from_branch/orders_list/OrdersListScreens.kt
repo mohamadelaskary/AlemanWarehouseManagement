@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -39,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.composables.icons.lucide.Car
+import com.composables.icons.lucide.Lucide
 import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.Screens
@@ -103,7 +106,7 @@ fun ReceivingProductFromBranchListScreen(
                     itemsIndexed(list) { index, ord ->
                         TransitPurchaseOrderCard(order = ord, accent = accent,
                             onClick = {
-                                navController.navigate(Screens.ReceivingProductFromBranchDetailsScreen.createRoute(ord.poNumber))
+                                navController.navigate(Screens.ReceivingProductFromBranchDetailsScreen.createRoute(ord.carNo ?: ""))
                             }, onMaterialsNumberButtonClicked = {
                                 viewModel.onShowMaterialsClicked(index)
                             },
@@ -179,7 +182,7 @@ fun PutAwayProductFromBranchListScreen(
             ) {
                 itemsIndexed(state.filteredPurchaseOrders) { _, it ->
                     TransitPurchaseOrderCard(it, accent, onClick =  {
-                        navController.navigate(Screens.PutAwayProductFromBranchDetailsScreen.createRoute(it.poNumber))
+                        navController.navigate(Screens.PutAwayProductFromBranchDetailsScreen.createRoute(it.carNo ?: ""))
                     })
                 }
             }
@@ -209,12 +212,33 @@ fun TransitPurchaseOrderCard(
         border = BorderStroke(1.dp, if (hovered) colors.border2 else colors.border)
     ) {
         Column(modifier = Modifier.padding(14.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "#${order.poNumber}",
-                color = accent,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Lucide.Car,
+                        contentDescription = "Car",
+                        modifier = Modifier.width(18.dp),
+                        tint = accent
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "#${order.carNo ?: ""}",
+                        color = accent,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = order.factoryCarDescription ?: "",
+                    color = colors.muted,
+                    fontSize = 10.sp
+                )
+            }
             Spacer(Modifier.height(6.dp))
             if (!order.warehouseCode.isNullOrEmpty()){
                 Text(
@@ -225,6 +249,10 @@ fun TransitPurchaseOrderCard(
                 )
                 Spacer(Modifier.height(6.dp))
             }
+            Text(order.issuingPlantDescription ?: "", color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)
+            Spacer(Modifier.height(4.dp))
+            Text("${stringResource(R.string.issuing_plant_code)}: ${order.issuingPlantCode ?: ""}", color = colors.muted, fontSize = 10.sp)
+            Spacer(Modifier.height(6.dp))
             if (isMaterialsShowed) {
                 order.purchaseOrderItems.forEach { material ->
                     TransitOrderMaterialInfoCard(material)
@@ -266,10 +294,10 @@ fun TransitOrderMaterialInfoCard(
                 )
 
                 Text(
-                    text = stringResource(R.string.remaining_quantity_) + " ${materialInfo.remainingQuantity} ${materialInfo.uom}",
-                    color = colors.muted,
-                    fontSize = 10.sp,
-                    maxLines = 1
+                    text = "#${materialInfo.poNumber ?: ""}",
+                    color = colors.green,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
             Row(
@@ -281,23 +309,32 @@ fun TransitOrderMaterialInfoCard(
                     text = materialInfo.materialDescription ?: "",
                     modifier = Modifier.weight(1f),
                     maxLines = 2,
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Start,
                     overflow = TextOverflow.Ellipsis,
-                    fontSize = 10.sp
+                    fontSize = 10.sp,
+                    color = colors.text,
                 )
-                if (!materialInfo.carNo.isNullOrEmpty()) {
-                    Row {
-                        Text(
-                            text = "🚛",
-                            fontSize = 14.sp
-                        )
-                        Spacer(Modifier.width(2.dp))
-                        Text(
-                            text = materialInfo.carNo,
-                            color = colors.text,
-                            fontSize = 10.sp
-                        )
-                    }
+                Text(
+                    text = stringResource(R.string.remaining_quantity_) + " ${materialInfo.remainingQuantity} ${materialInfo.uom}",
+                    color = colors.muted,
+                    fontSize = 10.sp,
+                    maxLines = 1,
+                )
+            }
+            if (!materialInfo.carNo.isNullOrEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                Row {
+                    Text(
+                        text = "🚛",
+                        fontSize = 14.sp,
+                        color = colors.text,
+                    )
+                    Spacer(Modifier.width(2.dp))
+                    Text(
+                        text = materialInfo.carNo,
+                        color = colors.text,
+                        fontSize = 10.sp
+                    )
                 }
             }
         }

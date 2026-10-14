@@ -5,154 +5,275 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import net.gbs.gbswarehouse.BINS
-import net.gbs.gbswarehouse.Bin
-import net.gbs.gbswarehouse.GREEN
-import net.gbs.gbswarehouse.Material
-import net.gbs.gbswarehouse.ORANGE
-import net.gbs.gbswarehouse.ORDERS
-import net.gbs.gbswarehouse.OpType
-import net.gbs.gbswarehouse.Operation
-import net.gbs.gbswarehouse.Order
 import net.gbs.gbswarehouse.QualityDecision
-import net.gbs.gbswarehouse.RAW_MATERIALS
-import net.gbs.gbswarehouse.Screens
-import net.gbs.gbswarehouse.UOM
-import net.gbs.gbswarehouse.WorkersGroup
-import kotlin.collections.filter
-import kotlin.text.lowercase
+import net.gbs.gbswarehouse.R
+import net.gbs.gbswarehouse.core.network.NetworkResult
+import net.gbs.gbswarehouse.data.remote.dto.request.CreateBlindReceiveRequestDto
+import net.gbs.gbswarehouse.domain.model.BlindReceiveMaterial
+import net.gbs.gbswarehouse.domain.model.CreateBlindReceiveResult
+import net.gbs.gbswarehouse.domain.model.Message
+import net.gbs.gbswarehouse.domain.model.Plant
+import net.gbs.gbswarehouse.domain.model.Uom
+import net.gbs.gbswarehouse.domain.model.Warehouse
+import net.gbs.gbswarehouse.domain.model.WorkersGroup
+import net.gbs.gbswarehouse.domain.usecase.GetPlantWarehousesUseCase
+import net.gbs.gbswarehouse.domain.usecase.GetAllWorkerGroupsUseCase
+import net.gbs.gbswarehouse.domain.usecase.receiving.*
+import net.gbs.gbswarehouse.spinnerLabel
+import javax.inject.Inject
 
-class BlindReceivingViewModel: ViewModel() {
+@HiltViewModel
+class BlindReceivingViewModel @Inject constructor(
+    private val searchBlindReceiveMaterialsUseCase: SearchBlindReceiveMaterialsUseCase,
+    private val getBlindReceiveUomsUseCase: GetBlindReceiveUomsUseCase,
+    private val getBlindReceiveQualityDecisionsUseCase: GetBlindReceiveQualityDecisionsUseCase,
+    private val getUserPlantsUseCase: GetUserPlantsUseCase,
+    private val getPlantWarehousesUseCase: GetPlantWarehousesUseCase,
+    private val getAllWorkerGroupsUseCase: GetAllWorkerGroupsUseCase,
+    private val createBlindReceiveUseCase: CreateBlindReceiveUseCase
+) : ViewModel() {
 
-    var selectedUOM by mutableStateOf<UOM?>(null)
-    var selectedMaterial by mutableStateOf<Material?>(null)
+    var materialCodeInput by mutableStateOf("")
+    var materialDescription by mutableStateOf("")
+    var vendorName by mutableStateOf("")
+    var quantity by mutableStateOf("")
+    var purchasingOfficer by mutableStateOf("")
+
+    var selectedMaterial by mutableStateOf<BlindReceiveMaterial?>(null)
+    var searchedMaterials by mutableStateOf<List<BlindReceiveMaterial>>(emptyList())
+    var materialSearchQuery by mutableStateOf("")
+
+    var selectedPlant by mutableStateOf<Plant?>(null)
+    var plantsList by mutableStateOf<List<Plant>>(emptyList())
+
+    var selectedWarehouse by mutableStateOf<Warehouse?>(null)
+    var warehousesList by mutableStateOf<List<Warehouse>>(emptyList())
+
     var selectedQualityDecision by mutableStateOf<QualityDecision?>(null)
-    var screen    by mutableStateOf(Screens.Home)
-        var mainCat   by mutableStateOf<String?>(null)       // "recv" | "issue"
-        var selOp     by mutableStateOf<Operation?>(null)
-        var selOpType by mutableStateOf<OpType?>(null)
-        var selOrder  by mutableStateOf<Order?>(null)
+    var qualityDecisionsList by mutableStateOf<List<QualityDecision>>(emptyList())
 
-        // list search
-        var orderSearch by mutableStateOf("")
+    var selectedWorkersGroup by mutableStateOf<WorkersGroup?>(null)
+    var workersGroupsList by mutableStateOf<List<WorkersGroup>>(emptyList())
+    var workerGroupSearchText by mutableStateOf("")
 
-        // detail fields
-        var matInput  by mutableStateOf("")
-        var matDlg    by mutableStateOf(false)
-        var matSearch by mutableStateOf("")
-        var selMat    by mutableStateOf<Material?>(null)
-        var qty       by mutableStateOf("")
-        var smpQty    by mutableStateOf("")
+    var uomInput by mutableStateOf("")
+    var uomsList by mutableStateOf<List<Uom>>(emptyList())
+    var selectedUom by mutableStateOf<Uom?>(null)
 
-        var binInput  by mutableStateOf("")
-        var binDlg    by mutableStateOf(false)
-        var selBin    by mutableStateOf<Bin?>(null)
+    var isLoading by mutableStateOf(false)
+    var isSaving by mutableStateOf(false)
+    var errorMessage by mutableStateOf<Message?>(null)
+    var successResult by mutableStateOf<Message?>(null)
+    var isSaved by mutableStateOf(false)
 
-        // blind receive
-        var bCode  by mutableStateOf("")
-        var bDesc  by mutableStateOf("")
-        var vendorName  by mutableStateOf("")
-        var bQty   by mutableStateOf("")
+    init {
+        loadInitialData()
+    }
 
-        // save state
-        var saved    by mutableStateOf(false)
-        var saveKind by mutableStateOf<String?>(null)  // "save" | "accept" | "reject"
-        var saving   by mutableStateOf(false)
-
-        // ── Computed ─────────────────────────────────────────────────────────────
-        val variant: String get() = when {
-            mainCat == "issue"            -> "issue"
-            selOpType?.id == "quality"    -> "quality"
-            selOpType?.id == "putaway"    -> "putaway"
-            else                          -> "normal"
+    fun loadInitialData() {
+        viewModelScope.launch {
+            isLoading = true
+            when (val res = getUserPlantsUseCase()) {
+                is NetworkResult.Success -> plantsList = res.data
+                is NetworkResult.BusinessError -> errorMessage = Message.real(res.message)
+                is NetworkResult.HttpError -> errorMessage = Message.real(res.message)
+                is NetworkResult.NetworkError -> errorMessage = Message.real(res.message)
+                is NetworkResult.UnknownError -> errorMessage = Message.real(res.message)
+                is NetworkResult.Loading -> {}
+            }
+            when (val res = getBlindReceiveUomsUseCase()) {
+                is NetworkResult.Success -> uomsList = res.data
+                is NetworkResult.BusinessError -> {}
+                is NetworkResult.HttpError -> {}
+                is NetworkResult.NetworkError -> {}
+                is NetworkResult.UnknownError -> {}
+                is NetworkResult.Loading -> {}
+            }
+            when (val res = getBlindReceiveQualityDecisionsUseCase()) {
+                is NetworkResult.Success -> qualityDecisionsList = res.data
+                is NetworkResult.BusinessError -> {}
+                is NetworkResult.HttpError -> {}
+                is NetworkResult.NetworkError -> {}
+                is NetworkResult.UnknownError -> {}
+                is NetworkResult.Loading -> {}
+            }
+            when (val res = getAllWorkerGroupsUseCase()) {
+                is NetworkResult.Success -> workersGroupsList = res.data
+                is NetworkResult.BusinessError -> {}
+                is NetworkResult.HttpError -> {}
+                is NetworkResult.NetworkError -> {}
+                is NetworkResult.UnknownError -> {}
+                is NetworkResult.Loading -> {}
+            }
+            isLoading = false
         }
+    }
 
-        val accent: androidx.compose.ui.graphics.Color get() =
-            if (mainCat == "issue") ORANGE else selOpType?.accent ?: GREEN
-
-        val filteredOrders: List<Order> get() {
-            val list = ORDERS["PROD"] ?: emptyList()
-            return if (orderSearch.isBlank()) list
-            else list.filter { it.id.contains(orderSearch) || it.info.contains(orderSearch) }
+    fun onMaterialCodeChanged(code: String) {
+        materialCodeInput = code
+        if (code.isBlank()) {
+            materialDescription = ""
+            selectedUom = null
+            uomInput = ""
+            selectedMaterial = null
+            searchedMaterials = emptyList()
+        } else {
+            searchMaterials(code)
         }
+    }
 
-        val filteredMaterials: List<Material> get() {
-            return if (matSearch.isBlank()) RAW_MATERIALS
-            else RAW_MATERIALS.filter {
-                it.code.lowercase().contains(matSearch.lowercase()) || it.desc.contains(matSearch)
+    private fun searchMaterials(filter: String) {
+        viewModelScope.launch {
+            when (val res = searchBlindReceiveMaterialsUseCase(filter)) {
+                is NetworkResult.Success -> {
+                    searchedMaterials = res.data
+                }
+                is NetworkResult.BusinessError,
+                is NetworkResult.HttpError,
+                is NetworkResult.NetworkError,
+                is NetworkResult.UnknownError,
+                is NetworkResult.Loading -> {
+                    searchedMaterials = emptyList()
+                }
             }
         }
+    }
 
-        val filteredBins: List<Bin> get() {
-            return if (binInput.isBlank()) BINS
-            else BINS.filter {
-                it.code.lowercase().contains(binInput.lowercase()) ||
-                        it.zone.contains(binInput) || it.aisle.contains(binInput)
+    fun selectMaterial(material: BlindReceiveMaterial) {
+        selectedMaterial = material
+        materialCodeInput = material.materialCode
+        materialDescription = material.materialDescription
+        val foundUom = uomsList.find { it.code.equals(material.uom, ignoreCase = true) || it.description.equals(material.uom, ignoreCase = true) }
+        selectedUom = foundUom ?: Uom(code = material.uom, description = material.uomDescription).also {
+            if (uomsList.none { u -> u.code.equals(it.code, ignoreCase = true) }) {
+                uomsList = uomsList + it
             }
         }
+        uomInput = selectedUom?.spinnerLabel() ?: material.uom
+        searchedMaterials = emptyList()
+    }
 
-        val blindOk: Boolean get() = bCode.trim().isNotEmpty() && bDesc.trim().isNotEmpty() && vendorName.trim().isNotEmpty() && bQty.isNotEmpty()
+    fun clearMaterial() {
+        selectedMaterial = null
+        materialCodeInput = ""
+        materialDescription = ""
+        quantity = ""
+        selectedUom = null
+        uomInput = ""
+        searchedMaterials = emptyList()
+    }
 
-        val showFixedSave: Boolean get() {
-            if (variant == "quality" || saved) return false
-            val isBlind = selOp?.blind == true
-            return when {
-                isBlind  -> blindOk
-                variant == "putaway" -> selBin != null && qty.isNotEmpty()
-                else -> selMat != null && qty.isNotEmpty()
+    fun selectPlant(plant: Plant) {
+        selectedPlant = plant
+        selectedWarehouse = null
+        warehousesList = emptyList()
+        viewModelScope.launch {
+            when (val res = getPlantWarehousesUseCase(plant.code)) {
+                is NetworkResult.Success -> warehousesList = res.data
+                is NetworkResult.BusinessError,
+                is NetworkResult.HttpError,
+                is NetworkResult.NetworkError,
+                is NetworkResult.UnknownError,
+                is NetworkResult.Loading -> warehousesList = emptyList()
             }
         }
+    }
 
-        val saveLabel: String get() = when (variant) {
-            "putaway" -> "⌘  تأكيد التسكين"
-            "issue"   -> "↑  حفظ الصرف"
-            else      -> "↓  حفظ الاستلام"
+    fun selectWarehouse(warehouse: Warehouse) {
+        selectedWarehouse = warehouse
+    }
+
+    fun selectQualityDecision(decision: QualityDecision) {
+        selectedQualityDecision = decision
+    }
+
+    fun selectWorkersGroup(group: WorkersGroup) {
+        selectedWorkersGroup = group
+        workerGroupSearchText = group.spinnerLabel()
+    }
+
+    fun onWorkersGroupSearchTextChanged(text: String) {
+        workerGroupSearchText = text
+    }
+
+    fun selectUom(uom: Uom) {
+        selectedUom = uom
+        uomInput = uom.spinnerLabel()
+    }
+
+    fun onUomInputChanged(text: String) {
+        uomInput = text
+        val query = text.trim()
+        val matched = uomsList.find {
+            it.code.equals(query, ignoreCase = true) ||
+                it.description.equals(query, ignoreCase = true) ||
+                it.spinnerLabel().equals(query, ignoreCase = true)
         }
+        selectedUom = matched ?: query.takeIf { it.isNotEmpty() }?.let { Uom(code = it, description = it) }
+    }
 
-        // ── Navigation ─────────────────────────────────────────────────────────
+    val isValid: Boolean get() {
+        val matCodeEmpty = materialCodeInput.isBlank()
+        val descValid = if (matCodeEmpty) materialDescription.isNotBlank() else true
+        val uomValid = if (matCodeEmpty) uomInput.isNotBlank() else true
+        val qtyVal = quantity.toDoubleOrNull() ?: 0.0
+        return descValid && uomValid && qtyVal > 0.0 && selectedPlant != null && selectedWarehouse != null
+    }
 
+    fun saveBlindReceive() {
+        if (!isValid) return
+        val qtyVal = quantity.toDoubleOrNull() ?: 0.0
+        val qualityId = selectedQualityDecision?.id?.toIntOrNull()
 
+        val request = CreateBlindReceiveRequestDto(
+            materialCode = materialCodeInput.takeIf { it.isNotBlank() },
+            materialDescription = materialDescription,
+            vendorName = vendorName.takeIf { it.isNotBlank() },
+            workerGroupCode = selectedWorkersGroup?.workerGroupCode,
+            quantity = qtyVal,
+            uom = selectedUom?.code ?: selectedMaterial?.uom ?: "",
+            qualityDecisionId = qualityId,
+            purchasingOfficer = purchasingOfficer.takeIf { it.isNotBlank() },
+            plantCode = selectedPlant?.code,
+            warehouseCode = selectedWarehouse?.warehouseCode
+        )
 
-
-        // ── Detail actions ──────────────────────────────────────────────────────
-        fun selectMaterial(mat: Material) {
-            selMat = mat; matInput = mat.code; matDlg = false; matSearch = ""
-        }
-
-        fun clearMaterial() {
-            selMat = null; matInput = ""; qty = ""; smpQty = ""
-            matSearch = ""; binInput = ""; selBin = null
-            selectedUOM = null; selectedMaterial = null; selectedQualityDecision = null
-            selectedWorkersGroup = null; qualityDecider = ""
-            bCode = ""; bDesc = ""; vendorName = ""; bQty = ""
-        }
-
-        fun selectBin(bin: Bin) { selBin = bin; binInput = bin.code; binDlg = false }
-
-        fun clearBin() { selBin = null; binInput = ""; qty = "" }
-
-        fun doSave(kind: String) {
-            viewModelScope.launch {
-                saving = true
-                delay(1200)
-                saving = false
-                saved = true
-                saveKind = kind
+        viewModelScope.launch {
+            isSaving = true
+            errorMessage = null
+            when (val res = createBlindReceiveUseCase(request)) {
+                is NetworkResult.Success -> {
+                    successResult = Message.of(res.message, R.string.success_save)
+                    isSaved = true
+                    clearAllData()
+                }
+                is NetworkResult.BusinessError -> errorMessage = Message.real(res.message)
+                is NetworkResult.HttpError -> errorMessage = Message.real(res.message)
+                is NetworkResult.NetworkError -> errorMessage = Message.real(res.message)
+                is NetworkResult.UnknownError -> errorMessage = Message.real(res.message)
+                is NetworkResult.Loading -> {}
             }
+            isSaving = false
         }
+    }
 
-        private fun resetDetail() {
-            selMat = null; qty = ""; smpQty = ""; selBin = null
-            binInput = ""; matInput = ""; matSearch = ""
-            saved = false; saveKind = null; saving = false
-            bCode = ""; bDesc = ""; bQty = "";vendorName=""
-        }
-    var selectedWorkersGroup  by mutableStateOf<WorkersGroup?>(null)
-    var qualityDecider by mutableStateOf("")
-    val showSaveButton : Boolean
-        get() =  bCode.trim().isNotEmpty() && bDesc.trim().isNotEmpty() && vendorName.trim().isNotEmpty() && bQty.isNotEmpty() && selectedWorkersGroup != null && selectedQualityDecision != null && selBin != null && qualityDecider.isNotEmpty()
-
+    fun clearAllData() {
+        materialCodeInput = ""
+        materialDescription = ""
+        vendorName = ""
+        quantity = ""
+        purchasingOfficer = ""
+        selectedMaterial = null
+        selectedPlant = null
+        selectedWarehouse = null
+        selectedQualityDecision = null
+        selectedWorkersGroup = null
+        workerGroupSearchText = ""
+        selectedUom = null
+        uomInput = ""
+        warehousesList = emptyList()
+        searchedMaterials = emptyList()
+    }
 }
-

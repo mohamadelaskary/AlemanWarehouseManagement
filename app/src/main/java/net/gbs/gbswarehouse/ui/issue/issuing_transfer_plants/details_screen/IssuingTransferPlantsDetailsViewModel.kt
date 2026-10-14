@@ -1,0 +1,490 @@
+package net.gbs.gbswarehouse.ui.issue.issuing_transfer_plants.details_screen
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import net.gbs.gbswarehouse.R
+import net.gbs.gbswarehouse.core.network.NetworkResult
+import net.gbs.gbswarehouse.data.remote.dto.request.IssueTransferOrderDto
+import net.gbs.gbswarehouse.data.remote.dto.request.IssueTransferOrderLineDto
+import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
+import net.gbs.gbswarehouse.domain.model.Message
+import net.gbs.gbswarehouse.domain.model.TransferOrderItem
+import net.gbs.gbswarehouse.domain.usecase.GetAllWorkerGroupsUseCase
+import net.gbs.gbswarehouse.domain.usecase.issuing.GetMaterialOnHandStockUseCase
+import net.gbs.gbswarehouse.domain.usecase.issuing.GetStorageBinLocationIssuingUseCase
+import net.gbs.gbswarehouse.domain.usecase.issuing.GetTransferOrderDataUseCase
+import net.gbs.gbswarehouse.domain.usecase.issuing.IssueTransferOrderUseCase
+import net.gbs.gbswarehouse.ui.issue.issuing_transfer_plants.details_screen.IssuingTransferPlantsDetailsEvent.*
+import javax.inject.Inject
+import net.gbs.gbswarehouse.StockSelectionRestore
+import net.gbs.gbswarehouse.resolveStockSelection
+
+@HiltViewModel
+class IssuingTransferPlantsDetailsViewModel @Inject constructor(
+    private val getTransferOrderDataUseCase: GetTransferOrderDataUseCase,
+    private val getStorageBinLocationIssuingUseCase: GetStorageBinLocationIssuingUseCase,
+    private val issueTransferOrderUseCase: IssueTransferOrderUseCase,
+    private val getMaterialOnHandStockUseCase: GetMaterialOnHandStockUseCase,
+    private val getAllWorkerGroupsUseCase: GetAllWorkerGroupsUseCase,
+): ViewModel() {
+
+    private val _state = MutableStateFlow(IssuingTransferPlantsDetailsState())
+    val state: StateFlow<IssuingTransferPlantsDetailsState> = _state.asStateFlow()
+
+    /**
+     * Batch / valuation type + quantity of the line being edited, held until the stock
+     * list for its bin has been re-fetched by loadStock.
+     */
+    private var pendingStockRestore: StockSelectionRestore? = null
+
+    fun onBarcodeScanned(barcode: String) {
+        onEvent(OnBarcodeScanned(barcode))
+    }
+
+    fun onEvent(event: IssuingTransferPlantsDetailsEvent) {
+        when (event) {
+            is LoadOrderDetails -> loadOrderDetails(event.carNo)
+            is OnBarcodeScanned -> {
+                if (_state.value.selItem == null) {
+                    val item = _state.value.orderItems.find { it.materialCode == event.barcode }
+                    if (item != null) {
+                        onEvent(OnItemSelected(item))
+                    } else {
+                        _state.update {
+                            it.copy(
+                                matErrorMessage = Message.Resource(R.string.material_not_found_in_list),
+                                matDlg = false
+                            )
+                        }
+                    }
+                } else if (_state.value.binInput.isEmpty() || _state.value.selBinData == null) {
+                    onEvent(OnScanBin(event.barcode))
+                } else {
+                    val item = _state.value.orderItems.find { it.materialCode == event.barcode }
+                    if (item != null) {
+                        onEvent(OnItemSelected(item))
+                    }
+                }
+            }
+            is OnBinInputChanged -> _state.update { it.copy(binInput = event.text, binCodeError = null) }
+            is OnScanBin -> scanBin(event.binCode)
+            OnClearBin -> clearBin()
+
+            is OnMaterialSearchTextChanged -> {
+                _state.update { state ->
+                    val available = state.orderItems.filterNot { it.isFullyIssued() }
+                    val filtered = if (event.text.isEmpty()) {
+                        available
+                    } else {
+                        available.filter {
+                            it.materialCode?.contains(event.text, ignoreCase = true) == true ||
+                            it.materialDescription?.contains(event.text, ignoreCase = true) == true
+                        }
+                    }
+                    state.copy(matSearchText = event.text, filteredItems = filtered)
+                }
+            }
+            is OnItemSelected -> selectItem(event.item)
+            OnClearItem -> clearItem()
+            OnToggleItemDialog -> _state.update { it.copy(matDlg = !it.matDlg) }
+
+            is OnStockSearchTextChanged -> _state.update { it.copy(stockSearch = event.text) }
+            is OnOnHandStockSelected -> onOnHandStockSelected(event.stock)
+
+            is OnDestinationChanged -> _state.update { it.copy(destination = event.text, destinationError = null) }
+            is OnWorkersGroupSelected -> _state.update { it.copy(selectedWorkersGroup = event.workersGroup, workersGroupError = null) }
+            is OnWorkersGroupSearchTextChanged -> _state.update { it.copy(workersGroupSearchText = event.text) }
+
+            is OnQtyChanged -> {
+                val maxQty = _state.value.maxQty
+                val qtyValue = event.text.toDoubleOrNull() ?: 0.0
+                val error = if (qtyValue > maxQty) {
+                    Message.Resource(R.string.qty_exceed_max_qty) + formatQty(maxQty)
+                } else null
+                _state.update { it.copy(qty = event.text, qtyError = error) }
+            }
+            OnAddLine -> addLine()
+            OnIssueAll -> issueAll()
+            OnDismissError -> _state.update { it.copy(qtyError = null) }
+            is OnDeleteLine -> removeItem(event.materialCode)
+            is OnEditLine -> editLine(event.addedLine)
+
+            OnDismissSuccess -> {
+                _state.update {
+                    it.copy(
+                        saved = false,
+                        savingErrorMessage = null,
+                        savingSuccessMessage = null
+                    )
+                }
+            }
+        }
+    }
+
+    private fun formatQty(qty: Double): String {
+        return if (qty % 1.0 == 0.0) qty.toLong().toString() else qty.toString()
+    }
+
+    private fun TransferOrderItem.isFullyIssued(): Boolean {
+        return (remainingQuantity ?: 0.0) <= 0.0
+    }
+
+    private fun removeItem(materialCode: String) {
+        val line = _state.value.addedLines.find { it.materialCode == materialCode }
+        if (line != null) {
+            _state.update { it.copy(addedLines = it.addedLines - line) }
+        }
+    }
+
+    private fun editLine(addedLine: IssueTransferOrderLineDto) {
+        removeItem(addedLine.materialCode)
+        val item = _state.value.orderItems.find { it.materialCode == addedLine.materialCode } ?: return
+        selectItem(item)
+        _state.update { it.copy(binInput = addedLine.storageBinCode) }
+        if (addedLine.storageBinCode.isEmpty()) {
+            pendingStockRestore = null
+            _state.update { it.copy(qty = formatQty(addedLine.quantity)) }
+            return
+        }
+        // Re-scan the bin to rebuild the stock list, then re-apply the saved batch /
+        // valuation type and quantity once that list arrives.
+        pendingStockRestore = StockSelectionRestore(
+            batch = addedLine.batch,
+            valuationType = addedLine.valuationType,
+            qty = formatQty(addedLine.quantity)
+        )
+        scanBin(addedLine.storageBinCode)
+    }
+
+    private fun loadOrderDetails(carNo: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, loadingErrorMessage = null, carNo = carNo) }
+            when (val result = getTransferOrderDataUseCase(carNo)) {
+                is NetworkResult.Success -> {
+                    val order = result.data
+                    val items = order?.lines ?: emptyList()
+                    _state.update {
+                        it.copy(
+                            transferOrder = order,
+                            orderItems = items,
+                            filteredItems = items.filterNot { it.isFullyIssued() }
+                        )
+                    }
+                }
+                is NetworkResult.BusinessError -> _state.update { it.copy(loadingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.HttpError -> _state.update { it.copy(loadingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.NetworkError -> _state.update { it.copy(loadingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.UnknownError -> _state.update { it.copy(loadingErrorMessage = Message.Real(result.message)) }
+                else -> {}
+            }
+
+            when (val wgResult = getAllWorkerGroupsUseCase()) {
+                is NetworkResult.Success -> {
+                    _state.update { it.copy(workersGroups = wgResult.data ?: emptyList()) }
+                }
+                else -> {}
+            }
+
+            _state.update { it.copy(isLoading = false) }
+        }
+    }
+
+    private fun scanBin(binCode: String) {
+        val item = _state.value.selItem
+        if (item == null) {
+            _state.update { it.copy(binCodeError = Message.Resource(R.string.please_scan_bin_code_first)) }
+            return
+        }
+
+        viewModelScope.launch {
+            _state.update { it.copy(isBinLoading = true, binCodeError = null) }
+            when (val result = getStorageBinLocationIssuingUseCase(binCode)) {
+                is NetworkResult.Success -> {
+                    val binData = result.data
+                    _state.update {
+                        it.copy(
+                            selBinData = binData,
+                            binInput = binData?.storageBinCode ?: binCode,
+                            binCodeError = null
+                        )
+                    }
+                    loadStock(item, binData?.storageBinCode ?: binCode)
+                }
+                is NetworkResult.BusinessError -> _state.update {
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                }
+                is NetworkResult.HttpError -> _state.update {
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                }
+                is NetworkResult.NetworkError -> _state.update {
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                }
+                is NetworkResult.UnknownError -> _state.update {
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                }
+                else -> {}
+            }
+            _state.update { it.copy(isBinLoading = false) }
+        }
+    }
+
+    private fun clearBin() {
+        _state.update {
+            it.copy(
+                selBinData = null,
+                binInput = "",
+                binCodeError = null,
+                qty = "",
+                selectedOnHandStock = null,
+                stockOnHandList = emptyList(),
+                availableStock = 0.0,
+                maxQty = 0.0
+            )
+        }
+    }
+
+    private fun selectItem(item: TransferOrderItem) {
+        val alreadyAdded = _state.value.addedLines.find { it.materialCode == item.materialCode }
+        if (alreadyAdded != null) {
+            _state.update {
+                it.copy(
+                    matErrorMessage = Message.Resource(R.string.material_already_added),
+                    matDlg = false
+                )
+            }
+            return
+        }
+
+        if (item.isFullyIssued()) {
+            _state.update {
+                it.copy(
+                    matErrorMessage = Message.Resource(R.string.material_already_fully_issued),
+                    matDlg = false
+                )
+            }
+            return
+        }
+
+        _state.update {
+            it.copy(
+                selItem = item,
+                matInput = item.materialCode ?: "",
+                matErrorMessage = null,
+                matDlg = false,
+                selBinData = null,
+                binInput = "",
+                binCodeError = null,
+                stockOnHandList = emptyList(),
+                selectedOnHandStock = null,
+                availableStock = 0.0,
+                maxQty = 0.0,
+                qty = "",
+                selectedWorkersGroup = null,
+                workersGroupError = null
+            )
+        }
+    }
+
+    private fun loadStock(item: TransferOrderItem, storageBinCode: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isStockLoading = true, stockError = null) }
+            when (val result = getMaterialOnHandStockUseCase(storageBinCode, item.materialCode ?: "")) {
+                is NetworkResult.Success -> {
+                    val stockList = result.data ?: emptyList()
+                    if (stockList.isEmpty()) {
+                        _state.update {
+                            it.copy(
+                                stockOnHandList = emptyList(),
+                                selectedOnHandStock = null,
+                                availableStock = 0.0,
+                                maxQty = 0.0,
+                                qty = "0",
+                                stockError = Message.Resource(R.string.no_stock_available)
+                            )
+                        }
+                    } else {
+                        val isBatchManaged = stockList.any { it.isBatchManaged == true }
+                        val hasValuationType = !isBatchManaged && stockList.any { !it.valuationType.isNullOrEmpty() }
+
+                        val resolved = resolveStockSelection(
+                            stockList = stockList,
+                            remainingQty = item.remainingQuantity ?: 0.0,
+                            pending = pendingStockRestore
+                        )
+                        pendingStockRestore = null
+                        _state.update {
+                            it.copy(
+                                stockOnHandList = stockList,
+                                selectedOnHandStock = resolved.selected,
+                                availableStock = resolved.availableQty,
+                                maxQty = resolved.maxQty,
+                                qty = resolved.qty,
+                                stockSearch = resolved.searchText,
+                                qtyError = null,
+                                stockError = null
+                            )
+                        }
+                    }
+                }
+                is NetworkResult.BusinessError -> _state.update { it.copy(stockError = Message.Real(result.message)) }
+                is NetworkResult.HttpError -> _state.update { it.copy(stockError = Message.Real(result.message)) }
+                is NetworkResult.NetworkError -> _state.update { it.copy(stockError = Message.Real(result.message)) }
+                is NetworkResult.UnknownError -> _state.update { it.copy(stockError = Message.Real(result.message)) }
+                else -> {}
+            }
+            _state.update { it.copy(isStockLoading = false) }
+        }
+    }
+
+    private fun onOnHandStockSelected(stock: MaterialOnHandStock) {
+        val availQty = stock.availableQty ?: 0.0
+        val remainingQty = _state.value.selItem?.remainingQuantity ?: 0.0
+        val maxQty = minOf(remainingQty, availQty)
+        _state.update {
+            it.copy(
+                selectedOnHandStock = stock,
+                availableStock = availQty,
+                maxQty = maxQty,
+                qty = if (maxQty > 0) formatQty(maxQty) else "0",
+                stockError = null,
+                qtyError = null
+            )
+        }
+    }
+
+    private fun clearItem() {
+        _state.update {
+            it.copy(
+                selItem = null,
+                selectedOnHandStock = null,
+                matInput = "",
+                qty = "",
+                stockOnHandList = emptyList(),
+                stockSearch = "",
+                matSearchText = "",
+                matErrorMessage = null,
+                availableStock = 0.0,
+                maxQty = 0.0,
+                qtyError = null,
+                stockError = null,
+                binInput = "",
+                selBinData = null,
+                binCodeError = null,
+                selectedWorkersGroup = null,
+                workersGroupError = null
+            )
+        }
+    }
+
+    private fun addLine() {
+        val st = _state.value
+        val item = st.selItem ?: return
+        val bin = st.selBinData ?: return
+        val order = st.transferOrder ?: return
+
+        var hasError = false
+        val isBatchManaged = st.stockOnHandList.any { it.isBatchManaged == true }
+        val hasValuationType = !isBatchManaged && st.stockOnHandList.any { !it.valuationType.isNullOrEmpty() }
+
+        if ((isBatchManaged || hasValuationType) && st.selectedOnHandStock == null) {
+            val err: Message = if (isBatchManaged) {
+                Message.Resource(R.string.select_a_batch)
+            } else {
+                Message.Resource(R.string.select_valuation_type)
+            }
+            _state.update { it.copy(stockError = err) }
+            hasError = true
+        }
+
+
+        if (st.selectedWorkersGroup == null) {
+            _state.update { it.copy(workersGroupError = Message.Resource(R.string.please_select_workers_group)) }
+            hasError = true
+        }
+
+        val qtyValue = st.qty.toDoubleOrNull() ?: 0.0
+        if (qtyValue <= 0) {
+            _state.update { it.copy(qtyError = Message.Resource(R.string.please_enter_a_valid_quantity)) }
+            hasError = true
+        }
+
+        if (qtyValue > st.maxQty) {
+            _state.update { it.copy(qtyError = Message.Resource(R.string.qty_exceed_max_qty) + formatQty(st.maxQty)) }
+            hasError = true
+        }
+
+        if (hasError) return
+
+        val newLine = IssueTransferOrderLineDto(
+            materialCode = item.materialCode ?: "",
+            plantCode = item.issuingPlantCode ?: "",
+            warehouseCode = bin.warehouseCode ?: "",
+            receivingPlantCode = item.receivingPlantCode ?: "",
+            purchaseOrder = item.poNumber ?: order.poNumber ?: "",
+            purchaseOrderItem = item.poItemNumber ?: "",
+            uom = item.uom ?: "",
+            quantity = qtyValue,
+            storageBinCode = bin.storageBinCode ?: "",
+            batch = st.selectedOnHandStock?.batch,
+            valuationType = st.selectedOnHandStock?.valuationType,
+            carNo = order.carNo,
+            workerGroupCode = st.selectedWorkersGroup?.workerGroupCode
+        )
+
+        _state.update {
+            it.copy(
+                addedLines = it.addedLines + newLine
+            )
+        }
+        clearItem()
+    }
+
+    private fun issueAll() {
+        val st = _state.value
+        val order = st.transferOrder ?: return
+        val destination = st.destination
+        if (destination.isEmpty()){
+            _state.update { it.copy(destinationError = Message.Resource(R.string.please_enter_destination)) }
+            return
+        }
+
+        if (st.addedLines.isEmpty() || st.isSaving) return
+
+        viewModelScope.launch {
+            _state.update { it.copy(isSaving = true, savingErrorMessage = null) }
+            val request = IssueTransferOrderDto(
+                destination = st.destination,
+                poNumber = order.lines.firstOrNull()?.poNumber ?: order.poNumber ?: st.carNo,
+                lines = st.addedLines
+            )
+            when (val result = issueTransferOrderUseCase(request)) {
+                is NetworkResult.Success -> {
+                    val updatedOrder = result.data?.transferOrder
+                    val newItems = updatedOrder?.lines ?: emptyList()
+                    _state.update {
+                        it.copy(
+                            saved = true,
+                            savingSuccessMessage = Message.real(result.message),
+                            addedLines = emptyList(),
+                            transferOrder = updatedOrder ?: it.transferOrder,
+                            orderItems = newItems,
+                            filteredItems = newItems.filterNot { it.isFullyIssued() }
+                        )
+                    }
+                }
+                is NetworkResult.BusinessError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.HttpError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.NetworkError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.UnknownError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
+                else -> {}
+            }
+            _state.update { it.copy(isSaving = false) }
+        }
+    }
+}

@@ -1,5 +1,7 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen
 
+import net.gbs.gbswarehouse.TransportationType
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.PurchaseOrder
 import net.gbs.gbswarehouse.domain.model.SparePartsLine
 import net.gbs.gbswarehouse.domain.model.SparePartsMaterial
@@ -29,24 +31,25 @@ data class ReceivingSparePartsFromVendorState (
     val quantity:String = "",
 
     val addedItems:List<SparePartsLine> = emptyList(),
-    val materialCodeError : String = "",
-    val searchError : String = "",
-    val quantityError: String = "",
-    val warehouseError: String = "",
-    val valuationTypeError: String = "",
-    val error:String="",
-    val savingSuccessStatusMessage:String = "",
-    val savingErrorStatusMessage:String = "",
+    val materialCodeError : Message? = null,
+    val searchError : Message? = null,
+    val quantityError: Message? = null,
+    val warehouseError: Message? = null,
+    val valuationTypeError: Message? = null,
+    val error:Message? = null,
+    val savingSuccessStatusMessage:Message? = null,
+    val savingErrorStatusMessage:Message? = null,
     val isSavingLoading:Boolean = false,
     val showSuccessDialog:Boolean = false,
     val showErrorDialog:Boolean = false,
     val warehouseSearchText: String = "",
     val valuationSearchText: String = "",
-)
+    val transportationVendor: TransportationType? = null,
+    )
 
 sealed class PurchaseOrderGetDataStatus {
     data object IDLE : PurchaseOrderGetDataStatus()
     data object LOADING : PurchaseOrderGetDataStatus()
     data class SUCCESS(val po: PurchaseOrder) : PurchaseOrderGetDataStatus()
-    data class ERROR(val error: String) : PurchaseOrderGetDataStatus()
+    data class ERROR(val error: Message) : PurchaseOrderGetDataStatus()
 }

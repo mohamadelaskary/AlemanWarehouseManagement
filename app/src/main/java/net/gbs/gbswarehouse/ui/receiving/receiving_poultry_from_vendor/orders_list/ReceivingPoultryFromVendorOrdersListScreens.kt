@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,6 +42,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.composables.icons.lucide.Car
+import com.composables.icons.lucide.Lucide
 import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.Screens
@@ -65,7 +69,7 @@ fun ReceivingPoultryFromVendorListScreen(
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         TopBar(
             title = stringResource(R.string.receiving),
-            subtitle = stringResource(R.string.packaging_materials_from_vendor),
+            subtitle = stringResource(R.string.poultry_from_vendor),
             accent = accent,
             onBack = { navController.popBackStack() }
         )
@@ -122,7 +126,7 @@ fun ReceivingPoultryFromVendorListScreen(
                         itemsIndexed(list) { index, ord ->
                             PoultryPurchaseOrderCard(order = ord, accent = accent,
                                 onClick = {
-                                    navController.navigate(Screens.ReceivingPoultryFromVendorDetailsScreen.createRoute(ord.poNumber))
+                                    navController.navigate(Screens.ReceivingPoultryFromVendorDetailsScreen.createRoute(ord.carNo ?: ""))
                                 }, onMaterialsNumberButtonClicked = {
                                     viewModel.onEvent(ReceivingPoultryFromVendorOrdersListEvent.OnShowMaterialsButtonClicked(index))
                                 }, isMaterialsShowed = state.isMaterialsShowed && state.showMaterialsClickedCardIndex == index)
@@ -156,15 +160,39 @@ fun PoultryPurchaseOrderCard(
         ),
         border = BorderStroke(1.dp, if (hovered) colors.border2 else colors.border)
     ) {
-        Column(modifier = Modifier.padding(14.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "#${order.poNumber}",
-                color = accent,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
+        Column(modifier = Modifier.padding(14.dp).fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Lucide.Car,
+                        contentDescription = "Car",
+                        modifier = Modifier.size(18.dp),
+                        tint = accent
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "#${order.carNo ?: ""}",
+                        color = accent,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+                if (!order.factoryCarDescription.isNullOrBlank()) {
+                    Text(
+                        text = order.factoryCarDescription,
+                        color = colors.muted,
+                        fontSize = 10.sp
+                    )
+                }
+            }
             Spacer(Modifier.height(6.dp))
             Text(order.vendorName ?: "", color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)
+            Spacer(Modifier.height(4.dp))
+            Text("${stringResource(R.string.vendor_code)}: ${order.vendorCode ?: ""}", color = colors.muted, fontSize = 10.sp)
             Spacer(Modifier.height(6.dp))
             if (isMaterialsShowed){
                 order.purchaseOrderItems.forEachIndexed { index, material ->
@@ -173,7 +201,7 @@ fun PoultryPurchaseOrderCard(
             }
             if(!isMaterialsShowed){
                 OutlineBtn(
-                    "${order.purchaseOrderItems.size} ${stringResource(R.string.items)}",
+                    "${order.purchaseOrderItems.size} "+stringResource(R.string.items),
                     accent
                 ) {
                     onMaterialsNumberButtonClicked()
@@ -188,36 +216,51 @@ fun PoultryMaterialInfoCard(
     materialInfo: PoultryMaterialsPurchaseOrderItem,
     last: Boolean
 ) {
-    Card {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = materialInfo.materialCode ?: "",
-                color = AppTheme.colors.text,
-                fontSize = 12.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = materialInfo.materialDescription ?: "",
-                modifier = Modifier.weight(1f),
-                maxLines = 2,
-                textAlign = TextAlign.Center,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 10.sp
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "${materialInfo.receivedQuantity}/${materialInfo.orderedQuantity}${materialInfo.uom}",
-                color = AppTheme.colors.muted,
-                fontSize = 10.sp,
-                maxLines = 1
-            )
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.dark)
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = materialInfo.materialCode ?: "",
+                    color = AppTheme.colors.text,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "#${materialInfo.poNumber ?: ""}",
+                    color = AppTheme.colors.green,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = materialInfo.materialDescription ?: "",
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    textAlign = TextAlign.Start,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 10.sp,
+                    color = AppTheme.colors.text
+                )
+                Text(
+                    text = "${stringResource(R.string.remaining_quantity_)} ${materialInfo.remainingQuantity} ${materialInfo.uom}",
+                    color = AppTheme.colors.muted,
+                    fontSize = 10.sp
+                )
+            }
         }
     }
     if (!last) {

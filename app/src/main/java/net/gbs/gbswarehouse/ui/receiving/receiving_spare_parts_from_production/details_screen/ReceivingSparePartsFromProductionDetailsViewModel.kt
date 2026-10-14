@@ -1,10 +1,8 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_production.details_screen
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -14,6 +12,7 @@ import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.data.remote.dto.response.PostSparePartsReturnDto
 import net.gbs.gbswarehouse.data.remote.dto.response.SparePartsReturnLineDto
 import net.gbs.gbswarehouse.data.remote.mapper.toDto
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnLine
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationOrder
 import net.gbs.gbswarehouse.domain.usecase.GetPlantWarehousesUseCase
@@ -21,10 +20,11 @@ import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllWorkerGroupsUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetSparePartsReturnReservationLinesUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.PostSparePartsReturnUseCase
 import javax.inject.Inject
+import net.gbs.gbswarehouse.formatQty
+import net.gbs.gbswarehouse.spinnerLabel
 
 @HiltViewModel
 class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val getSparePartsReturnReservationLinesUseCase: GetSparePartsReturnReservationLinesUseCase,
     private val getPlantWarehousesUseCase: GetPlantWarehousesUseCase,
     private val getAllWorkerGroupsUseCase: GetAllWorkerGroupsUseCase,
@@ -53,7 +53,7 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
              //   loadWorkerGroups()
             }
             is ReceivingSparePartsFromProductionDetailsEvent.OnMaterialCodeInputEntered -> {
-                _uiState.update { it.copy(materialCodeInput = event.barcode, materialCodeError = "") }
+                _uiState.update { it.copy(materialCodeInput = event.barcode, materialCodeError = null) }
                 selectMaterial(event.barcode)
             }
             is ReceivingSparePartsFromProductionDetailsEvent.OnMaterialSearchTextChanged -> {
@@ -68,10 +68,10 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
                 selectMaterial(event.materialCode)
             }
             is ReceivingSparePartsFromProductionDetailsEvent.OnQuantityEntered -> {
-                _uiState.update { it.copy(quantity = event.quantity, quantityError = "") }
+                _uiState.update { it.copy(quantity = event.quantity, quantityError = null) }
             }
             is ReceivingSparePartsFromProductionDetailsEvent.OnWarehouseSelected -> {
-                _uiState.update { it.copy(selectedWarehouse = event.warehouse, warehouseError = "", warehouseSearchText = event.warehouse.warehouseDescription) }
+                _uiState.update { it.copy(selectedWarehouse = event.warehouse, warehouseError = null, warehouseSearchText = event.warehouse.warehouseDescription) }
             }
             is ReceivingSparePartsFromProductionDetailsEvent.OnWarehouseSearchTextChanged -> {
                 _uiState.update { it.copy(warehouseSearchText = event.text) }
@@ -80,10 +80,10 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
                 _uiState.update { it.copy(itemText = event.notes) }
             }
             is ReceivingSparePartsFromProductionDetailsEvent.OnGoodsRecipientEntered -> {
-                _uiState.update { it.copy(recipientName = event.name, recipientNameError = "") }
+                _uiState.update { it.copy(recipientName = event.name, recipientNameError = null) }
             }
             is ReceivingSparePartsFromProductionDetailsEvent.OnValuationTypeSelected -> {
-                _uiState.update { it.copy(selectedValuationType = event.valuationType, valuationTypeError = "") }
+                _uiState.update { it.copy(selectedValuationType = event.valuationType, valuationTypeError = null) }
             }
 //            is ReceivingSparePartsFromProductionDetailsEvent.OnUnloadingPointEntered -> {
 //                _uiState.update { it.copy(unloadingPoint = event.unloadingPoint) }
@@ -101,6 +101,7 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
                     state.copy(addedItems = newList)
                 }
             }
+            is ReceivingSparePartsFromProductionDetailsEvent.OnEditAddedItemClicked -> editAddedItem(event.index)
             ReceivingSparePartsFromProductionDetailsEvent.OnSaveButtonClicked -> {
                 saveReceiving()
             }
@@ -124,7 +125,7 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
 
     private fun loadReservationLines(reservationNumber: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isMaterialsLoading = true, error = "") }
+            _uiState.update { it.copy(isMaterialsLoading = true, error = null) }
             when (val result = getSparePartsReturnReservationLinesUseCase(reservationNumber)) {
                 is NetworkResult.Success -> {
                     _uiState.update {
@@ -145,7 +146,7 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
                         is NetworkResult.NetworkError -> result.message
                         else -> "Error loading materials"
                     }
-                    _uiState.update { it.copy(error = message, isMaterialsLoading = false) }
+                    _uiState.update { it.copy(error = Message.real(message), isMaterialsLoading = false) }
                 }
             }
         }
@@ -169,13 +170,13 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
         if (material != null) {
             val alreadyAdded = state.addedItems.any { it.reservationItem == material.reservationItem }
             if (alreadyAdded) {
-                _uiState.update { it.copy(materialCodeError = context.getString(R.string.material_already_added)) }
+                _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added)) }
                 return
             }
-            _uiState.update { it.copy(selectedMaterial = material, materialCodeInput = materialCode, materialCodeError = "", quantity = (material.remainingQuantity ?: 0.0).toString()) }
+            _uiState.update { it.copy(selectedMaterial = material, materialCodeInput = materialCode, materialCodeError = null, quantity = (material.remainingQuantity ?: 0.0).toString()) }
             loadWarehouses(material.plantCode?:"")
         } else {
-            _uiState.update { it.copy(materialCodeError = context.getString(R.string.wrong_material_code)) }
+            _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.wrong_material_code)) }
         }
     }
 
@@ -202,19 +203,19 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
 
         if (mat == null) return
         if (qty <= 0) {
-            _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
+            _uiState.update { it.copy(quantityError = Message.Resource(R.string.please_enter_a_valid_quantity)) }
             return
         }
         if (wh == null) {
-            _uiState.update { it.copy(warehouseError = context.getString(R.string.please_select_a_warehouse)) }
+            _uiState.update { it.copy(warehouseError = Message.Resource(R.string.please_select_a_warehouse)) }
             return
         }
         if (recipientName.isBlank()) {
-            _uiState.update { it.copy(recipientNameError = context.getString(R.string.please_enter_goods_recipient_name)) }
+            _uiState.update { it.copy(recipientNameError = Message.Resource(R.string.please_enter_goods_recipient_name)) }
             return
         }
         if (mat.valuationTypes.isNotEmpty() && valuationType == null) {
-            _uiState.update { it.copy(valuationTypeError = context.getString(R.string.please_select_a_valuation_type)) }
+            _uiState.update { it.copy(valuationTypeError = Message.Resource(R.string.please_select_a_valuation_type)) }
             return
         }
 
@@ -243,7 +244,7 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
                 materialCodeInput = "",
                 warehouseSearchText = "",
                 valuationSearchText = "",
-                itemText = "",
+                itemText = null,
                 recipientName = ""
             )
         }
@@ -266,11 +267,11 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
             } else {
                 // Show errors if user tried to save without adding and current selection is incomplete
                 if (mat == null) return
-                if (qty <= 0) { _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }; return }
-                if (wh == null) { _uiState.update { it.copy(warehouseError = context.getString(R.string.please_select_a_warehouse)) }; return }
-                if (recipientName.isBlank()) { _uiState.update { it.copy(recipientNameError = context.getString(R.string.please_enter_goods_recipient_name)) }; return }
+                if (qty <= 0) { _uiState.update { it.copy(quantityError = Message.Resource(R.string.please_enter_a_valid_quantity)) }; return }
+                if (wh == null) { _uiState.update { it.copy(warehouseError = Message.Resource(R.string.please_select_a_warehouse)) }; return }
+                if (recipientName.isBlank()) { _uiState.update { it.copy(recipientNameError = Message.Resource(R.string.please_enter_goods_recipient_name)) }; return }
                 if (mat.valuationTypes.isNotEmpty() && valuationType == null) {
-                    _uiState.update { it.copy(valuationTypeError = context.getString(R.string.please_select_a_valuation_type)) }
+                    _uiState.update { it.copy(valuationTypeError = Message.Resource(R.string.please_select_a_valuation_type)) }
                     return
                 }
             }
@@ -287,12 +288,24 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
             
             when (val result = postSparePartsReturnUseCase(request)) {
                 is NetworkResult.Success -> {
+                    val updatedLines = result.data.reservationLines
                     _uiState.update {
                         it.copy(
                             isSaving = false,
                             showSuccessDialog = true,
-                            successMessage = context.getString(R.string.success_save),
-                            addedItems = emptyList()
+                            successMessage = Message.of(result.message, R.string.success_save),
+                            addedItems = emptyList(),
+                            materials = if (updatedLines.isNotEmpty()) updatedLines else it.materials,
+                            filteredMaterials = if (updatedLines.isNotEmpty()) updatedLines else it.filteredMaterials,
+                            selectedMaterial = null,
+                            selectedValuationType = null,
+                            quantity = "",
+                            selectedWarehouse = null,
+                            materialCodeInput = "",
+                            warehouseSearchText = "",
+                            valuationSearchText = "",
+                            itemText = null,
+                            recipientName = ""
                         )
                     }
                 }
@@ -303,9 +316,38 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
                         is NetworkResult.NetworkError -> result.message
                         else -> "Error saving"
                     }
-                    _uiState.update { it.copy(error = message, isSaving = false, showErrorDialog = true) }
+                    _uiState.update { it.copy(error = Message.real(message), isSaving = false, showErrorDialog = true) }
                 }
             }
+        }
+    }
+
+    private fun editAddedItem(index: Int) {
+        val state = _uiState.value
+        val item = state.addedItems.getOrNull(index) ?: return
+        val newList = state.addedItems.toMutableList().apply { removeAt(index) }
+        val material = state.materials.find { it.materialCode == item.materialCode && it.reservationItem == item.reservationItem }
+            ?: state.materials.find { it.materialCode == item.materialCode }
+        val warehouse = state.warehouses.find { it.warehouseCode == item.warehouseCode }
+        val valuationType = material?.valuationTypes?.find { it.type == item.valuationType }
+        _uiState.update {
+            it.copy(
+                addedItems = newList,
+                selectedMaterial = material,
+                materialCodeInput = item.materialCode,
+                quantity = formatQty(item.receivedQuantity),
+                selectedWarehouse = warehouse,
+                warehouseSearchText = warehouse?.spinnerLabel().orEmpty(),
+                selectedValuationType = valuationType,
+                valuationSearchText = valuationType?.spinnerLabel().orEmpty(),
+                itemText = item.itemText ?: "",
+                recipientName = item.recipientName ?: "",
+                materialCodeError = null,
+                quantityError = null,
+                warehouseError = null,
+                valuationTypeError = null,
+                recipientNameError = null
+            )
         }
     }
 }

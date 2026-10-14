@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +46,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
+import net.gbs.gbswarehouse.BottomSheetDialog
 import net.gbs.gbswarehouse.ui.theme.BG
 import net.gbs.gbswarehouse.ui.theme.BORDER
 import net.gbs.gbswarehouse.ui.theme.BORDER2
@@ -66,6 +69,8 @@ import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.SUCC
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.Section
+import net.gbs.gbswarehouse.ui.theme.AppTheme
+import net.gbs.gbswarehouse.InfoCell
 import net.gbs.gbswarehouse.SuccessCard
 import net.gbs.gbswarehouse.ui.theme.TEXT
 import net.gbs.gbswarehouse.TopBar
@@ -77,7 +82,6 @@ import net.gbs.gbswarehouse.ui.issue.issuing_scrap.MatCodeInput
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.BinCodeInput
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.SelectedBinCard
 import net.gbs.gbswarehouse.ui.theme.AppColors
-import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.gbswarehouse.valuationTypes
 import kotlin.collections.find
 
@@ -91,8 +95,17 @@ fun IssueScrapDetailsScreen(
 
     val accent = YELLOW
     val doneLabel = "الكمية المصروفة"
+    val colors = AppTheme.colors
+    val dims = AppTheme.dims
 
-    Box(modifier = Modifier.fillMaxSize().background(BG)) {
+    LaunchedEffect(viewModel.saved) {
+        if (viewModel.saved) {
+            delay(1000)
+            navController.popBackStack()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
             TopBar(title = "صرف", subtitle = "قطع غيار للصيانة",
                 accent = accent, onBack = {
@@ -102,9 +115,9 @@ fun IssueScrapDetailsScreen(
 
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
+                    start = dims.padding, end = dims.padding,
                     top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
+                    bottom = if (viewModel.showFixedSave) dims.bottomBarHeight else 20.dp
                 )
             ) {
 
@@ -126,15 +139,15 @@ fun IssueScrapDetailsScreen(
                                 val f2 = if (i + 1 < fields.size) fields[i + 1] else null
                                 // if "الجهة" span full width
                                 if (f1.first == "الجهة") {
-                                    InfoCell(f1.first, f1.second, f1.third ?: TEXT, modifier = Modifier.weight(1f))
+                                    InfoCell(f1.first, f1.second, f1.third ?: colors.text, modifier = Modifier.weight(1f))
                                 } else {
                                     InfoCell(
-                                        f1.first, f1.second, f1.third ?: TEXT,
+                                        f1.first, f1.second, f1.third ?: colors.text,
                                         modifier = Modifier.weight(1f)
                                     )
                                     if (f2 != null) {
                                         InfoCell(
-                                            f2.first, f2.second, f2.third ?: TEXT,
+                                            f2.first, f2.second, f2.third ?: colors.text,
                                             modifier = Modifier.weight(1f)
                                         )
                                     }
@@ -256,7 +269,7 @@ fun IssueScrapDetailsScreen(
                             0f to Color.Transparent, 0.35f to BG
                         )
                     )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(
                     "حفظ الصرف", accent, { viewModel.doSave("save") },
@@ -267,11 +280,12 @@ fun IssueScrapDetailsScreen(
     }
     // ── Bin Dialog ────────────────────────────────────────────────────────
     if (viewModel.binDlg) {
+        val dims = AppTheme.dims
         BottomSheetDialog(title = "اختيار موقع الصرف", onClose = { viewModel.binDlg = false }) {
             SearchBox(viewModel.binInput, { viewModel.binInput = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
             LazyColumn(contentPadding = PaddingValues(
-                start = 14.dp, end = 14.dp, bottom = 20.dp
+                start = dims.padding, end = dims.padding, bottom = 20.dp
             )) {
                 itemsIndexed(viewModel.filteredBins) { _, b ->
                     BinDialogItem(b, viewModel.accent) { viewModel.selectBin(b) }
@@ -283,14 +297,15 @@ fun IssueScrapDetailsScreen(
 
     // ── Material Dialog ───────────────────────────────────────────────────
     if (viewModel.matDlg) {
+        val dims = AppTheme.dims
         BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
             SearchBox(
                 viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp)
             )
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
+                    start = dims.padding, end = dims.padding, bottom = 20.dp,
                 )
             ) {
                 itemsIndexed(viewModel.filteredMaterials) { _, m ->
@@ -318,7 +333,8 @@ fun PutAwaySelectedMaterialCard(
     onValuationTypeSelected:(ValuationType)->Unit
 ) {
     val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
-
+    val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -329,12 +345,12 @@ fun PutAwaySelectedMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = MUTED, fontSize = 12.sp,
+            Text(mat.code, color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+            Text("✕", color = colors.muted, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = TEXT, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        Text(mat.desc, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
         Spacer(Modifier.height(8.dp))
         // Stats row
@@ -342,9 +358,9 @@ fun PutAwaySelectedMaterialCard(
             listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
                 "الوحدة" to mat.unit,).forEach { (l, v) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(l, color = MUTED, fontSize = 9.sp,
+                    Text(l, color = colors.muted, fontSize = dims.fontSizeCaption,
                         modifier = Modifier.padding(bottom = 2.dp))
-                    Text(v, color = TEXT, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(v, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -352,14 +368,14 @@ fun PutAwaySelectedMaterialCard(
         // Progress bar
         Column {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("التنفيذ", color = MUTED, fontSize = 9.sp)
-                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
+                Text("التنفيذ", color = colors.muted, fontSize = dims.fontSizeCaption)
+                Text("${(progress * 100).toInt()}%", color = accent, fontSize = dims.fontSizeCaption,
                     fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(3.dp))
             Box(
                 modifier = Modifier.fillMaxWidth().height(4.dp)
-                    .clip(RoundedCornerShape(2.dp)).background(DARK)
+                    .clip(RoundedCornerShape(2.dp)).background(colors.dark)
             ) {
                 Box(
                     modifier = Modifier.fillMaxHeight()
@@ -374,9 +390,9 @@ fun PutAwaySelectedMaterialCard(
             if (!saved) {
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FullBtn("✓  قبول", SUCC, onAccept, saving, smpQty.isNotEmpty(),
+                    FullBtn("✓  قبول", colors.succ, onAccept, saving, smpQty.isNotEmpty(),
                         modifier = Modifier.weight(1f))
-                    FullBtn("✕  رفض", DANGER, onReject, saving, smpQty.isNotEmpty(),
+                    FullBtn("✕  رفض", colors.danger, onReject, saving, smpQty.isNotEmpty(),
                         modifier = Modifier.weight(1f))
                 }
             }
@@ -401,6 +417,8 @@ fun PutAwaySelectedMaterialCard(
 @Composable
 fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) -> Unit,
                     onClear: () -> Unit) {
+    val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -411,8 +429,8 @@ fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) 
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text("📍 ${bin.code}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = MUTED, fontSize = 12.sp,
+            Text("📍 ${bin.code}", color = accent, fontSize = dims.fontSizeTitle, fontWeight = FontWeight.ExtraBold)
+            Text("✕", color = colors.muted, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(8.dp))
@@ -421,15 +439,13 @@ fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) 
                 "الرف" to bin.rack, "المتاح" to bin.avail).forEach { (l, v) ->
                 Column(
                     modifier = Modifier.weight(1f)
-                        .clip(RoundedCornerShape(6.dp)).background(DARK).padding(horizontal = 6.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(6.dp)).background(colors.dark).padding(horizontal = 6.dp, vertical = 8.dp)
                 ) {
-                    Text(l, color = MUTED, fontSize = 9.sp)
-                    Text(v, color = TEXT, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(l, color = colors.muted, fontSize = dims.fontSizeCaption)
+                    Text(v, color = colors.text, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.Bold)
                 }
             }
         }
-//        Spacer(Modifier.height(12.dp))
-//        Field("الكمية المراد تسكينها", "0", qty, onQtyChange, isNumber = true, center = true)
     }
 }
 
@@ -438,24 +454,26 @@ fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) 
 
 @Composable
 fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(DARK)
-            .border(1.dp, BORDER2, RoundedCornerShape(10.dp))
+            .background(colors.dark)
+            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         BasicTextField(
             value = value, onValueChange = onValueChange, singleLine = true,
             textStyle = TextStyle(
-                color = TEXT, fontSize = 13.sp,
+                color = colors.text, fontSize = dims.fontSizeButton,
                 textDirection = TextDirection.Ltr
             ),
             cursorBrush = SolidColor(YELLOW),
             modifier = Modifier.weight(1f).padding(vertical = 10.dp),
             decorationBox = { inner ->
-                if (value.isEmpty()) Text("كود البن (Bin Code)...", color = MUTED, fontSize = 13.sp)
+                if (value.isEmpty()) Text("كود البن (Bin Code)...", color = colors.muted, fontSize = dims.fontSizeButton)
                 inner()
             }
         )
@@ -465,150 +483,64 @@ fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
 // ── Dialog items ──────────────────────────────────────────────────────────────
 @Composable
 fun MaterialDialogItem(mat: Material, accent: Color, doneLabel: String, onClick: () -> Unit) {
+    val colors = AppTheme.colors
+    val dims = AppTheme.dims
     var hovered by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(if (hovered) CARD2 else DARK)
-            .border(1.dp, if (hovered) accent.copy(0.35f) else BORDER, RoundedCornerShape(10.dp))
+            .background(if (hovered) colors.card2 else colors.dark)
+            .border(1.dp, if (hovered) accent.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
             .clickable { onClick(); hovered = false }
             .padding(all = 11.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(mat.code, color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text(mat.unit, color = MUTED, fontSize = 10.sp)
+            Text(mat.code, color = accent, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.Bold)
+            Text(mat.unit, color = colors.muted, fontSize = dims.fontSizeSubtitle)
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = TEXT, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+        Text(mat.desc, color = colors.text, fontSize = dims.fontSizeBody, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("المطلوب: ", color = MUTED, fontSize = 10.sp).let {}
-            Text("المطلوب: ${mat.qty}", color = MUTED, fontSize = 10.sp)
+            Text("المطلوب: ${mat.qty}", color = colors.muted, fontSize = dims.fontSizeSubtitle)
             Text("$doneLabel: ${mat.done}",
-                color = if (mat.done == mat.qty) SUCC else MUTED, fontSize = 10.sp)
+                color = if (mat.done == mat.qty) colors.succ else colors.muted, fontSize = dims.fontSizeSubtitle)
         }
     }
 }
 
 @Composable
 fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
+    val colors = AppTheme.colors
+    val dims = AppTheme.dims
     var hovered by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(if (hovered) CARD2 else DARK)
-            .border(1.dp, if (hovered) YELLOW.copy(0.35f) else BORDER, RoundedCornerShape(10.dp))
+            .background(if (hovered) colors.card2 else colors.dark)
+            .border(1.dp, if (hovered) YELLOW.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
             .clickable { onClick(); hovered = false }
             .padding(12.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("📍 ${bin.code}", color = YELLOW, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text("متاح", color = SUCC, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+            Text("📍 ${bin.code}", color = YELLOW, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.Bold)
+            Text("متاح", color = colors.succ, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(4.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             listOf("المنطقة" to bin.zone, "الممر" to bin.aisle, "المتاح" to bin.avail)
                 .forEach { (l, v) ->
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(l, color = MUTED, fontSize = 9.sp)
-                        Text(v, color = TEXT, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(l, color = colors.muted, fontSize = dims.fontSizeCaption)
+                        Text(v, color = colors.text, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.Bold)
                     }
                 }
         }
     }
 }
 
-// ── Bottom Sheet Dialog ───────────────────────────────────────────────────────
-@Composable
-fun BottomSheetDialog(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.65f))
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { onClose() },
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(CARD)
-                    .border(1.dp, BORDER2,
-                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .heightIn(max = 560.dp)
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { /* consume */ }
-            ) {
-                // Dialog Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(
-                            width = 1.dp, color = BORDER,
-                            shape = RoundedCornerShape(0.dp)
-                        )
-                        .padding(horizontal = 14.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("✕", color = MUTED, fontSize = 18.sp,
-                        modifier = Modifier.clickable { onClose() }.padding(horizontal = 2.dp))
-                    Text(title, color = TEXT, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-                content()
-            }
-        }
-    }
-}
 
-// ── FullBtn overload with Modifier ────────────────────────────────────────────
-@Composable
-fun FullBtn(label: String, color: Color, onClick: () -> Unit,
-            saving: Boolean = false, enabled: Boolean = true, modifier: Modifier = Modifier) {
-    val bg     = if (!enabled) DIM.copy(0.22f) else color.copy(0.12f)
-    val border = if (!enabled) DIM else color.copy(0.35f)
-    val txtCol = if (!enabled) DIM else color
 
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .border(1.dp, border, RoundedCornerShape(10.dp))
-            .clickable(enabled = enabled && !saving) { onClick() }
-            .padding(vertical = 13.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (saving) {
-            CircularProgressIndicator(
-                color = color, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-        } else {
-            Text(label, color = txtCol, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-        }
-    }
-}
-
-// ── InfoCell with Modifier ────────────────────────────────────────────────────
-@Composable
-fun InfoCell(label: String, value: String, color: Color = TEXT, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(DARK)
-            .padding(all = 8.dp)
-    ) {
-        Text(label, color = MUTED, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 2.dp))
-        Text(value, color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-    }
-}

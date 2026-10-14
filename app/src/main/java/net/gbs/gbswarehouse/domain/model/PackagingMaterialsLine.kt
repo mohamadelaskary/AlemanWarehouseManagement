@@ -9,5 +9,6 @@ data class PackagingMaterialsLine(
     val purchaseOrderItem: String,
     val uom: String,
     val receivedQuantity: Double,
-    val carNo: String? = null
+    val carNo: String? = null,
+    val productionDate:String? = null,
 )

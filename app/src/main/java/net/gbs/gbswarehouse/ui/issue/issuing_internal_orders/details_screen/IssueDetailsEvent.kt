@@ -1,6 +1,7 @@
 package net.gbs.gbswarehouse.ui.issue.issuing_internal_orders.details_screen
 
-import net.gbs.gbswarehouse.domain.model.SAPMaterialBatchValuationStock
+import net.gbs.gbswarehouse.data.remote.dto.response.IssueToInternalOrderLineDto
+import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationLine
 
 sealed class IssueDetailsEvent {
@@ -16,10 +17,11 @@ sealed class IssueDetailsEvent {
     object OnToggleMaterialDialog : IssueDetailsEvent()
     
     data class OnStockSearchTextChanged(val text: String) : IssueDetailsEvent()
-    data class OnStockSelected(val stock: SAPMaterialBatchValuationStock) : IssueDetailsEvent()
+    data class OnOnHandStockSelected(val stock: MaterialOnHandStock) : IssueDetailsEvent()
     
     data class OnQtyChanged(val text: String) : IssueDetailsEvent()
     data class OnDeleteLine(val materialCode: String) : IssueDetailsEvent()
+    data class OnEditLine(val addedLine: IssueToInternalOrderLineDto) : IssueDetailsEvent()
 
     object OnAddLine : IssueDetailsEvent()
     object OnIssueAll : IssueDetailsEvent()

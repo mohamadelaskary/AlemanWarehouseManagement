@@ -1,6 +1,5 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_returned_product.orders_list
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,7 +38,6 @@ import net.gbs.gbswarehouse.Pill
 import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.TopBar
-import net.gbs.gbswarehouse.WarehouseViewModel
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 
 @Composable
@@ -250,7 +248,7 @@ fun OrderCard(order: Order, accent: Color, onClick: () -> Unit,isMaterialsShowed
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text("#${order.id}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Pill(order.status, order.statusColor)
+            Pill(order.status, order.statusColor,)
         }
         Spacer(Modifier.height(6.dp))
         Text(order.info, color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)

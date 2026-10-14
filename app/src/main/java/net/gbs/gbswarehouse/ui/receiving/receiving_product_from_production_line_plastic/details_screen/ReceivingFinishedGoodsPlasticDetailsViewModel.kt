@@ -1,13 +1,11 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.details_screen
 
-import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -19,6 +17,7 @@ import net.gbs.gbswarehouse.data.remote.mapper.toDto
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsPlasticLine
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsPlasticProductionOrder
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsPlasticProductionOrderItem
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.usecase.GetPlantWarehousesUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllFinishedGoodsPlasticProductionOrdersUseCase
@@ -26,10 +25,11 @@ import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllWorkerGroupsUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetFinishedGoodsPlasticProductionOrderDataUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.ReceiveFinishedGoodsPlasticUseCase
 import javax.inject.Inject
+import net.gbs.gbswarehouse.formatQty
+import net.gbs.gbswarehouse.spinnerLabel
 
 @HiltViewModel
 class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val getFinishedGoodsPlasticProductionOrderDataUseCase: GetFinishedGoodsPlasticProductionOrderDataUseCase,
     private val getAllFinishedGoodsPlasticProductionOrdersUseCase: GetAllFinishedGoodsPlasticProductionOrdersUseCase,
     private val getPlantWarehousesUseCase: GetPlantWarehousesUseCase,
@@ -54,10 +54,10 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
                 if (_uiState.value.productionOrder == null) {
                     getOrderData(event.orderNumber)
                 }
-                loadWorkerGroups()
+//                loadWorkerGroups()
             }
             is ReceivingFinishedGoodsPlasticEvent.OnMaterialCodeInputEntered -> {
-                _uiState.update { it.copy(materialCodeInput = event.materialCode, materialCodeError = "") }
+                _uiState.update { it.copy(materialCodeInput = event.materialCode, materialCodeError = null) }
             }
             is ReceivingFinishedGoodsPlasticEvent.OnMaterialSelected -> {
                 selectMaterial(event.materialCode)
@@ -71,26 +71,26 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
                 }
             }
             is ReceivingFinishedGoodsPlasticEvent.OnQuantityEntered -> {
-                if (event.quantity.toDoubleOrNull() == null) {
-                    _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
-                    return
-                }
-                if (event.quantity.toDouble() <= 0) {
-                    _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
-                    return
-                }
-                if(event.quantity.toDouble() > (uiState.value.selectedMaterial?.remainingQuantity?.toDouble() ?: 0.0)){
-                     _uiState.update {
-                         it.copy(quantityError = context.getString(R.string.quantity_cannot_exceed_remaining_quantity, (uiState.value.selectedMaterial?.remainingQuantity?.toDouble() ?: 0.0).toString()))
-                     }
-                }
+//                if (event.quantity.toDoubleOrNull() == null) {
+//                    _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
+//                    return
+//                }
+//                if (event.quantity.toDouble() <= 0) {
+//                    _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
+//                    return
+//                }
+//                if(event.quantity.toDouble() > (uiState.value.selectedMaterial?.remainingQuantity ?: 0.0)){
+//                     _uiState.update {
+//                         it.copy(quantityError = context.getString(R.string.quantity_cannot_exceed_remaining_quantity, (uiState.value.selectedMaterial?.remainingQuantity?.toDouble() ?: 0.0).toString()))
+//                     }
+//                }
                 _uiState.update { 
-                    it.copy(quantity = event.quantity, quantityError = "")
+                    it.copy(quantity = event.quantity, quantityError = null)
                 }
             }
             is ReceivingFinishedGoodsPlasticEvent.OnWarehouseSelected -> {
                 _uiState.update { 
-                    it.copy(selectedWarehouse = event.warehouse, warehouseError = "", warehouseSearchText = event.warehouse.warehouseDescription)
+                    it.copy(selectedWarehouse = event.warehouse, warehouseError = null, warehouseSearchText = event.warehouse.warehouseDescription)
                 }
                 val state = _uiState.value
                 if (state.selectedWarehouse != null && state.selectedWorkersGroup != null && state.quantity.isNotEmpty() && state.unloadingPoint.isNotBlank() && state.naolon.isNotBlank()) {
@@ -106,8 +106,8 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         selectedWorkersGroup = event.workersGroup,
-                        workersGroupError = "",
-                        workersGroupSearchText = event.workersGroup.workerGroupDescription
+                        workersGroupError = null,
+//                        workersGroupSearchText = event.workersGroup.workerGroupDescription
                     )
 
                 }
@@ -129,7 +129,7 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
                 }
             }
             is ReceivingFinishedGoodsPlasticEvent.OnUnloadingPointEntered -> {
-                _uiState.update { it.copy(unloadingPoint = event.unloadingPoint, unloadingPointError = "") }
+                _uiState.update { it.copy(unloadingPoint = event.unloadingPoint, unloadingPointError = null) }
                 val state = _uiState.value
                 if (state.selectedWarehouse != null && state.selectedWorkersGroup != null && state.quantity.isNotEmpty() && state.unloadingPoint.isNotBlank() && state.naolon.isNotBlank()) {
                     _uiState.update {
@@ -138,7 +138,7 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
                 }
             }
             is ReceivingFinishedGoodsPlasticEvent.OnNaolonEntered -> {
-                _uiState.update { it.copy(naolon = event.naolon, naolonError = "") }
+                _uiState.update { it.copy(naolon = event.naolon, naolonError = null) }
                 val state = _uiState.value
                 if (state.selectedWarehouse != null && state.selectedWorkersGroup != null && state.quantity.isNotEmpty() && state.unloadingPoint.isNotBlank() && state.naolon.isNotBlank()) {
                     _uiState.update {
@@ -146,21 +146,11 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
                     }
                 }
             }
-            ReceivingFinishedGoodsPlasticEvent.OnAddButtonClicked -> {
-                addItem()
-            }
-            is ReceivingFinishedGoodsPlasticEvent.OnDeleteAddedMaterialButtonClicked -> {
-                _uiState.update { state ->
-                    val newList = state.addedItems.toMutableList()
-                    newList.removeAt(event.index)
-                    state.copy(addedItems = newList)
-                }
-            }
             ReceivingFinishedGoodsPlasticEvent.OnSaveButtonClicked -> {
                 saveReceiving()
             }
             ReceivingFinishedGoodsPlasticEvent.OnClearMaterialButtonClicked -> {
-                _uiState.update { it.copy(selectedMaterial = null, quantity = "", selectedWarehouse = null, selectedWorkersGroup = null, materialCodeInput = "", materialCodeError = "", warehouseSearchText = "", workersGroupSearchText = "", unloadingPoint = "", naolon = "") }
+                _uiState.update { it.copy(selectedMaterial = null, quantity = "", selectedWarehouse = null, selectedWorkersGroup = null, materialCodeInput = "", materialCodeError = null, warehouseSearchText = "", workersGroupSearchText = "", unloadingPoint = "", naolon = "") }
             }
             ReceivingFinishedGoodsPlasticEvent.HideSuccessDialog -> {
                 _uiState.update { it.copy(showSuccessDialog = false) }
@@ -221,8 +211,8 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
                     }
                     _uiState.update {
                         it.copy(
-                            searchError = message,
-                            orderGetDataStatus = FinishedGoodsPlasticOrderGetDataStatus.ERROR(message)
+                            searchError = Message.real(message),
+                            orderGetDataStatus = FinishedGoodsPlasticOrderGetDataStatus.ERROR(Message.real(message))
                         )
                     }
                 }
@@ -253,7 +243,9 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
             _uiState.update { it.copy(isWorkersGroupsLoading = true) }
             val result = getAllWorkerGroupsUseCase()
             if (result is NetworkResult.Success) {
-                _uiState.update { it.copy(workersGroups = result.data, isWorkersGroupsLoading = false) }
+                _uiState.update { it.copy(workersGroups = listOf(1,2,3)
+//                    result.data
+                    , isWorkersGroupsLoading = false) }
             } else {
                 _uiState.update { it.copy(isWorkersGroupsLoading = false) }
             }
@@ -266,13 +258,13 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
         if (material != null) {
             val alreadyAdded = state.addedItems.any { it.orderNumber == state.productionOrder?.orderNumber && it.itemNumber == material.itemNumber }
             if (alreadyAdded) {
-                _uiState.update { it.copy(materialCodeError = context.getString(R.string.material_already_added)) }
+                _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added)) }
                 return
             }
-            _uiState.update { it.copy(selectedMaterial = material, materialCodeInput = materialCode, materialCodeError = "", quantity = (material.remainingQuantity?.toDouble() ?: 0.0).toString()) }
+            _uiState.update { it.copy(selectedMaterial = material, materialCodeInput = materialCode, materialCodeError = null, quantity = (material.remainingQuantity?.toDouble() ?: 0.0).toString()) }
             loadWarehouses(material.plantCode ?: "")
         } else {
-            _uiState.update { it.copy(materialCodeError = context.getString(R.string.wrong_material_code)) }
+            _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.wrong_material_code)) }
         }
     }
 
@@ -288,67 +280,6 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun addItem() {
-        val state = _uiState.value
-        val mat = state.selectedMaterial
-        val qty = state.quantity.toDoubleOrNull() ?: 0.0
-        val wh = state.selectedWarehouse
-        val wg = state.selectedWorkersGroup
-        val unloadingPoint = state.unloadingPoint
-//        val naolon = state.naolon.toDoubleOrNull() ?: 0.0
-        val palletWeight = state.palletWeight.toDoubleOrNull() ?: 0.0
-        if (mat == null) return
-        if (qty <= 0) {
-            _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
-            return
-        }
-        if (qty > (mat.remainingQuantity?.toDouble() ?: 0.0)) {
-            _uiState.update { it.copy(quantityError = context.getString(R.string.quantity_cannot_exceed_remaining_quantity, (mat.remainingQuantity?.toDouble() ?: 0.0).toString())) }
-            return
-        }
-        if (wh == null) {
-            _uiState.update { it.copy(warehouseError = context.getString(R.string.please_select_a_warehouse)) }
-            return
-        }
-        if (wg == null) {
-            _uiState.update { it.copy(workersGroupError = context.getString(R.string.please_select_workers_group)) }
-            return
-        }
-
-        val line = FinishedGoodsPlasticLine(
-            materialCode = mat.materialCode ?: "",
-            materialDescription = "",
-            plantCode = "",
-            warehouseCode = wh.warehouseCode,
-            orderNumber = state.productionOrder?.orderNumber ?: "",
-            itemNumber = mat.itemNumber?:"",
-            uom = mat.uom ?: "",
-            receivedQuantity = qty,
-            unloadingPoint = unloadingPoint.ifBlank { null },
-//            naolon = if (state.naolon.isNotBlank()) naolon else null,
-            workerGroupCode = wg.workerGroupCode,
-            workerGroupName = wg.workerGroupDescription,
-            palletWeight = palletWeight
-        )
-
-        _uiState.update {
-            it.copy(
-                addedItems = it.addedItems + line,
-                selectedMaterial = null,
-                quantity = "",
-                selectedWarehouse = null,
-                selectedWorkersGroup = null,
-                materialCodeInput = "",
-                warehouseSearchText = "",
-                workersGroupSearchText = "",
-                unloadingPoint = "",
-                naolon = "",
-                palletWeight = "",
-                isReadyToReceive = false
-            )
-        }
-    }
-
     private fun saveReceiving() {
         val state = _uiState.value
         val mat = state.selectedMaterial
@@ -359,76 +290,97 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
         val naolon = state.naolon.toDoubleOrNull() ?: 0.0
         val palletWeight = state.palletWeight.toDoubleOrNull()
 
-        if (state.addedItems.isEmpty()) {
-            if (mat == null) return
-            if (qty <= 0) {
-                _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
-                return
-            }
-            if (qty > (mat.remainingQuantity?.toDouble() ?: 0.0)) {
-                _uiState.update { it.copy(quantityError = context.getString(R.string.quantity_cannot_exceed_remaining_quantity, (mat.remainingQuantity?.toDouble() ?: 0.0).toString())) }
-                return
-            }
-            if (wh == null) {
-                _uiState.update { it.copy(warehouseError = context.getString(R.string.please_select_a_warehouse)) }
-                return
-            }
-            if (wg == null) {
-                _uiState.update { it.copy(workersGroupError = context.getString(R.string.please_select_workers_group)) }
-                return
-            }
-
-            val line = FinishedGoodsPlasticLine(
-                materialCode = mat.materialCode ?: "",
-                materialDescription = "",
-                plantCode = "",
-                warehouseCode = wh.warehouseCode,
-                orderNumber = state.productionOrder?.orderNumber ?: "",
-                itemNumber = mat.itemNumber?:"",
-                uom = mat.uom ?: "",
-                receivedQuantity = qty,
-                unloadingPoint = unloadingPoint.ifBlank { null },
-                naolon = if (state.naolon.isNotBlank()) naolon else null,
-                workerGroupCode = wg.workerGroupCode,
-                workerGroupName = wg.workerGroupDescription,
-                palletWeight = palletWeight
-            )
-            _uiState.update { it.copy(addedItems = listOf(line)) }
+        // A plastic production order only ever carries a single material, so the form is
+        // validated and posted straight away instead of going through an added-lines list.
+        if (mat == null) return
+        if (qty <= 0) {
+            _uiState.update { it.copy(quantityError = Message.Resource(R.string.please_enter_a_valid_quantity)) }
+            return
+        }
+        if (qty > (mat.remainingQuantity?.toDouble() ?: 0.0)) {
+            _uiState.update { it.copy(quantityError = Message.Resource(R.string.quantity_cannot_exceed_remaining_quantity, (mat.remainingQuantity?.toDouble() ?: 0.0).toString())) }
+            return
+        }
+        if (wh == null) {
+            _uiState.update { it.copy(warehouseError = Message.Resource(R.string.please_select_a_warehouse)) }
+            return
+        }
+        if (wg == null) {
+            _uiState.update { it.copy(workersGroupError = Message.Resource(R.string.please_select_workers_group)) }
+            return
         }
 
-        val linesToSave = _uiState.value.addedItems
-        if (linesToSave.isEmpty()) return
+        val line = FinishedGoodsPlasticLine(
+            materialCode = mat.materialCode ?: "",
+            materialDescription = "",
+            plantCode = mat.plantCode?:"",
+            warehouseCode = wh.warehouseCode,
+            orderNumber = state.productionOrder?.orderNumber ?: "",
+            itemNumber = mat.itemNumber?:"",
+            uom = mat.uom ?: "",
+            receivedQuantity = qty,
+            unloadingPoint = unloadingPoint.ifBlank { null },
+            naolon = if (state.naolon.isNotBlank()) naolon else null,
+            workerGroupCode = wg.toString(),
+            palletWeight = palletWeight
+        )
 
-        viewModelScope.launch {
+viewModelScope.launch {
             _uiState.update { it.copy(isSavingLoading = true) }
             val result = receiveFinishedGoodsPlasticUseCase(
                 ReceiveFinishedGoodsPlasticDto(
                     orderNumber = state.productionOrder?.orderNumber ?: "",
-                    lines = linesToSave.map { it.toDto() }
+                    lines = listOf(line.toDto())
                 )
             )
 
             when (result) {
                 is NetworkResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isSavingLoading = false,
-                            showSuccessDialog = true,
-                            savingSuccessStatusMessage = context.getString(R.string.success_save),
-                            addedItems = emptyList(),
-                            selectedMaterial = null,
-                            quantity = "",
-                            selectedWarehouse = null,
-                            selectedWorkersGroup = null,
-                            materialCodeInput = "",
-                            warehouseSearchText = "",
-                            workersGroupSearchText = "",
-                            unloadingPoint = "",
-                            naolon = "",
-                            isReadyToReceive = false
-                        )
+                    val updatedOrder = result.data.productionOrder
+                    if (updatedOrder != null) {
+                        _uiState.update {
+                            it.copy(
+                                isSavingLoading = false,
+                                showSuccessDialog = true,
+                                savingSuccessStatusMessage = Message.of(result.message, R.string.success_save),
+                                addedItems = emptyList(),
+                                productionOrder = updatedOrder,
+                                materials = updatedOrder.productionOrderItems,
+                                filteredMaterials = updatedOrder.productionOrderItems,
+                                orderGetDataStatus = FinishedGoodsPlasticOrderGetDataStatus.SUCCESS(updatedOrder),
+                                selectedMaterial = null,
+                                quantity = "",
+                                selectedWarehouse = null,
+                                selectedWorkersGroup = null,
+                                materialCodeInput = "",
+                                warehouseSearchText = "",
+                                workersGroupSearchText = "",
+                                unloadingPoint = "",
+                                naolon = "",
+                                isReadyToReceive = false
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isSavingLoading = false,
+                                showSuccessDialog = true,
+                                savingSuccessStatusMessage = Message.of(result.message, R.string.success_save),
+                                addedItems = emptyList(),
+                                selectedMaterial = null,
+                                quantity = "",
+                                selectedWarehouse = null,
+                                selectedWorkersGroup = null,
+                                materialCodeInput = "",
+                                warehouseSearchText = "",
+                                workersGroupSearchText = "",
+                                unloadingPoint = "",
+                                naolon = "",
+                                isReadyToReceive = false
+                            )
+                        }
+                        state.productionOrder?.orderNumber?.let { getOrderData(it) }
                     }
-                    state.productionOrder?.orderNumber?.let { getOrderData(it) }
                 }
                 else -> {
                     val message = when (result) {
@@ -441,7 +393,7 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
                         it.copy(
                             isSavingLoading = false,
                             showErrorDialog = true,
-                            savingErrorStatusMessage = message,
+                            savingErrorStatusMessage = Message.real(message),
                             addedItems = emptyList()
                         )
                     }

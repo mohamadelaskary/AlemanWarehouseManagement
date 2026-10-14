@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -22,6 +23,7 @@ import androidx.navigation.NavController
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.*
 import net.gbs.gbswarehouse.domain.model.PutAwayOrder
+import net.gbs.gbswarehouse.domain.model.PutAwayOrderLine
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 
 @Composable
@@ -114,6 +116,8 @@ fun PutAwayOrdersScreen(
 @Composable
 fun PutAwayOrderCard(order: PutAwayOrder, accent: Color, onClick: () -> Unit) {
     val colors = AppTheme.colors
+    var isMaterialsShowed by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -174,6 +178,122 @@ fun PutAwayOrderCard(order: PutAwayOrder, accent: Color, onClick: () -> Unit) {
                 value = order.earliestReceivedAt.substringBefore("T"),
                 modifier = Modifier.weight(1f)
             )
+        }
+        if (!order.materialCode.isNullOrBlank() || !order.materialDescription.isNullOrBlank()) {
+            MarginVertical(8.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (!order.materialCode.isNullOrBlank()) {
+                    InfoCell(
+                        label = stringResource(R.string.material_code),
+                        value = order.materialCode,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (!order.materialDescription.isNullOrBlank()) {
+                    InfoCell(
+                        label = stringResource(R.string.material_description),
+                        value = order.materialDescription,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+        if (order.remainingQuantity != null || !order.carNo.isNullOrBlank()) {
+            MarginVertical(8.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (order.remainingQuantity != null) {
+                    InfoCell(
+                        label = stringResource(R.string.remaining_quantity),
+                        value = order.remainingQuantity.toString(),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (!order.carNo.isNullOrBlank()) {
+                    InfoCell(
+                        label = stringResource(R.string.car_number),
+                        value = order.carNo,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+
+        MarginVertical(12.dp)
+
+        if (isMaterialsShowed) {
+            if (order.lines.isNotEmpty()) {
+                order.lines.forEach { line ->
+                    PutAwayOrderLineItemCard(line = line, accent = accent)
+                }
+            } else {
+                Text(
+                    text = stringResource(R.string.no_results),
+                    color = colors.muted,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+            MarginVertical(8.dp)
+        }
+
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+            OutlineBtn(
+                label = if (isMaterialsShowed) stringResource(R.string.hide_items) else order.lines.size.toString(),
+                color = accent
+            ) {
+                isMaterialsShowed = !isMaterialsShowed
+            }
+        }
+    }
+}
+
+@Composable
+fun PutAwayOrderLineItemCard(line: PutAwayOrderLine, accent: Color) {
+    val colors = AppTheme.colors
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.card2)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "${stringResource(R.string.material_code)}: ${line.materialCode}",
+                    color = colors.text,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${stringResource(R.string.remaining_quantity)}: ${line.remainingQuantity} ${line.uom}",
+                    color = accent,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
+                )
+            }
+            if (!line.materialDescription.isNullOrBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = line.materialDescription,
+                    color = colors.muted,
+                    fontSize = 11.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

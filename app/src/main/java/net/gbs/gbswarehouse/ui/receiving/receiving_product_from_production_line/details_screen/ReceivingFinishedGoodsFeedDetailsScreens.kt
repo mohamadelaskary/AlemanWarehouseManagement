@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,10 +45,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
+import net.gbs.gbswarehouse.BottomSheetDialog
 import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.Field
 import net.gbs.gbswarehouse.FullBtn
 import net.gbs.gbswarehouse.GREEN
+import net.gbs.gbswarehouse.InfoCell
 import net.gbs.gbswarehouse.MarginTenDp
 import net.gbs.gbswarehouse.MarginVertical
 import net.gbs.gbswarehouse.OutlineBtn
@@ -61,6 +65,7 @@ import net.gbs.gbswarehouse.WorksGroupSpinner
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedLine
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedProductionOrder
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedProductionOrderItem
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.model.WorkersGroup
 import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.orders_list.FinishedGoodsFeedProductionOrderCard
@@ -114,7 +119,7 @@ fun ReceivingFinishedGoodFromProductionDetailsScreen(
                 is FinishedGoodsFeedOrderGetDataStatus.ERROR -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(state.searchError, color = colors.text)
+                            Text(state.searchError?.text.orEmpty(), color = colors.text)
                             Spacer(Modifier.height(10.dp))
                             OutlineBtn(stringResource(R.string.retry), accent) {
                                 viewModel.onEvent(ReceivingFinishedGoodsFeedEvent.OnScreenLoaded(orderId))
@@ -128,7 +133,7 @@ fun ReceivingFinishedGoodFromProductionDetailsScreen(
                         LazyColumn(
                             contentPadding = PaddingValues(
                                 start = 14.dp, end = 14.dp, top = 10.dp,
-                                bottom = if (state.addedItems.isNotEmpty()) 90.dp else 20.dp
+                                bottom = 20.dp
                             )
                         ) {
                             item {
@@ -174,20 +179,22 @@ fun ReceivingFinishedGoodFromProductionDetailsScreen(
                                 }
                             }
 
-/*                            if (state.selectedMaterial != null && state.quantity.isNotEmpty()) {
-                                item {
-                                    Spacer(Modifier.height(10.dp))
-                                    AddFinishedGoodLineButton(
-                                        onClick = { viewModel.onEvent(ReceivingFinishedGoodsFeedEvent.OnAddButtonClicked) }
-                                    )
-                                }
-                            }
-
-                            itemsIndexed(state.addedItems) { index, item ->
-                                ReceivingFinishedGoodsFeedLineItem(item) {
-                                    viewModel.onEvent(ReceivingFinishedGoodsFeedEvent.OnDeleteAddedMaterialButtonClicked(index))
-                                }
-                            } */
+                            // A finished-goods feed order only ever has a single material, so there is no added-lines
+// list to build up: the form is filled in and saved straight away.
+//                            if (state.selectedMaterial != null && state.quantity.isNotEmpty()) {
+//                                item {
+//                                    Spacer(Modifier.height(10.dp))
+//                                    AddFinishedGoodLineButton(
+//                                        onClick = { viewModel.onEvent(ReceivingFinishedGoodsFeedEvent.OnAddButtonClicked) }
+//                                    )
+//                                }
+//                            }
+//
+//                            itemsIndexed(state.addedItems) { index, item ->
+//                                ReceivingFinishedGoodsFeedLineItem(item) {
+//                                    viewModel.onEvent(ReceivingFinishedGoodsFeedEvent.OnDeleteAddedMaterialButtonClicked(index))
+//                                }
+//                            }
                         }
                     }
                 }
@@ -213,18 +220,33 @@ fun ReceivingFinishedGoodFromProductionDetailsScreen(
 //            navController.popBackStack()
 //        }
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage) {
+            SuccessDialog(colors.succ, state.savingSuccessStatusMessage?.text.orEmpty()) {
                 viewModel.onEvent(ReceivingFinishedGoodsFeedEvent.HideSuccessDialog)
             }
-            navController.popBackStack()
         }
+//        LaunchedEffect(state.showSuccessDialog) {
+//            if (state.showSuccessDialog) {
+//                delay(1000)
+//                navController.popBackStack()
+//            }
+//        }
         if (state.showErrorDialog) {
-            ErrorDialog(DANGER, state.savingErrorStatusMessage) {
+            ErrorDialog(DANGER, state.savingErrorStatusMessage?.text.orEmpty()) {
                 viewModel.onEvent(ReceivingFinishedGoodsFeedEvent.HideErrorDialog)
             }
         }
     }
-
+    if (state.isSavingLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.3f))
+                .clickable(enabled = false) { },
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = accent)
+        }
+    }
     if (viewModel.matDlg) {
         BottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
             SearchBox(state.materialSearch, { viewModel.onEvent(ReceivingFinishedGoodsFeedEvent.OnMaterialSearchTextEntered(it)) },
@@ -278,9 +300,9 @@ fun SelectedFinishedGoodsFeedMaterialCard(
     onWarehouseSelected: (Warehouse) -> Unit,
     workersGroups: List<WorkersGroup>,
     onWorkersGroupSelected: (WorkersGroup) -> Unit,
-    quantityError: String = "",
-    warehouseError: String = "",
-    workersGroupError: String = "",
+    quantityError: Message? = null,
+    warehouseError: Message? = null,
+    workersGroupError: Message? = null,
     warehouseSearchText: String,
     onWarehouseSearchTextChanged: (String) -> Unit,
     workersGroupSearchText: String,
@@ -315,7 +337,7 @@ fun SelectedFinishedGoodsFeedMaterialCard(
         }
         Spacer(Modifier.height(10.dp))
         Field("${stringResource(R.string.receiving_qty)} (${mat.uom ?: ""})", "", qty, onQtyChange, isNumber = true, center = true)
-        if (quantityError.isNotEmpty()) Text(quantityError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (quantityError != null) Text(quantityError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
 
         if (state.selectedWarehouse==null) {
             Spacer(Modifier.height(10.dp))
@@ -347,7 +369,7 @@ fun SelectedFinishedGoodsFeedMaterialCard(
                 }
             }
         }
-        if (warehouseError.isNotEmpty()) Text(warehouseError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (warehouseError != null) Text(warehouseError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         
         Spacer(Modifier.height(10.dp))
         net.gbs.gbswarehouse.WorkersGroupsSpinner(
@@ -357,7 +379,7 @@ fun SelectedFinishedGoodsFeedMaterialCard(
             searchText = workersGroupSearchText,
             onSearchTextChanged = onWorkersGroupSearchTextChanged
         )
-        if (workersGroupError.isNotEmpty()) Text(workersGroupError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (workersGroupError != null) Text(workersGroupError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
@@ -409,8 +431,10 @@ fun ReceivingFinishedGoodsFeedLineItem(item: FinishedGoodsFeedLine, onDelete: ()
                     Spacer(Modifier.height(4.dp))
                     Chip(stringResource(R.string.production_order_number_) + item.orderNumber)
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
+                Row {
+                    IconButton(onClick = onDelete) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = colors.danger)
+                    }
                 }
             }
         }

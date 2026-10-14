@@ -3,6 +3,7 @@ package net.gbs.gbswarehouse.data.remote.mapper
 import net.gbs.gbswarehouse.data.remote.dto.response.*
 import net.gbs.gbswarehouse.data.remote.mapper.toValuationTypes
 import net.gbs.gbswarehouse.domain.model.*
+import net.gbs.gbswarehouse.QualityDecision
 
 typealias DomainGoodsReceiptLineStatusResult = net.gbs.gbswarehouse.domain.model.GoodsReceiptLineStatusResult
 typealias DomainGoodsReceiptStatusResult = net.gbs.gbswarehouse.domain.model.GoodsReceiptStatusResult
@@ -17,7 +18,7 @@ fun SparePartsPurchaseOrderItemDto.toDomain() = SparePartsPurchaseOrderItem(
     uom = uom,
     plantCode = plantCode,
     isBatchManaged = isBatchManaged,
-    valuationTypes = valuationTypes.map { it.toValuationType() }
+    valuationTypes = valuationTypes?.map { it.toValuationType() } ?: emptyList()
 )
 
 fun SparePartsPurchaseOrderDto.toDomain() = SparePartsPurchaseOrder(
@@ -29,6 +30,10 @@ fun SparePartsPurchaseOrderDto.toDomain() = SparePartsPurchaseOrder(
 )
 
 fun RawMaterialsPurchaseOrderItemDto.toDomain() = RawMaterialsPurchaseOrderItem(
+    poNumber = poNumber,
+    vendorCode = vendorCode,
+    vendorName = vendorName,
+    companyCode = companyCode,
     poItemNumber = poItemNumber,
     materialCode = materialCode,
     materialDescription = materialDescription,
@@ -37,18 +42,27 @@ fun RawMaterialsPurchaseOrderItemDto.toDomain() = RawMaterialsPurchaseOrderItem(
     remainingQuantity = remainingQuantity,
     uom = uom,
     plantCode = plantCode,
-    carNo = carNo
+    carNo = carNo,
+    isFactoryCar = isFactoryCar,
+    factoryCarDescription = factoryCarDescription
 )
 
 fun RawMaterialsPurchaseOrderDto.toDomain() = RawMaterialsPurchaseOrder(
-    poNumber = poNumber,
+    purchaseOrderNumber = purchaseOrderNumber,
     vendorCode = vendorCode,
     vendorName = vendorName,
-    companyCode = companyCode,
-    purchaseOrderItems = purchaseOrderItems.map { it.toDomain() }
+    carNo = carNo,
+    isFactoryCar = isFactoryCar,
+    factoryCarDescription = factoryCarDescription,
+    itemCount = itemCount,
+    purchaseOrderItems = lines.map { it.toDomain() }
 )
 
 fun PackagingMaterialsPurchaseOrderItemDto.toDomain() = PackagingMaterialsPurchaseOrderItem(
+    poNumber = poNumber,
+    vendorCode = vendorCode,
+    vendorName = vendorName,
+    companyCode = companyCode,
     poItemNumber = poItemNumber,
     materialCode = materialCode,
     materialDescription = materialDescription,
@@ -57,38 +71,27 @@ fun PackagingMaterialsPurchaseOrderItemDto.toDomain() = PackagingMaterialsPurcha
     remainingQuantity = remainingQuantity,
     uom = uom,
     plantCode = plantCode,
-    carNo = carNo
+    carNo = carNo,
+    isFactoryCar = isFactoryCar,
+    factoryCarDescription = factoryCarDescription
 )
 
 fun PackagingMaterialsPurchaseOrderDto.toDomain() = PackagingMaterialsPurchaseOrder(
-    poNumber = poNumber,
+    purchaseOrderNumber = purchaseOrderNumber,
     vendorCode = vendorCode,
     vendorName = vendorName,
-    companyCode = companyCode,
-    purchaseOrderItems = purchaseOrderItems.map { it.toDomain() }
+    carNo = carNo,
+    isFactoryCar = isFactoryCar,
+    factoryCarDescription = factoryCarDescription,
+    itemCount = itemCount,
+    purchaseOrderItems = lines.map { it.toDomain() }
 )
 
 fun PoultryMaterialsPurchaseOrderItemDto.toDomain() = PoultryMaterialsPurchaseOrderItem(
-    poItemNumber = poItemNumber,
-    materialCode = materialCode,
-    materialDescription = materialDescription,
-    orderedQuantity = orderedQuantity,
-    receivedQuantity = receivedQuantity,
-    remainingQuantity = remainingQuantity,
-    uom = uom,
-    plantCode = plantCode,
-    carNo = carNo
-)
-
-fun PoultryMaterialsPurchaseOrderDto.toDomain() = PoultryMaterialsPurchaseOrder(
     poNumber = poNumber,
     vendorCode = vendorCode,
     vendorName = vendorName,
     companyCode = companyCode,
-    purchaseOrderItems = purchaseOrderItems.map { it.toDomain() }
-)
-
-fun TransitOrderMaterialPurchaseOrderItemDto.toDomain() = TransitOrderMaterialPurchaseOrderItem(
     poItemNumber = poItemNumber,
     materialCode = materialCode,
     materialDescription = materialDescription,
@@ -97,7 +100,39 @@ fun TransitOrderMaterialPurchaseOrderItemDto.toDomain() = TransitOrderMaterialPu
     remainingQuantity = remainingQuantity,
     uom = uom,
     plantCode = plantCode,
-    carNo = carNo
+    carNo = carNo,
+    isFactoryCar = isFactoryCar ?: true,
+    factoryCarDescription = factoryCarDescription
+)
+
+fun PoultryMaterialsPurchaseOrderDto.toDomain() = PoultryMaterialsPurchaseOrder(
+    purchaseOrderNumber = purchaseOrderNumber,
+    vendorCode = vendorCode,
+    vendorName = vendorName,
+    carNo = carNo,
+    isFactoryCar = isFactoryCar,
+    factoryCarDescription = factoryCarDescription,
+    itemCount = itemCount,
+    purchaseOrderItems = lines.map { it.toDomain() }
+)
+
+fun TransitOrderMaterialPurchaseOrderItemDto.toDomain() = TransitOrderMaterialPurchaseOrderItem(
+    poNumber = poNumber,
+    vendorCode = vendorCode,
+    vendorName = vendorName,
+    companyCode = companyCode,
+    poItemNumber = poItemNumber,
+    materialCode = materialCode,
+    materialDescription = materialDescription,
+    orderedQuantity = orderedQuantity,
+    receivedQuantity = receivedQuantity,
+    remainingQuantity = remainingQuantity,
+    uom = uom,
+    plantCode = plantCode,
+    plantDescription = plantDescription,
+    carNo = carNo,
+    isFactoryCar = isFactoryCar ?: true,
+    factoryCarDescription = factoryCarDescription
 )
 
 fun PoultryMaterialsLineDto.toModel(): PoultryMaterialsLine {
@@ -207,13 +242,19 @@ fun List<TransitOrderMaterialLine>.toDto(): List<TransitOrderMaterialLineDto> {
 }
 
 fun TransitOrderMaterialPurchaseOrderDto.toDomain() = TransitOrderMaterialPurchaseOrder(
-    poNumber = poNumber,
+    purchaseOrderNumber = purchaseOrderNumber,
     vendorCode = vendorCode,
     vendorName = vendorName,
     warehouseCode = warehouseCode,
     warehouseDescription = warehouseDescription,
     companyCode = companyCode,
-    purchaseOrderItems = purchaseOrderItems.map { it.toDomain() }
+    carNo = carNo,
+    isFactoryCar = isFactoryCar ?: true,
+    factoryCarDescription = factoryCarDescription,
+    itemCount = itemCount,
+    issuingPlantCode = issuingPlantCode,
+    issuingPlantDescription = issuingPlantDescription,
+    purchaseOrderItems = lines.map { it.toDomain() }
 )
 
 fun FinishedGoodsPlasticProductionOrderItemDto.toDomain() = FinishedGoodsPlasticProductionOrderItem(
@@ -278,12 +319,11 @@ fun net.gbs.gbswarehouse.data.remote.dto.response.GoodsReceiptStatusResult.toDom
 )
 
 fun ReceiveRawMaterialsResultDto.toDomain() = ReceiveRawMaterialsResult(
-    receiptStatus = receiptStatus.toDomain(),
+    receiptStatus = receiptStatus?.toDomain(),
     purchaseOrder = purchaseOrder?.toDomain()
 )
 
 fun ReceivePackagingMaterialsResultDto.toDomain() = ReceivePackagingMaterialsResult(
-    receiptStatus = receiptStatus.toDomain(),
     purchaseOrder = purchaseOrder?.toDomain()
 )
 
@@ -292,37 +332,37 @@ fun ReceiveVendorPoultryMaterialsResultDto.toDomain() = ReceiveVendorPoultryMate
     purchaseOrder = purchaseOrder?.toDomain()
 )
 
-fun ReceiveTransitOrderMaterialResultDto.toDomain() = ReceiveTransitOrderMaterialResult(
-    receiptStatus = receiptStatus.toDomain(),
-    purchaseOrder = purchaseOrder?.toDomain()
-)
+
 
 fun SparePartsReturnReservationLineDto.toDomain() = SparePartsReturnReservationLine(
     reservationNumber = reservationNumber,
     reservationItem = reservationItem,
     materialCode = materialCode,
     materialDescription = materialDescription ?: "",
+    uom = uom,
+    plantCode = plantCode ?: "",
+    storageLocationCode = storageLocationCode,
+    movementType = movementType,
+    batch = batch,
     receivedQuantity = receivedQuantity,
     quantity = quantity ?: 0.0,
     remainingQuantity = remainingQuantity ?: 0.0,
-    uom = uom,
-    plantCode = plantCode ?: "",
-    valuationTypes = valuationTypes.toValuationTypes(),
-    isBatchManaged = isBatchManaged ?: false
+    costCenterCode = costCenterCode,
+    costCenterDescription = costCenterDescription,
+    valuationTypes = valuationTypes?.toValuationTypes() ?: emptyList(),
+    isBatchManaged = isBatchManaged ?: false,
+    orderDescription = orderDescription ?: ""
 )
 
-fun PostSparePartsReturnResultDto.toDomain() = PostSparePartsReturnResult(
-    receiptStatus = receiptStatus.toDomain(),
-    reservationLines = reservationLines.map { it.toDomain() }
+fun List<SparePartsReturnReservationLineDto>.toDomain() = PostSparePartsReturnResult(
+    reservationLines = map { it.toDomain() }
 )
 
 fun ReceiveFinishedGoodsPlasticResultDto.toDomain() = ReceiveFinishedGoodsPlasticResult(
-    receiptStatus = receiptStatus.toDomain(),
     productionOrder = productionOrder?.toDomain()
 )
 
 fun ReceiveFinishedGoodsFeedResultDto.toDomain() = ReceiveFinishedGoodsFeedResult(
-    receiptStatus = receiptStatus.toDomain(),
     productionOrder = productionOrder?.toDomain()
 )
 
@@ -339,7 +379,8 @@ fun PackagingMaterialsLine.toDto() = PackagingMaterialsLineDto(
     purchaseOrderItem = purchaseOrderItem,
     uom = uom,
     receivedQuantity = receivedQuantity,
-    carNo = carNo
+    carNo = carNo,
+    productionDate = productionDate
 )
 
 fun FinishedGoodsFeedLine.toDto() = FinishedGoodsFeedLineDto(
@@ -363,7 +404,8 @@ fun FinishedGoodsPlasticLine.toDto() = FinishedGoodsPlasticLineDto(
     receivedQuantity = receivedQuantity,
     unloadingPoint = unloadingPoint,
     naolon = naolon,
-    wrokerGroupCode = workerGroupCode
+    wrokerGroupCode = workerGroupCode,
+    palletWeight = palletWeight
 )
 
 fun SparePartsPurchaseOrderItem.toPurchaseOrder() : SparePartsMaterial {
@@ -435,7 +477,8 @@ fun MovementTypeDto.toModel(): MovementType {
     return MovementType(
         movementType = movementType,
         returnReason = returnReason,
-        count = count
+        count = count,
+        value = value
     )
 }
 
@@ -569,7 +612,12 @@ fun PutAwayOrderDto.toDomain() = PutAwayOrder(
     orderNumber = orderNumber,
     receiptType = receiptType,
     itemCount = itemCount,
-    earliestReceivedAt = earliestReceivedAt
+    earliestReceivedAt = earliestReceivedAt,
+    materialCode = materialCode,
+    materialDescription = materialDescription ?: materialName,
+    remainingQuantity = remainingQuantity,
+    carNo = carNo ?: carNumber,
+    lines = lines.map { it.toDomain() }
 )
 
 fun PutAwayOrderLineDto.toDomain() = PutAwayOrderLine(
@@ -578,6 +626,7 @@ fun PutAwayOrderLineDto.toDomain() = PutAwayOrderLine(
     receiptNo = receiptNo,
     receiptType = receiptType,
     materialCode = materialCode,
+    materialDescription = materialDescription ?: materialName,
     plantCode = plantCode,
     warehouseCode = warehouseCode,
     purchaseOrder = purchaseOrder,
@@ -588,7 +637,8 @@ fun PutAwayOrderLineDto.toDomain() = PutAwayOrderLine(
     remainingQuantity = remainingQuantity,
     batch = batch,
     expirationDate = expirationDate,
-    receivedAt = receivedAt
+    receivedAt = receivedAt,
+    carNo = carNo ?: carNumber
 )
 
 fun StorageBinLocationDto.toDomain() = StorageBinLocation(
@@ -609,3 +659,57 @@ fun StorageBinLocationDto.toDomain() = StorageBinLocation(
     warehouseDescription = warehouseDescription,
     plantCode = plantCode
 )
+
+fun ReceivingOpenOrderCountsDto.toDomain() = ReceivingOpenOrderCounts(
+    spareParts = spareParts,
+    packagingMaterials = packagingMaterials,
+    rawMaterials = rawMaterials,
+    poultryMaterials = poultryMaterials,
+    finishedGoodsPlastic = finishedGoodsPlastic,
+    finishedGoodsFeed = finishedGoodsFeed,
+    transitOrderMaterial = transitOrderMaterial,
+    sparePartsReturn = sparePartsReturn,
+    total = total
+)
+
+fun PutAwayOpenOrderCountsDto.toDomain() = PutAwayOpenOrderCounts(
+    spareParts = spareParts,
+    packagingMaterials = packagingMaterials,
+    rawMaterials = rawMaterials,
+    poultryMaterials = poultryMaterials,
+    finishedGoodsPlastic = finishedGoodsPlastic,
+    finishedGoodsFeed = finishedGoodsFeed,
+    transitOrderMaterial = transitOrderMaterial,
+    sparePartsReturn = sparePartsReturn,
+    directTransfer = directTransfer,
+    total = total
+)
+
+fun BlindReceiveMaterialDto.toDomain() = BlindReceiveMaterial(
+    materialCode = materialCode,
+    materialDescription = materialDescription,
+    uom = uom,
+    uomDescription = uomDescription
+)
+
+fun UomDto.toDomain() = Uom(
+    code = code,
+    description = description
+)
+
+fun QualityDecisionDto.toDomain() = QualityDecision(
+    id = id.toString(),
+    name = name
+)
+
+fun PlantDto.toDomain() = Plant(
+    code = code,
+    description = description
+)
+
+fun CreateBlindReceiveResultDto.toDomain() = CreateBlindReceiveResult(
+    blindReceiptId = blindReceiptId,
+    receiptNo = receiptNo,
+    status = status
+)
+

@@ -163,7 +163,7 @@ fun LoginScreen(
                     },
                     hint          = stringResource(R.string.enter_username),
                     icon          = "👤",
-                    error         = state.usernameError?.let { stringResource(R.string.please_enter_username) },
+                    error         = state.usernameError,
                     keyboardType  = KeyboardType.Ascii
                 )
 
@@ -175,10 +175,10 @@ fun LoginScreen(
                         viewModel.onEvent(
                             LoginUiEvents.PasswordChanged(it)
                         )
-                                      },
+                                       },
                     hint            = stringResource(R.string.enter_password),
                     icon            = "🔒",
-                    error           = state.passwordError?.let { stringResource(R.string.please_enter_password) },
+                    error           = state.passwordError,
                     keyboardType    = KeyboardType.Password,
                     isPassword      = true,
                     passwordVisible = state.passwordVisible,
@@ -212,7 +212,7 @@ fun LoginScreen(
                                     tint          = colors.danger,
                                     modifier      = Modifier.size(16.dp)
                                 )
-                                Text(msg?:"", color = colors.danger, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Text(msg.text, color = colors.danger, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -269,7 +269,7 @@ fun LoginField(
     onValueChange: (String) -> Unit,
     hint: String,
     icon: String,
-    error: String?,
+    error: net.gbs.gbswarehouse.domain.model.Message?,
     keyboardType: KeyboardType    = KeyboardType.Text,
     isPassword: Boolean           = false,
     passwordVisible: Boolean      = false,
@@ -349,10 +349,8 @@ fun LoginField(
                 verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Icon(Icons.Default.Warning, contentDescription = null,
-                    tint = colors.danger, modifier = Modifier.size(11.dp))
-                Text(error ?: "", color = colors.danger, fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold)
+                Icon(Icons.Default.Warning, contentDescription = null, tint = colors.danger, modifier = Modifier.size(12.dp))
+                Text(error!!.text, color = colors.danger, fontSize = 10.sp)
             }
         }
     }

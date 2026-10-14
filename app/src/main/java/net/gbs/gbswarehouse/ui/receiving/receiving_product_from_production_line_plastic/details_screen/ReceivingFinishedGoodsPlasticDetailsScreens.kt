@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,10 +43,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
+import net.gbs.gbswarehouse.BottomSheetDialog
 import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.Field
 import net.gbs.gbswarehouse.FullBtn
 import net.gbs.gbswarehouse.GREEN
+import net.gbs.gbswarehouse.InfoCell
 import net.gbs.gbswarehouse.MarginVertical
 import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.R
@@ -57,6 +61,7 @@ import net.gbs.gbswarehouse.WarehousesSpinner
 import net.gbs.gbswarehouse.WorkersGroupsSpinner
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsPlasticLine
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsPlasticProductionOrderItem
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.model.WorkersGroup
 import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.orders_list.FinishedGoodsPlasticProductionOrderCard
@@ -110,7 +115,7 @@ fun ReceivingFinishedGoodsPlasticDetailsScreen(
                 is FinishedGoodsPlasticOrderGetDataStatus.ERROR -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(state.searchError, color = colors.text)
+                            Text(state.searchError?.text.orEmpty(), color = colors.text)
                             Spacer(Modifier.height(10.dp))
                             OutlineBtn(stringResource(R.string.retry), accent) {
                                 viewModel.onEvent(ReceivingFinishedGoodsPlasticEvent.OnScreenLoaded(orderId))
@@ -182,6 +187,8 @@ fun ReceivingFinishedGoodsPlasticDetailsScreen(
                                             onUnloadingPointChange = { viewModel.onEvent(ReceivingFinishedGoodsPlasticEvent.OnUnloadingPointEntered(it)) },
                                             naolon = state.naolon,
                                             onNaolonChange = { viewModel.onEvent(ReceivingFinishedGoodsPlasticEvent.OnNaolonEntered(it)) },
+                                            palletWeight = state.palletWeight,
+                                            onPalletWeightChange = { viewModel.onEvent(ReceivingFinishedGoodsPlasticEvent.OnPalletWeightEntered(it)) },
                                             quantityError = state.quantityError,
                                             warehouseError = state.warehouseError,
                                             workersGroupError = state.workersGroupError,
@@ -192,6 +199,8 @@ fun ReceivingFinishedGoodsPlasticDetailsScreen(
                                 }
                             }
 
+// A plastic production order only ever has a single material, so there is no added-lines
+// list to build up: the form is filled in and saved straight away.
 //                            if (state.selectedMaterial != null && state.quantity.isNotEmpty()&&state.selectedWarehouse!=null&&state.selectedWorkersGroup!=null&&state.unloadingPoint!=null) {
 //                                item {
 //                                    Spacer(Modifier.height(10.dp))
@@ -229,18 +238,33 @@ fun ReceivingFinishedGoodsPlasticDetailsScreen(
         }
         
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage) {
+            SuccessDialog(colors.succ, state.savingSuccessStatusMessage?.text.orEmpty()) {
                 viewModel.onEvent(ReceivingFinishedGoodsPlasticEvent.HideSuccessDialog)
             }
-            navController.popBackStack()
         }
+//        LaunchedEffect(state.showSuccessDialog) {
+//            if (state.showSuccessDialog) {
+//                delay(1000)
+//                navController.popBackStack()
+//            }
+//        }
         if (state.showErrorDialog) {
-            ErrorDialog(DANGER, state.savingErrorStatusMessage) {
+            ErrorDialog(DANGER, state.savingErrorStatusMessage?.text.orEmpty()) {
                 viewModel.onEvent(ReceivingFinishedGoodsPlasticEvent.HideErrorDialog)
             }
         }
     }
-
+    if (state.isSavingLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.3f))
+                .clickable(enabled = false) { },
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = accent)
+        }
+    }
     if (viewModel.matDlg) {
         BottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
             SearchBox(state.materialSearch, { viewModel.onEvent(ReceivingFinishedGoodsPlasticEvent.OnMaterialSearchTextEntered(it)) },
@@ -294,19 +318,21 @@ fun SelectedFinishedGoodsPlasticMaterialCard(
     onWarehouseSelected: (Warehouse) -> Unit,
     warehouseSearchText: String,
     onWarehouseSearchTextChanged: (String) -> Unit,
-    workersGroups: List<WorkersGroup>,
-    onWorkersGroupSelected: (WorkersGroup) -> Unit,
+    workersGroups: List<Int>,
+    onWorkersGroupSelected: (Int) -> Unit,
     workersGroupSearchText: String,
     onWorkersGroupSearchTextChanged: (String) -> Unit,
     unloadingPoint: String,
     onUnloadingPointChange: (String) -> Unit,
     naolon: String,
     onNaolonChange: (String) -> Unit,
-    quantityError: String = "",
-    warehouseError: String = "",
-    workersGroupError: String = "",
-    unloadingPointError: String = "",
-    naolonError: String = ""
+    palletWeight: String,
+    onPalletWeightChange: (String) -> Unit,
+    quantityError: Message? = null,
+    warehouseError: Message? = null,
+    workersGroupError: Message? = null,
+    unloadingPointError: Message? = null,
+    naolonError: Message? = null
 ) {
     val colors = AppTheme.colors
 
@@ -335,7 +361,7 @@ fun SelectedFinishedGoodsPlasticMaterialCard(
         }
         Spacer(Modifier.height(10.dp))
         Field("${stringResource(R.string.receiving_qty)} (${mat.uom ?: ""})", "", qty, onQtyChange, isNumber = true, center = true)
-        if (quantityError.isNotEmpty()) Text(quantityError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (quantityError != null) Text(quantityError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         
         Spacer(Modifier.height(10.dp))
         WarehousesSpinner(
@@ -346,31 +372,31 @@ fun SelectedFinishedGoodsPlasticMaterialCard(
             searchText = warehouseSearchText,
             onSearchTextChanged = onWarehouseSearchTextChanged
         )
-        if (warehouseError.isNotEmpty()) Text(warehouseError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (warehouseError != null) Text(warehouseError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         
         Spacer(Modifier.height(10.dp))
-        net.gbs.gbswarehouse.WorkersGroupsSpinner(
-            hint = stringResource(R.string.please_select_workers_group),
+        net.gbs.gbswarehouse.WorkersGroupsNumsSpinner(
+            label = stringResource(R.string.shift),
+            hint = stringResource(R.string.select_shift),
             items = workersGroups,
             onItemSelected = onWorkersGroupSelected,
             accent = accent,
             searchText = workersGroupSearchText,
             onSearchTextChanged = onWorkersGroupSearchTextChanged
         )
-        if (workersGroupError.isNotEmpty()) Text(workersGroupError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (workersGroupError != null) Text(workersGroupError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
 
         Spacer(Modifier.height(10.dp))
         Field(stringResource(R.string.unloading_point),
             stringResource(R.string.enter_unloading_point), unloadingPoint, onUnloadingPointChange, center = true)
-        if (unloadingPointError.isNotEmpty()) Text(unloadingPointError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (unloadingPointError != null) Text(unloadingPointError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
 
-//        Spacer(Modifier.height(10.dp))
 //        Field(stringResource(R.string.naolon),
 //            stringResource(R.string.enter_shipping_cost), naolon, onNaolonChange, isNumber = true, center = true)
 //        if (naolonError.isNotEmpty()) Text(naolonError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(10.dp))
         Field(stringResource(R.string.pallet_weight),
-            stringResource(R.string.enter_pallet_weight_optional), naolon, onNaolonChange, isNumber = true, center = true)
+            stringResource(R.string.enter_pallet_weight_optional), palletWeight, onPalletWeightChange, isNumber = true, center = true)
     }
 }
 
@@ -411,9 +437,9 @@ fun ReceivingFinishedGoodsPlasticLineItem(item: FinishedGoodsPlasticLine, onDele
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Chip(stringResource(R.string.warehouse) + ": " + item.warehouseCode)
-                    if (item.workerGroupName != null) {
+                    if (item.workerGroupCode != null) {
                         Spacer(Modifier.height(4.dp))
-                        Chip(stringResource(R.string.operations) + ": " + item.workerGroupName)
+                        Chip(stringResource(R.string.workers_group) + ": " + item.workerGroupCode)
                     }
                     if (item.unloadingPoint != null) {
                         Spacer(Modifier.height(4.dp))
@@ -422,6 +448,10 @@ fun ReceivingFinishedGoodsPlasticLineItem(item: FinishedGoodsPlasticLine, onDele
                     if (item.naolon != null) {
                         Spacer(Modifier.height(4.dp))
                         Chip(stringResource(R.string.naolon) + ": " + item.naolon)
+                    }
+                    if (item.palletWeight != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Chip(stringResource(R.string.pallet_weight) + ": " + item.palletWeight)
                     }
                     Spacer(Modifier.height(4.dp))
                     Chip("Order: " + item.orderNumber)

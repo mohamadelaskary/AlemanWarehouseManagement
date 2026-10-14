@@ -221,6 +221,7 @@ fun ReceivingMaterialDialogItem(
     receivedQty: String,
     doneLabel: String,
     accent: Color,
+    poNumber: String? = null,
     onClick: () -> Unit
 ) {
     val colors = AppTheme.colors
@@ -233,13 +234,24 @@ fun ReceivingMaterialDialogItem(
             .clickable { onClick() }
             .padding(all = 11.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = materialCode,
-                color = accent,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
-            )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = materialCode,
+                    color = accent,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                if (!poNumber.isNullOrBlank()) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "#$poNumber",
+                        color = colors.green,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
             Text(text = uom, color = colors.muted, fontSize = 10.sp)
         }
         Spacer(Modifier.height(4.dp))

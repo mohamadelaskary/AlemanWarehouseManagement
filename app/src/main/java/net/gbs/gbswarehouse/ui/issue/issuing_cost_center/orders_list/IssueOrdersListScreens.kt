@@ -24,18 +24,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationOrder
+import net.gbs.gbswarehouse.ui.issue.ReservationLineItemInfoCard
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.gbswarehouse.ui.theme.MUTED
 import net.gbs.gbswarehouse.ui.theme.TEXT
+import net.gbs.honeywellscanner.R
 
 @Composable
 fun IssuingCostCenterOrdersScreen(
@@ -73,7 +77,7 @@ fun IssuingCostCenterOrdersScreen(
             }
         } else if (viewModel.errorMessage != null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(viewModel.errorMessage!!, color = Color.Red, fontSize = 14.sp)
+                Text(viewModel.errorMessage!!.text, color = Color.Red, fontSize = 14.sp)
             }
         } else if (orders.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -86,12 +90,20 @@ fun IssuingCostCenterOrdersScreen(
         } else {
             LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
                 itemsIndexed(orders) { index, ord ->
-                    IssueOrderCard(order = ord, accent = accent, text = colors.text, muted = colors.muted,
+                    val resNum = ord.reservationNumber ?: ""
+                    IssueOrderCard(
+                        order = ord,
+                        accent = accent,
+                        text = colors.text,
+                        muted = colors.muted,
+                        isExpanded = viewModel.expandedOrderNumbers.contains(resNum),
+                        onToggleExpand = { viewModel.toggleOrderExpanded(resNum) },
                         onClick = {
                             navController.navigate(
-                                Screens.IssuingCostCenterOrdersDetailsScreen.createRoute(ord.reservationNumber ?: "")
+                                Screens.IssuingCostCenterOrdersDetailsScreen.createRoute(resNum)
                             )
-                        })
+                        }
+                    )
                     Spacer(Modifier.height(8.dp))
                 }
             }
@@ -103,11 +115,14 @@ fun IssuingCostCenterOrdersScreen(
 fun IssueOrderCard(
     order: SparePartsReturnReservationOrder,
     accent: Color,
-    muted: Color ,
-    text: Color ,
+    muted: Color,
+    text: Color,
+    isExpanded: Boolean = false,
+    onToggleExpand: () -> Unit = {},
     onClick: () -> Unit
 ) {
     val colors = AppTheme.colors
+    val itemsCount = if (order.lines.isNotEmpty()) order.lines.size else (order.itemCount ?: 0)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -117,18 +132,13 @@ fun IssueOrderCard(
             .clickable { onClick() }
             .padding(14.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = order.reservationNumber ?: "",
-                color = accent,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+
+        Text(
+            text = order.reservationNumber ?: "",
+            color = accent,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
         if (!order.orderDescription.isNullOrEmpty())
@@ -138,22 +148,66 @@ fun IssueOrderCard(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
-        if (!order.costCenterDescription.isNullOrEmpty())
-            Text(
-                text = order.costCenterDescription ?: "لا يوجد وصف",
-                color = colors.text,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (!order.costCenterDescription.isNullOrEmpty())
+                Text(
+                    text = order.costCenterDescription ?: "لا يوجد وصف",
+                    color = colors.text,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            if (!order.costCenterCode.isNullOrEmpty())
+                Text(
+                    text = stringResource(net.gbs.gbswarehouse.R.string.cost_center_code) + " " + order.costCenterCode,
+                    color = accent,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+        }
 
         Spacer(modifier = Modifier.height(10.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            InfoItem(label = "التاريخ", value = order.requirementDate?.substring(0,10) ?: "", icon = "📅", muted = muted, text = text)
-            InfoItem(label = "الأصناف", value = "${order.itemCount ?: 0} أصناف", icon = "📦", muted = muted, text = text)
+            InfoItem(
+                label = stringResource(net.gbs.gbswarehouse.R.string.date),
+                value = order.requirementDate?.take(10) ?: "",
+                icon = "📅",
+                muted = muted,
+                text = text
+            )
+            OutlineBtn(
+                label = if (isExpanded) {
+                    stringResource(net.gbs.gbswarehouse.R.string.hide_items)
+                } else {
+                    "$itemsCount ${stringResource(net.gbs.gbswarehouse.R.string.items)}"
+                },
+                color = accent,
+                onClick = onToggleExpand
+            )
+        }
+
+        if (isExpanded) {
+            Spacer(modifier = Modifier.height(10.dp))
+            if (order.lines.isNotEmpty()) {
+                order.lines.forEach { line ->
+                    ReservationLineItemInfoCard(line = line)
+                }
+            } else {
+                Text(
+                    text = stringResource(net.gbs.gbswarehouse.R.string.no_items),
+                    color = muted,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
         }
     }
 }

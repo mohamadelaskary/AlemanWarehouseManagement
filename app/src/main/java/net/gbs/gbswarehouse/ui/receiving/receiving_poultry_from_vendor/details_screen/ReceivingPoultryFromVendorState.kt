@@ -1,8 +1,10 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen
 
+import net.gbs.gbswarehouse.TransportationType
 import net.gbs.gbswarehouse.domain.model.CarNumber
 import net.gbs.gbswarehouse.domain.model.CarType
 import net.gbs.gbswarehouse.domain.model.LoadingVendor
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.NaolonDescription
 import net.gbs.gbswarehouse.domain.model.PackageType
 import net.gbs.gbswarehouse.domain.model.PoultryMaterialsLine
@@ -25,13 +27,13 @@ data class ReceivingPoultryFromVendorState (
     val selectedWarehouse: Warehouse?=null,
     val quantity:String = "",
     val addedItems:List<PoultryMaterialsLine> = emptyList(),
-    val materialCodeError : String = "",
-    val searchError : String = "",
-    val quantityError: String = "",
-    val warehouseError: String = "",
-    val error:String="",
-    val savingSuccessStatusMessage:String = "",
-    val savingErrorStatusMessage:String = "",
+    val materialCodeError : Message? = null,
+    val searchError : Message? = null,
+    val quantityError: Message? = null,
+    val warehouseError: Message? = null,
+    val error:Message? = null,
+    val savingSuccessStatusMessage:Message? = null,
+    val savingErrorStatusMessage:Message? = null,
     val isSavingLoading:Boolean = false,
     val showSuccessDialog:Boolean = false,
     val showErrorDialog:Boolean = false,
@@ -42,29 +44,29 @@ data class ReceivingPoultryFromVendorState (
     val showChangePoDialog: Boolean = false,
     val isAllPurchaseOrdersLoading: Boolean = false,
 
-    val selectedCarNo: CarNumber?=null,
-    val carNos:List<CarNumber> = emptyList(),
-    val carNoSearchText:String="",
-    val carNoError:String="",
+    val selectedCarNo: String?=null,
+//    val carNos:List<CarNumber> = emptyList(),
+//    val carNoSearchText:String="",
+//    val carNoError:String="",
 
     val unloadingPoint:String="",
-    val unloadingPointError:String="",
+    val unloadingPointError:Message? = null,
 
     val naolon :String="",
-    val naolonError:String="",
+    val naolonError:Message? = null,
 
     val contNo:String="",
-    val contNoError:String="",
+    val contNoError:Message? = null,
 
     val selectedLoadingVendor: LoadingVendor?=null,
     val loadingVendors:List<LoadingVendor> = emptyList(),
     val loadingVendorSearchText:String="",
-    val loadingVendorError:String="",
+    val loadingVendorError:Message? = null,
 
     val selectedWorkerGroup: WorkersGroup?=null,
     val workerGroups:List<WorkersGroup> = emptyList(),
     val workerGroupSearchText:String="",
-    val workerGroupError:String="",
+    val workerGroupError:Message? = null,
 
     val selectedNaolonDescription: NaolonDescription?=null,
     val naolonDescriptions:List<NaolonDescription> = emptyList(),
@@ -74,27 +76,28 @@ data class ReceivingPoultryFromVendorState (
     val selectedCarType: CarType?=null,
     val carTypes:List<CarType> = emptyList(),
     val carTypeSearchText:String="",
-    val carTypeError:String="",
+    val carTypeError:Message? = null,
 
     val expiryDate:String="",
-    val expiryDateError:String="",
+    val expiryDateError:Message? = null,
 
     val packingTypes: List<PackageType> = emptyList(),
     val selectedPackingType: PackageType?=null,
     val packingTypeSearchText:String="",
-    val packingTypeError:String="",
+    val packingTypeError:Message? = null,
+    val transportationVendor: TransportationType? = null,
     )
 
 sealed class PoultryPurchaseOrderGetDataStatus {
     data object IDLE : PoultryPurchaseOrderGetDataStatus()
     data object LOADING : PoultryPurchaseOrderGetDataStatus()
     data class SUCCESS(val po: PoultryMaterialsPurchaseOrder) : PoultryPurchaseOrderGetDataStatus()
-    data class ERROR(val error: String) : PoultryPurchaseOrderGetDataStatus()
+    data class ERROR(val error: Message) : PoultryPurchaseOrderGetDataStatus()
 }
 
 sealed class NaolonLoadingStatus {
     data object IDLE : NaolonLoadingStatus()
     data object LOADING : NaolonLoadingStatus()
     data class SUCCESS(val naolon: String) : NaolonLoadingStatus()
-    data class ERROR(val error: String) : NaolonLoadingStatus()
+    data class ERROR(val error: Message) : NaolonLoadingStatus()
 }

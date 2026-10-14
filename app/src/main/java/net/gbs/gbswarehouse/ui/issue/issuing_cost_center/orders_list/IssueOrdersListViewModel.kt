@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import net.gbs.gbswarehouse.core.network.NetworkResult
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationOrder
 import net.gbs.gbswarehouse.domain.usecase.issuing.GetDirectIssueOnCostCenterReservationsUseCase
 import javax.inject.Inject
@@ -18,7 +19,8 @@ class IssueOrdersListViewModel @Inject constructor(
 ): ViewModel() {
     var orders by mutableStateOf<List<SparePartsReturnReservationOrder>>(emptyList())
     var isLoading by mutableStateOf(false)
-    var errorMessage by mutableStateOf<String?>(null)
+    var errorMessage by mutableStateOf<Message?>(null)
+    var expandedOrderNumbers by mutableStateOf<Set<String>>(emptySet())
 
     init {
         loadOrders()
@@ -32,13 +34,21 @@ class IssueOrdersListViewModel @Inject constructor(
                 is NetworkResult.Success -> {
                     orders = result.data ?: emptyList()
                 }
-                is NetworkResult.BusinessError -> errorMessage = result.message
-                is NetworkResult.HttpError -> errorMessage = result.message
-                is NetworkResult.NetworkError -> errorMessage = result.message
-                is NetworkResult.UnknownError -> errorMessage = result.message
-                else -> errorMessage = "Unknown error"
+                is NetworkResult.BusinessError -> errorMessage = Message.Real(result.message)
+                is NetworkResult.HttpError -> errorMessage = Message.Real(result.message)
+                is NetworkResult.NetworkError -> errorMessage = Message.Real(result.message)
+                is NetworkResult.UnknownError -> errorMessage = Message.Real(result.message)
+                else -> errorMessage = Message.Real("Unknown error")
             }
             isLoading = false
+        }
+    }
+
+    fun toggleOrderExpanded(reservationNumber: String) {
+        expandedOrderNumbers = if (expandedOrderNumbers.contains(reservationNumber)) {
+            expandedOrderNumbers - reservationNumber
+        } else {
+            expandedOrderNumbers + reservationNumber
         }
     }
 
@@ -47,9 +57,10 @@ class IssueOrdersListViewModel @Inject constructor(
     val filteredOrders: List<SparePartsReturnReservationOrder> get() {
         return if (orderSearch.isBlank()) orders
         else orders.filter { 
-            it.reservationNumber?.contains(orderSearch) == true || 
+            it.reservationNumber?.contains(orderSearch, ignoreCase = true) == true || 
             it.orderDescription?.contains(orderSearch, ignoreCase = true) == true ||
-            it.costCenterDescription?.contains(orderSearch, ignoreCase = true) == true
+            it.costCenterDescription?.contains(orderSearch, ignoreCase = true) == true ||
+            it.costCenterCode?.contains(orderSearch, ignoreCase = true) == true
         }
     }
 }

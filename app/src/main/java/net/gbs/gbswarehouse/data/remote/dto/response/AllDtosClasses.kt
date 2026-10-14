@@ -43,7 +43,8 @@ data class RawMaterialsLineDto(
     val loadingVendorCode: String? = null,
     val wrokerGroupCode: String? = null,
     val naolonDescription: String? = null,
-    val packTypeCode: String? = null
+    val packTypeCode: String? = null,
+    val carType: String? = null
 )
 
 @Serializable
@@ -61,7 +62,8 @@ data class PackagingMaterialsLineDto(
     val purchaseOrderItem: String = "",
     val uom: String = "",
     val receivedQuantity: Double = 0.0,
-    val carNo: String? = null
+    val carNo: String? = null,
+    val productionDate: String? = null
 )
 
 @Serializable
@@ -179,7 +181,8 @@ data class FinishedGoodsPlasticLineDto(
     val receivedQuantity: Double = 0.0,
     val unloadingPoint: String? = null,
     val naolon: Double? = null,
-    val wrokerGroupCode: String? = null
+    val wrokerGroupCode: String? = null,
+    val palletWeight: Double? = null
 )
 
 @Serializable
@@ -197,7 +200,8 @@ data class FinishedGoodsFeedLineDto(
     val itemNumber: String = "",
     val uom: String = "",
     val receivedQuantity: Double = 0.0,
-    val wrokerGroupCode: String? = null
+    val wrokerGroupCode: String? = null,
+    val storageBinCode: String?=null,
 )
 
 // ---------- Response DTOs (results) ----------
@@ -228,60 +232,92 @@ data class GoodsReceiptStatusResult(
 )
 
 @Serializable
+data class GetRawMaterialsPurchaseOrderDataRequestDto(
+    @SerializedName("carNo") val carNo: String = ""
+)
+
+@Serializable
 data class ReceiveRawMaterialsResultDto(
-    val receiptStatus: GoodsReceiptStatusResult,
+    val receiptStatus: GoodsReceiptStatusResult? = null,
     val purchaseOrder: RawMaterialsPurchaseOrderDto? = null
 )
 
 @Serializable
 data class RawMaterialsPurchaseOrderDto(
-    val poNumber: String = "",
-    val vendorCode: String? = null,
-    val vendorName: String? = null,
-    val companyCode: String = "",
-    val purchaseOrderItems: List<RawMaterialsPurchaseOrderItemDto> = emptyList()
+    @SerializedName("purchaseOrderNumber") val purchaseOrderNumber: String = "",
+    @SerializedName("vendorCode") val vendorCode: String? = null,
+    @SerializedName("vendorName") val vendorName: String? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
+    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null,
+    @SerializedName("itemCount") val itemCount: Int? = null,
+    @SerializedName("lines") val lines: List<RawMaterialsPurchaseOrderItemDto> = emptyList()
 )
 
 @Serializable
 data class RawMaterialsPurchaseOrderItemDto(
-    val poItemNumber: String = "",
-    val materialCode: String? = null,
-    val materialDescription: String? = null,
-    val orderedQuantity: Double? = null,
-    val receivedQuantity: Double? = null,
-    val remainingQuantity: Double? = null,
-    val uom: String? = null,
-    val plantCode: String? = null,
-    val carNo: String? = null
+    @SerializedName("poNumber") val poNumber: String? = null,
+    @SerializedName("vendorCode") val vendorCode: String? = null,
+    @SerializedName("vendorName") val vendorName: String? = null,
+    @SerializedName("companyCode") val companyCode: String? = null,
+    @SerializedName("poItemNumber") val poItemNumber: String = "",
+    @SerializedName("materialCode") val materialCode: String? = null,
+    @SerializedName("materialDescription") val materialDescription: String? = null,
+    @SerializedName("orderedQuantity") val orderedQuantity: Double? = null,
+    @SerializedName("receivedQuantity") val receivedQuantity: Double? = null,
+    @SerializedName("remainingQuantity") val remainingQuantity: Double? = null,
+    @SerializedName("uom") val uom: String? = null,
+    @SerializedName("plantCode") val plantCode: String? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
+    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null,
+)
+
+@Serializable
+data class GetPackagingMaterialsPurchaseOrderDataRequestDto(
+    @SerializedName("carNo") val carNo: String = ""
+)
+
+@Serializable
+data class GetPoultryMaterialsPurchaseOrderDataRequestDto(
+    @SerializedName("carNo") val carNo: String = ""
 )
 
 // Packaging result
 @Serializable
 data class ReceivePackagingMaterialsResultDto(
-    val receiptStatus: GoodsReceiptStatusResult,
     val purchaseOrder: PackagingMaterialsPurchaseOrderDto? = null
 )
 
 @Serializable
 data class PackagingMaterialsPurchaseOrderDto(
-    val poNumber: String = "",
-    val vendorCode: String? = null,
-    val vendorName: String? = null,
-    val companyCode: String = "",
-    val purchaseOrderItems: List<PackagingMaterialsPurchaseOrderItemDto> = emptyList()
+    @SerializedName("purchaseOrderNumber") val purchaseOrderNumber: String = "",
+    @SerializedName("vendorCode") val vendorCode: String? = null,
+    @SerializedName("vendorName") val vendorName: String? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
+    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null,
+    @SerializedName("itemCount") val itemCount: Int? = null,
+    @SerializedName("lines") val lines: List<PackagingMaterialsPurchaseOrderItemDto> = emptyList()
 )
 
 @Serializable
 data class PackagingMaterialsPurchaseOrderItemDto(
-    val poItemNumber: String = "",
-    val materialCode: String? = null,
-    val materialDescription: String? = null,
-    val orderedQuantity: Double? = null,
-    val receivedQuantity: Double? = null,
-    val remainingQuantity: Double? = null,
-    val uom: String? = null,
-    val plantCode: String? = null,
-    val carNo: String? = null
+    @SerializedName("poNumber") val poNumber: String? = null,
+    @SerializedName("vendorCode") val vendorCode: String? = null,
+    @SerializedName("vendorName") val vendorName: String? = null,
+    @SerializedName("companyCode") val companyCode: String? = null,
+    @SerializedName("poItemNumber") val poItemNumber: String = "",
+    @SerializedName("materialCode") val materialCode: String? = null,
+    @SerializedName("materialDescription") val materialDescription: String? = null,
+    @SerializedName("orderedQuantity") val orderedQuantity: Double? = null,
+    @SerializedName("receivedQuantity") val receivedQuantity: Double? = null,
+    @SerializedName("remainingQuantity") val remainingQuantity: Double? = null,
+    @SerializedName("uom") val uom: String? = null,
+    @SerializedName("plantCode") val plantCode: String? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
+    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null
 )
 
 // Spare parts result
@@ -311,7 +347,7 @@ data class SparePartsPurchaseOrderItemDto(
     val uom: String? = null,
     val plantCode: String? = null,
     val isBatchManaged: Boolean? = null,
-    val valuationTypes: List<ValuationTypeDto> = emptyList()
+    val valuationTypes: List<ValuationTypeDto>? = emptyList()
 )
 
 // Poultry result
@@ -323,68 +359,95 @@ data class ReceiveVendorPoultryMaterialsResultDto(
 
 @Serializable
 data class PoultryMaterialsPurchaseOrderDto(
-    val poNumber: String = "",
-    val vendorCode: String? = null,
-    val vendorName: String? = null,
-    val companyCode: String = "",
-    val purchaseOrderItems: List<PoultryMaterialsPurchaseOrderItemDto> = emptyList()
+    @SerializedName("purchaseOrderNumber") val purchaseOrderNumber: String = "",
+    @SerializedName("vendorCode") val vendorCode: String? = null,
+    @SerializedName("vendorName") val vendorName: String? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
+    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null,
+    @SerializedName("itemCount") val itemCount: Int? = null,
+    @SerializedName("lines") val lines: List<PoultryMaterialsPurchaseOrderItemDto> = emptyList()
 )
 
 @Serializable
 data class PoultryMaterialsPurchaseOrderItemDto(
-    val poItemNumber: String = "",
-    val materialCode: String? = null,
-    val materialDescription: String? = null,
-    val orderedQuantity: Double? = null,
-    val receivedQuantity: Double? = null,
-    val remainingQuantity: Double? = null,
-    val uom: String? = null,
-    val plantCode: String? = null,
-    val carNo: String? = null
+    @SerializedName("poNumber") val poNumber: String? = null,
+    @SerializedName("vendorCode") val vendorCode: String? = null,
+    @SerializedName("vendorName") val vendorName: String? = null,
+    @SerializedName("companyCode") val companyCode: String? = null,
+    @SerializedName("poItemNumber") val poItemNumber: String = "",
+    @SerializedName("materialCode") val materialCode: String? = null,
+    @SerializedName("materialDescription") val materialDescription: String? = null,
+    @SerializedName("orderedQuantity") val orderedQuantity: Double? = null,
+    @SerializedName("receivedQuantity") val receivedQuantity: Double? = null,
+    @SerializedName("remainingQuantity") val remainingQuantity: Double? = null,
+    @SerializedName("uom") val uom: String? = null,
+    @SerializedName("plantCode") val plantCode: String? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
+    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null,
 )
 
 // Transit order result
 @Serializable
-data class ReceiveTransitOrderMaterialResultDto(
-    val receiptStatus: GoodsReceiptStatusResult,
-    val purchaseOrder: TransitOrderMaterialPurchaseOrderDto? = null
+data class GetTransitOrderMaterialPurchaseOrderDataRequestDto(
+    @SerializedName("carNo") val carNo: String = ""
+)
+
+// Finished goods feed result
+@Serializable
+data class GetFinishedGoodsFeedOrderLinesByCarNumberRequestDto(
+    @SerializedName("carNo") val carNo: String = ""
+)
+
+// Transfer order by car number
+@Serializable
+data class GetTransferOrderDataByCarNumberRequestDto(
+    @SerializedName("carNo") val carNo: String = ""
 )
 
 @Serializable
 data class TransitOrderMaterialPurchaseOrderDto(
-    val poNumber: String = "",
-    val vendorCode: String? = null,
-    val vendorName: String? = null,
-    val warehouseCode: String? = null,
-    val warehouseDescription: String? = null,
-    val companyCode: String = "",
-    val purchaseOrderItems: List<TransitOrderMaterialPurchaseOrderItemDto> = emptyList()
+    @SerializedName("purchaseOrderNumber") val purchaseOrderNumber: String = "",
+    @SerializedName("vendorCode") val vendorCode: String? = null,
+    @SerializedName("vendorName") val vendorName: String? = null,
+    @SerializedName("warehouseCode") val warehouseCode: String? = null,
+    @SerializedName("warehouseDescription") val warehouseDescription: String? = null,
+    @SerializedName("companyCode") val companyCode: String = "",
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
+    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null,
+    @SerializedName("itemCount") val itemCount: Int? = null,
+    @SerializedName("IssuingPlantDescription") val issuingPlantDescription: String? = null,
+    @SerializedName("IssuingPlantCode") val issuingPlantCode: String? = null,
+    @SerializedName("lines") val lines: List<TransitOrderMaterialPurchaseOrderItemDto> = emptyList()
 )
 
 @Serializable
 data class TransitOrderMaterialPurchaseOrderItemDto(
-    val poItemNumber: String = "",
-    val materialCode: String? = null,
-    val materialDescription: String? = null,
-    val orderedQuantity: Double? = null,
-    val receivedQuantity: Double? = null,
-    val remainingQuantity: Double? = null,
-    val uom: String? = null,
-    val plantCode: String? = null,
-    val carNo: String? = null
+    @SerializedName("poNumber") val poNumber: String? = null,
+    @SerializedName("vendorCode") val vendorCode: String? = null,
+    @SerializedName("vendorName") val vendorName: String? = null,
+    @SerializedName("companyCode") val companyCode: String? = null,
+    @SerializedName("poItemNumber") val poItemNumber: String = "",
+    @SerializedName("materialCode") val materialCode: String? = null,
+    @SerializedName("materialDescription") val materialDescription: String? = null,
+    @SerializedName("orderedQuantity") val orderedQuantity: Double? = null,
+    @SerializedName("receivedQuantity") val receivedQuantity: Double? = null,
+    @SerializedName("remainingQuantity") val remainingQuantity: Double? = null,
+    @SerializedName("uom") val uom: String? = null,
+    @SerializedName("plantCode") val plantCode: String? = null,
+    @SerializedName("plantDescription") val plantDescription: String? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
+    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null
 )
 
-// Spare parts return result
-@Serializable
-data class PostSparePartsReturnResultDto(
-    val receiptStatus: GoodsReceiptStatusResult,
-    val reservationLines: List<SparePartsReturnReservationLineDto> = emptyList()
-)
+
 
 // Finished goods results
 @Serializable
 data class ReceiveFinishedGoodsPlasticResultDto(
-    val receiptStatus: GoodsReceiptStatusResult,
     val productionOrder: FinishedGoodsPlasticProductionOrderDto? = null
 )
 
@@ -399,9 +462,9 @@ data class FinishedGoodsPlasticProductionOrderItemDto(
     @SerializedName("itemNumber"          ) var itemNumber          : String? = null,
     @SerializedName("materialCode"        ) var materialCode        : String? = null,
     @SerializedName("materialDescription" ) var materialDescription : String? = null,
-    @SerializedName("orderedQuantity"     ) var orderedQuantity     : Int?    = null,
-    @SerializedName("receivedQuantity"    ) var receivedQuantity    : Int?    = null,
-    @SerializedName("remainingQuantity"   ) var remainingQuantity   : Int?    = null,
+    @SerializedName("orderedQuantity"     ) var orderedQuantity     : Double?    = null,
+    @SerializedName("receivedQuantity"    ) var receivedQuantity    : Double?    = null,
+    @SerializedName("remainingQuantity"   ) var remainingQuantity   : Double?    = null,
     @SerializedName("uom"                 ) var uom                 : String? = null,
     @SerializedName("plantCode"           ) var plantCode           : String? = null,
     @SerializedName("warehouseCode"       ) var warehouseCode       : String? = null,
@@ -418,6 +481,7 @@ data class ReceiveFinishedGoodsFeedResultDto(
 @Serializable
 data class FinishedGoodsFeedProductionOrderDto(
     val orderNumber: String = "",
+    val companyCode: String = "",
     val productionOrderItems: List<FinishedGoodsFeedProductionOrderItemDto> = emptyList()
 )
 
@@ -446,30 +510,41 @@ data class GetProductionOrderReqDto(
 
 @Serializable
 data class PutAwayOrderDto(
-    val orderNumber: String,
-    val receiptType: String,
-    val itemCount: Int,
-    val earliestReceivedAt: String
+    @SerializedName("orderNumber") val orderNumber: String,
+    @SerializedName("receiptType") val receiptType: String,
+    @SerializedName("itemCount") val itemCount: Int,
+    @SerializedName("earliestReceivedAt") val earliestReceivedAt: String,
+    @SerializedName("materialCode") val materialCode: String? = null,
+    @SerializedName("materialDescription") val materialDescription: String? = null,
+    @SerializedName("materialName") val materialName: String? = null,
+    @SerializedName("remainingQuantity") val remainingQuantity: Double? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("carNumber") val carNumber: String? = null,
+    @SerializedName("lines") val lines: List<PutAwayOrderLineDto> = emptyList()
 )
 
 @Serializable
 data class PutAwayOrderLineDto(
-    val goodsReceiptLineId: Int,
-    val goodsReceiptId: Int,
-    val receiptNo: String,
-    val receiptType: String,
-    val materialCode: String,
-    val plantCode: String,
-    val warehouseCode: String,
-    val purchaseOrder: String,
-    val purchaseOrderItem: String,
-    val uom: String,
-    val receivedQuantity: Double,
-    val putAwayQuantity: Double,
-    val remainingQuantity: Double,
-    val batch: String?,
-    val expirationDate: String?,
-    val receivedAt: String
+    @SerializedName("goodsReceiptLineId") val goodsReceiptLineId: Int,
+    @SerializedName("goodsReceiptId") val goodsReceiptId: Int,
+    @SerializedName("receiptNo") val receiptNo: String,
+    @SerializedName("receiptType") val receiptType: String,
+    @SerializedName("materialCode") val materialCode: String,
+    @SerializedName("materialDescription") val materialDescription: String? = null,
+    @SerializedName("materialName") val materialName: String? = null,
+    @SerializedName("plantCode") val plantCode: String,
+    @SerializedName("warehouseCode") val warehouseCode: String,
+    @SerializedName("purchaseOrder") val purchaseOrder: String,
+    @SerializedName("purchaseOrderItem") val purchaseOrderItem: String,
+    @SerializedName("uom") val uom: String,
+    @SerializedName("receivedQuantity") val receivedQuantity: Double,
+    @SerializedName("putAwayQuantity") val putAwayQuantity: Double,
+    @SerializedName("remainingQuantity") val remainingQuantity: Double,
+    @SerializedName("batch") val batch: String?,
+    @SerializedName("expirationDate") val expirationDate: String?,
+    @SerializedName("receivedAt") val receivedAt: String,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("carNumber") val carNumber: String? = null
 )
 
 @Serializable
@@ -513,7 +588,7 @@ data class SAPMaterialBatchValuationStockDto(
     @SerializedName("plantCode"                     ) var plantCode                     : String? = null,
     @SerializedName("storageLocationCode"           ) var storageLocationCode           : String? = null,
     @SerializedName("batch"                         ) var batch                         : String? = null,
-    @SerializedName("quantity"                      ) var quantity                      : Int?    = null,
+    @SerializedName("quantity"                      ) var quantity                      : Double?    = null,
     @SerializedName("description"                   ) var description                   : String? = null,
     @SerializedName("unitOfMeasure"                 ) var unitOfMeasure                 : String? = null,
     @SerializedName("batchManagement"               ) var batchManagement               : String? = null,
@@ -535,50 +610,55 @@ data class SparePartsReturnReservationDto(
     @SerializedName("costCenterDescription") val costCenterDescription: String?,
     @SerializedName("requirementDate") val requirementDate: String?, // ISO datetime
     @SerializedName("movementType") val movementType: String,
-    @SerializedName("itemCount") val itemCount: Int
+    @SerializedName("itemCount") val itemCount: Int,
+    @SerializedName("lines") val lines: List<SparePartsReturnReservationLineDto> = emptyList()
 )
 
 @Serializable
 data class SparePartsReturnReservationLineDto(
-    @SerializedName("reservationNumber") val reservationNumber: String,
-    @SerializedName("reservationItem") val reservationItem: String,
-    @SerializedName("materialCode") val materialCode: String?,
-    @SerializedName("materialDescription") val materialDescription: String?,
-    @SerializedName("uom") val uom: String?,
-    @SerializedName("plantCode") val plantCode: String?,
-    @SerializedName("storageLocationCode") val storageLocationCode: String?,
-    @SerializedName("movementType") val movementType: String,
-    @SerializedName("batch") val batch: String?,
-    @SerializedName("quantity") val quantity: Double?,
-    @SerializedName("receivedQuantity") val receivedQuantity: Double?,
-    @SerializedName("remainingQuantity") val remainingQuantity: Double?,
-    @SerializedName("costCenterCode") val costCenterCode: String?,
-    @SerializedName("costCenterDescription") val costCenterDescription: String?,
-    @SerializedName("isBatchManaged") val isBatchManaged: Boolean?,
-    @SerializedName("valuationTypes") val valuationTypes: List<ValuationTypeDto>
+    @SerializedName("reservationNumber") val reservationNumber: String = "",
+    @SerializedName("reservationItem") val reservationItem: String = "",
+    @SerializedName("materialCode") val materialCode: String? = null,
+    @SerializedName("materialDescription") val materialDescription: String? = null,
+    @SerializedName("uom") val uom: String? = null,
+    @SerializedName("plantCode") val plantCode: String? = null,
+    @SerializedName("storageLocationCode") val storageLocationCode: String? = null,
+    @SerializedName("movementType") val movementType: String? = null,
+    @SerializedName("batch") val batch: String? = null,
+    @SerializedName("quantity") val quantity: Double? = null,
+    @SerializedName("receivedQuantity") val receivedQuantity: Double? = null,
+    @SerializedName("remainingQuantity") val remainingQuantity: Double? = null,
+    @SerializedName("costCenterCode") val costCenterCode: String? = null,
+    @SerializedName("costCenterDescription") val costCenterDescription: String? = null,
+    @SerializedName("isBatchManaged") val isBatchManaged: Boolean? = null,
+    @SerializedName("valuationTypes") val valuationTypes: List<ValuationTypeDto>? = null,
+    var orderDescription: String
 )
 
 // --- Transfer to Production reservation line (response) ---
+// Used by GetTransferToProductionReservationLines (full payload) and by
+// IssueTransferToProduction (refreshed lines only, no cost-center/valuation payload)
+// so every field is optional to stay tolerant of both shapes.
 @Serializable
 data class TransferToProductionReservationLineDto(
-    @SerializedName("reservationNumber") val reservationNumber: String,
-    @SerializedName("reservationItem") val reservationItem: String,
-    @SerializedName("materialCode") val materialCode: String?,
-    @SerializedName("materialDescription") val materialDescription: String?,
-    @SerializedName("uom") val uom: String?,
-    @SerializedName("plantCode") val plantCode: String?,
-    @SerializedName("storageLocationCode") val storageLocationCode: String?,
-    @SerializedName("movementType") val movementType: String,
-    @SerializedName("batch") val batch: String?,
-    @SerializedName("quantity") val quantity: Double?,
-    @SerializedName("receivedQuantity") val receivedQuantity: Double?,
-    @SerializedName("remainingQuantity") val remainingQuantity: Double?,
-    @SerializedName("costCenterCode") val costCenterCode: String?,
-    @SerializedName("costCenterDescription") val costCenterDescription: String?,
-    @SerializedName("receivingPlantCode") val receivingPlantCode: String?,
-    @SerializedName("receivingStorageLocationCode") val receivingStorageLocationCode: String?,
-    @SerializedName("isBatchManaged") val isBatchManaged: Boolean?,
-    @SerializedName("valuationTypes") val valuationTypes: List<ValuationTypeDto>
+    @SerializedName("reservationNumber") val reservationNumber: String = "",
+    @SerializedName("reservationItem") val reservationItem: String = "",
+    @SerializedName("materialCode") val materialCode: String? = null,
+    @SerializedName("materialDescription") val materialDescription: String? = null,
+    @SerializedName("uom") val uom: String? = null,
+    @SerializedName("plantCode") val plantCode: String? = null,
+    @SerializedName("storageLocationCode") val storageLocationCode: String? = null,
+    @SerializedName("movementType") val movementType: String = "",
+    @SerializedName("batch") val batch: String? = null,
+    @SerializedName("quantity") val quantity: Double? = null,
+    @SerializedName("receivedQuantity") val receivedQuantity: Double? = null,
+    @SerializedName("remainingQuantity") val remainingQuantity: Double? = null,
+    @SerializedName("costCenterCode") val costCenterCode: String? = null,
+    @SerializedName("costCenterDescription") val costCenterDescription: String? = null,
+    @SerializedName("receivingPlantCode") val receivingPlantCode: String? = null,
+    @SerializedName("receivingStorageLocationCode") val receivingStorageLocationCode: String? = null,
+    @SerializedName("isBatchManaged") val isBatchManaged: Boolean? = null,
+    @SerializedName("valuationTypes") val valuationTypes: List<ValuationTypeDto>? = null
 )
 
 // -------------------- Request DTOs & Result DTOs for issuing flows --------------------
@@ -604,15 +684,17 @@ data class TransferToProductionLineDto(
     @SerializedName("receivingPlantCode") val receivingPlantCode: String,
     @SerializedName("receivingWarehouseCode") val receivingWarehouseCode: String,
     @SerializedName("receivingValuationType") val receivingValuationType: String?,
-    @SerializedName("receivingBatch") val receivingBatch: String?
+    @SerializedName("receivingBatch") val receivingBatch: String?,
+    @SerializedName("notes") val notes: String?,
+    @SerializedName("workerGroupCode") val workersGroupCode: String,
+    @SerializedName("agingGroupCode") val agingGroupCode: String
 )
 
 // Transfer to Production - result
-@Serializable
-data class PostTransferToProductionResultDto(
-    @SerializedName("receiptStatus") val receiptStatus: GoodsReceiptStatusResult,
-    @SerializedName("reservationLines") val reservationLines: List<TransferToProductionReservationLineDto>
-)
+// The endpoint answers with the refreshed reservation lines directly inside the
+// response envelope, there is no inner result object:
+// { "responseStatus": { ... }, "data": [ { "reservationNumber": "341734", ... } ] }
+// so the result DTO is the list itself, see MobileResponse<List<TransferToProductionReservationLineDto>>
 
 // Spare Parts Issue to Maintenance - request
 @Serializable
@@ -632,12 +714,6 @@ data class SparePartsIssueToMaintenanceLineDto(
     @SerializedName("storageBinCode") val storageBinCode: String,
     @SerializedName("valuationType") val valuationType: String?,
     @SerializedName("batch") val batch: String?
-)
-
-@Serializable
-data class PostSparePartsIssueToMaintenanceResultDto(
-    @SerializedName("receiptStatus") val receiptStatus: GoodsReceiptStatusResult,
-    @SerializedName("reservationLines") val reservationLines: List<SparePartsReturnReservationLineDto>
 )
 
 // Issue to Internal Order - request
@@ -662,7 +738,6 @@ data class IssueToInternalOrderLineDto(
 
 @Serializable
 data class PostIssueToInternalOrderResultDto(
-    @SerializedName("receiptStatus") val receiptStatus: GoodsReceiptStatusResult,
     @SerializedName("reservationLines") val reservationLines: List<SparePartsReturnReservationLineDto>
 )
 
@@ -685,7 +760,10 @@ data class DirectTransferLineDto(
     @SerializedName("receivingPlantCode") val receivingPlantCode: String,
     @SerializedName("receivingWarehouseCode") val receivingWarehouseCode: String,
     @SerializedName("receivingValuationType") val receivingValuationType: String?,
-    @SerializedName("receivingBatch") val receivingBatch: String?
+    @SerializedName("receivingBatch") val receivingBatch: String?,
+    @SerializedName("workerGroupCode") val workerGroupCode: String?,
+    @SerializedName("agingGroupCode") val agingGroupCode: String?,
+    @SerializedName("notes") val notes: String?,
 )
 
 @Serializable
@@ -710,7 +788,7 @@ data class DirectIssueOnCostCenterLineDto(
     @SerializedName("reservationItem") val reservationItem: String,
     @SerializedName("storageBinCode") val storageBinCode: String,
     @SerializedName("valuationType") val valuationType: String?,
-    @SerializedName("batch") val batch: String?
+    @SerializedName("batch") val batch: String?,
 )
 
 @Serializable
@@ -735,10 +813,151 @@ data class ScrapIssueLineDto(
     @SerializedName("quantity") val quantity: Double,
     @SerializedName("storageBinCode") val storageBinCode: String,
     @SerializedName("costCenterCode") val costCenterCode: String,
-    @SerializedName("itemText") val itemText: String?
+    @SerializedName("itemText") val itemText: String?,
+    @SerializedName("batch") val batch: String? = null,
+    @SerializedName("valuationType") val valuationType: String? = null,
+    @SerializedName("companyCode") val companyCode: String? = null
 )
 
 @Serializable
 data class PostScrapIssueResultDto(
     @SerializedName("receiptStatus") val receiptStatus: GoodsReceiptStatusResult
 )
+
+@Serializable
+data class MaterialOnHandStockDto(
+    @SerializedName("plantCode"      ) val plantCode      : String?  = null,
+    @SerializedName("warehouseCode"  ) val warehouseCode  : String?  = null,
+    @SerializedName("storageBinCode" ) val storageBinCode : String?  = null,
+    @SerializedName("materialCode"   ) val materialCode   : String?  = null,
+    @SerializedName("materialDescription"   ) val materialDescription   : String?  = null,
+    @SerializedName("batch"          ) val batch          : String?  = null,
+    @SerializedName("batchDate"      ) val batchDate          : String?  = null,
+    @SerializedName("valuationType"  ) val valuationType  : String?  = null,
+    @SerializedName("isBatchManaged" ) val isBatchManaged : Boolean? = null,
+    @SerializedName("availableQty"   ) val availableQty   : Double?  = null,
+    @SerializedName("unitOfMeasure"  ) val unitOfMeasure  : String?  = null,
+    @SerializedName("uom"            ) val uom            : String?  = null
+)
+
+@Serializable
+data class DirectTransferPutAwayDocumentDto(
+    @SerializedName("goodsReceiptId") val goodsReceiptId: Int = 0,
+    @SerializedName("receiptNo") val receiptNo: String = "",
+    @SerializedName("plantCodes") val plantCodes: String? = null,
+    @SerializedName("warehouseCodes") val warehouseCodes: String? = null,
+    @SerializedName("receivingPlantCodes") val receivingPlantCodes: String? = null,
+    @SerializedName("receivingWarehouseCodes") val receivingWarehouseCodes: String? = null,
+    @SerializedName("itemCount") val itemCount: Int = 0,
+    @SerializedName("createdBy") val createdBy: String? = null,
+    @SerializedName("transferredAt") val transferredAt: String? = null,
+    @SerializedName("materialCode") val materialCode: String? = null,
+    @SerializedName("materialDescription") val materialDescription: String? = null,
+    @SerializedName("materialName") val materialName: String? = null,
+    @SerializedName("remainingQuantity") val remainingQuantity: Double? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("carNumber") val carNumber: String? = null
+)
+
+@Serializable
+data class DirectTransferPutAwayLineDto(
+    @SerializedName("goodsReceiptLineId") val goodsReceiptLineId: Int = 0,
+    @SerializedName("goodsReceiptId") val goodsReceiptId: Int = 0,
+    @SerializedName("receiptNo") val receiptNo: String = "",
+    @SerializedName("materialCode") val materialCode: String = "",
+    @SerializedName("materialDescription") val materialDescription: String? = null,
+    @SerializedName("materialName") val materialName: String? = null,
+    @SerializedName("plantCode") val plantCode: String? = null,
+    @SerializedName("warehouseCode") val warehouseCode: String? = null,
+    @SerializedName("receivingPlantCode") val receivingPlantCode: String? = null,
+    @SerializedName("receivingWarehouseCode") val receivingWarehouseCode: String? = null,
+    @SerializedName("batch") val batch: String? = null,
+    @SerializedName("valuationType") val valuationType: String? = null,
+    @SerializedName("uom") val uom: String? = null,
+    @SerializedName("transferredQuantity") val transferredQuantity: Double = 0.0,
+    @SerializedName("putAwayQuantity") val putAwayQuantity: Double = 0.0,
+    @SerializedName("remainingQuantity") val remainingQuantity: Double = 0.0,
+    @SerializedName("notes") val notes: String? = null,
+    @SerializedName("transferredAt") val transferredAt: String? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("carNumber") val carNumber: String? = null
+)
+
+data class ConfirmDirectTransferPutAwayRequestDto(
+    val goodsReceiptLineId: Int,
+    val storageBinCode: String,
+    val quantity: Double
+)
+
+@Serializable
+data class ReceivingOpenOrderCountsDto(
+    @SerializedName("spareParts") val spareParts: Int = 0,
+    @SerializedName("packagingMaterials") val packagingMaterials: Int = 0,
+    @SerializedName("rawMaterials") val rawMaterials: Int = 0,
+    @SerializedName("poultryMaterials") val poultryMaterials: Int = 0,
+    @SerializedName("finishedGoodsPlastic") val finishedGoodsPlastic: Int = 0,
+    @SerializedName("finishedGoodsFeed") val finishedGoodsFeed: Int = 0,
+    @SerializedName("transitOrderMaterial") val transitOrderMaterial: Int = 0,
+    @SerializedName("sparePartsReturn") val sparePartsReturn: Int = 0,
+    @SerializedName("total") val total: Int = 0
+)
+
+@Serializable
+data class PutAwayOpenOrderCountsDto(
+    @SerializedName("spareParts") val spareParts: Int = 0,
+    @SerializedName("packagingMaterials") val packagingMaterials: Int = 0,
+    @SerializedName("rawMaterials") val rawMaterials: Int = 0,
+    @SerializedName("poultryMaterials") val poultryMaterials: Int = 0,
+    @SerializedName("finishedGoodsPlastic") val finishedGoodsPlastic: Int = 0,
+    @SerializedName("finishedGoodsFeed") val finishedGoodsFeed: Int = 0,
+    @SerializedName("transitOrderMaterial") val transitOrderMaterial: Int = 0,
+    @SerializedName("sparePartsReturn") val sparePartsReturn: Int = 0,
+    @SerializedName("directTransfer") val directTransfer: Int = 0,
+    @SerializedName("total") val total: Int = 0
+)
+
+@Serializable
+data class IssuingOpenOrderCountsDto(
+    @SerializedName("transferToProduction") val transferToProduction: Int = 0,
+    @SerializedName("sparePartsToMaintenance") val sparePartsToMaintenance: Int = 0,
+    @SerializedName("internalOrder") val internalOrder: Int = 0,
+    @SerializedName("directIssueOnCostCenter") val directIssueOnCostCenter: Int = 0,
+    @SerializedName("finishedGoodsFeed") val finishedGoodsFeed: Int = 0,
+    @SerializedName("transferOrder") val transferOrder: Int = 0,
+    @SerializedName("total") val total: Int = 0
+)
+
+@Serializable
+data class BlindReceiveMaterialDto(
+    @SerializedName("materialCode") val materialCode: String,
+    @SerializedName("materialDescription") val materialDescription: String,
+    @SerializedName("uom") val uom: String,
+    @SerializedName("uomDescription") val uomDescription: String
+)
+
+@Serializable
+data class UomDto(
+    @SerializedName("code") val code: String,
+    @SerializedName("description") val description: String
+)
+
+@Serializable
+data class QualityDecisionDto(
+    @SerializedName("id") val id: Int,
+    @SerializedName("name") val name: String
+)
+
+@Serializable
+data class PlantDto(
+    @SerializedName("code") val code: String,
+    @SerializedName("description") val description: String
+)
+
+@Serializable
+data class CreateBlindReceiveResultDto(
+    @SerializedName("blindReceiptId") val blindReceiptId: Int,
+    @SerializedName("receiptNo") val receiptNo: String,
+    @SerializedName("status") val status: String?
+)
+
+

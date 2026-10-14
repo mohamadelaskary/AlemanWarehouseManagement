@@ -1,7 +1,8 @@
 package net.gbs.gbswarehouse.ui.issue.issuing_internal_orders.details_screen
 
 import net.gbs.gbswarehouse.data.remote.dto.response.IssueToInternalOrderLineDto
-import net.gbs.gbswarehouse.domain.model.SAPMaterialBatchValuationStock
+import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.StorageBinLocation
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationLine
 
@@ -9,7 +10,8 @@ data class IssueDetailsState(
     val reservationLines: List<SparePartsReturnReservationLine> = emptyList(),
     val filteredMaterials: List<SparePartsReturnReservationLine> = emptyList(),
     val addedLines: List<IssueToInternalOrderLineDto> = emptyList(),
-    val stockList: List<SAPMaterialBatchValuationStock> = emptyList(),
+    val stockOnHandList: List<MaterialOnHandStock> = emptyList(),
+    val reservationNumber: String = "",
 
     val isLoading: Boolean = false,
     val isBinLoading: Boolean = false,
@@ -21,23 +23,24 @@ data class IssueDetailsState(
 
     val binInput: String = "",
     val selBinData: StorageBinLocation? = null,
-    val binCodeError: String? = null,
+    val binCodeError: Message? = null,
 
     val matInput: String = "",
     val matSearchText: String = "",
-    val matErrorMessage : String? = null,
+    val matErrorMessage : Message? = null,
     val selReservationLine: SparePartsReturnReservationLine? = null,
     val matDlg: Boolean = false,
 
-    val selectedStock: SAPMaterialBatchValuationStock? = null,
+    val selectedOnHandStock: MaterialOnHandStock? = null,
     val stockSearch: String = "",
-    val stockError :String = "",
+    val stockError : Message? = null,
+    val availableStock: Double = 0.0,
 
     val qty: String = "",
-    val qtyError: String? = null,
+    val qtyError: Message? = null,
     val maxQty: Double = 0.0,
 
-    val loadingErrorMessage: String? = null,
-    val savingErrorMessage: String? = null,
-    val savingSuccessMessage :String? = null,
+    val loadingErrorMessage: Message? = null,
+    val savingErrorMessage: Message? = null,
+    val savingSuccessMessage : Message? = null,
 )

@@ -13,7 +13,10 @@ data class SparePartsReturnReservationOrder(
     @SerializedName("costCenterDescription" ) var costCenterDescription : String? = null,
     @SerializedName("requirementDate"       ) var requirementDate       : String? = null,
     @SerializedName("movementType"          ) var movementType          : String? = null,
-    @SerializedName("itemCount"             ) var itemCount             : Int?    = null
+    @SerializedName("itemCount"             ) var itemCount             : Int?    = null,
+    @SerializedName("lines"                 ) var lines                : List<SparePartsReturnReservationLine> = emptyList()
+
+
 ){
     fun toJson(): String{
         return Gson().toJson(this)

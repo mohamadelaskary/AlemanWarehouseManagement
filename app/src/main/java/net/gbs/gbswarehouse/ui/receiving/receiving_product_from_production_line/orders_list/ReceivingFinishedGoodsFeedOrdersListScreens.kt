@@ -211,11 +211,12 @@ fun FinishedGoodsFeedItemInfoCard(
             maxLines = 2,
             textAlign = TextAlign.Center,
             overflow = TextOverflow.Ellipsis,
-            fontSize = 10.sp
+            fontSize = 10.sp,
+            color = AppTheme.colors.text
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = "${itemInfo.receivedQuantity}/${itemInfo.orderedQuantity.toString()}${itemInfo.uom ?: ""}",
+            text = stringResource(R.string.remaining_quantity_)+" ${itemInfo.remainingQuantity} ${itemInfo.uom ?: ""}",
             color = AppTheme.colors.muted,
             fontSize = 10.sp,
             maxLines = 1

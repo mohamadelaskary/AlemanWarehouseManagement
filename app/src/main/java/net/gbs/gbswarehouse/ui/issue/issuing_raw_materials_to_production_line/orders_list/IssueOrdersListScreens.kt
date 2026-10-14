@@ -19,21 +19,26 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import net.gbs.gbswarehouse.OutlineBtn
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationOrder
+import net.gbs.gbswarehouse.ui.issue.ReservationLineItemInfoCard
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.gbswarehouse.ui.theme.BORDER
 import net.gbs.gbswarehouse.ui.theme.CARD
@@ -53,7 +58,7 @@ fun IssuingRawMaterialsToProductionScreen(
 
 
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
-        TopBar(title = "صرف", subtitle = "مواد خام للإنتاج", accent = accent,
+        TopBar(title = stringResource(R.string.issuing), subtitle = stringResource(net.gbs.gbswarehouse.R.string.transfer_to_production_warehouses), accent = accent,
             onBack = { navController.popBackStack() })
 
         // Search
@@ -92,12 +97,20 @@ fun IssuingRawMaterialsToProductionScreen(
         } else {
             LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
                 itemsIndexed(orders) { index, ord ->
-                    IssueOrderCard(order = ord, accent = accent, text = colors.text, muted = colors.muted,
+                    val resNum = ord.reservationNumber ?: ""
+                    IssueOrderCard(
+                        order = ord,
+                        accent = accent,
+                        text = colors.text,
+                        muted = colors.muted,
+                        isExpanded = viewModel.expandedOrderNumbers.contains(resNum),
+                        onToggleExpand = { viewModel.toggleOrderExpanded(resNum) },
                         onClick = {
                             navController.navigate(
-                                Screens.IssuingRawMaterialsToProductionDetailsScreen.createRoute(ord.reservationNumber ?: "")
+                                Screens.IssuingRawMaterialsToProductionDetailsScreen.createRoute(resNum)
                             )
-                        })
+                        }
+                    )
                     Spacer(Modifier.height(8.dp))
                 }
             }
@@ -109,11 +122,14 @@ fun IssuingRawMaterialsToProductionScreen(
 fun IssueOrderCard(
     order: SparePartsReturnReservationOrder,
     accent: Color,
-    muted: Color ,
-    text: Color ,
+    muted: Color,
+    text: Color,
+    isExpanded: Boolean = false,
+    onToggleExpand: () -> Unit = {},
     onClick: () -> Unit
 ) {
     val colors = AppTheme.colors
+    val itemsCount = if (order.lines.isNotEmpty()) order.lines.size else (order.itemCount ?: 0)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -134,16 +150,17 @@ fun IssueOrderCard(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
+            if (!order.orderNumber.isNullOrEmpty())
+                Text(
+                    text = order.orderNumber ?: "",
+                    color = colors.text,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        if (!order.orderDescription.isNullOrEmpty())
-            Text(
-                text = order.orderDescription ?: "لا يوجد وصف",
-                color = colors.text,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+
         if (!order.costCenterDescription.isNullOrEmpty())
             Text(
                 text = order.costCenterDescription ?: "لا يوجد وصف",
@@ -156,10 +173,41 @@ fun IssueOrderCard(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            InfoItem(label = "التاريخ", value = order.requirementDate?.substring(0,10) ?: "", icon = "📅", muted = muted, text = text)
-            InfoItem(label = "الأصناف", value = "${order.itemCount ?: 0} أصناف", icon = "📦", muted = muted, text = text)
+            InfoItem(
+                label = stringResource(R.string.date),
+                value = order.requirementDate?.take(10) ?: "",
+                icon = "📅",
+                muted = muted,
+                text = text
+            )
+            OutlineBtn(
+                label = if (isExpanded) {
+                    stringResource(R.string.hide_items)
+                } else {
+                    "$itemsCount ${stringResource(R.string.items)}"
+                },
+                color = accent,
+                onClick = onToggleExpand
+            )
+        }
+
+        if (isExpanded) {
+            Spacer(modifier = Modifier.height(10.dp))
+            if (order.lines.isNotEmpty()) {
+                order.lines.forEach { line ->
+                    ReservationLineItemInfoCard(line = line)
+                }
+            } else {
+                Text(
+                    text = stringResource(R.string.no_items),
+                    color = muted,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
         }
     }
 }

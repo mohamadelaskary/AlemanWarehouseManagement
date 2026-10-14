@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.gbs.gbswarehouse.GREEN
+import net.gbs.gbswarehouse.Material
+import net.gbs.gbswarehouse.Order
 import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.data.remote.mapper.toPurchaseOrder
 import net.gbs.gbswarehouse.domain.usecase.GetReceivingSparePartsFromVendorPurchaseOrdersListUseCase
@@ -34,10 +37,11 @@ class ReceivingSparePartsFromVendorListViewModel
                 loadOrders()
             }
             is ReceivingSparePartsFromVendorOrdersListEvent.OnSearchTextChanged -> {
-                _uiState.update { it.copy(searchText = event.text) }
-                filterOrders(event.text)
+                filterOrders(query = event.text)
             }
-
+            is ReceivingSparePartsFromVendorOrdersListEvent.OnGroupSelected -> {
+                filterOrders(group = event.group)
+            }
             is ReceivingSparePartsFromVendorOrdersListEvent.OnShowMaterialsButtonClicked -> {
                 _uiState.update {
                     if (it.showMaterialsClickedCardIndex == event.currentIndex) {
@@ -67,10 +71,10 @@ class ReceivingSparePartsFromVendorListViewModel
                         _uiState.update {
                             it.copy(
                                 poList = orders,
-                                poFilteredList = orders,
                                 loadingStatus = LoadingPurchaseOrdersListStatus.SUCCESS(orders)
                             )
                         }
+                        filterOrders()
                     }
                     else -> {
                         val message = when (result) {
@@ -95,17 +99,28 @@ class ReceivingSparePartsFromVendorListViewModel
         }
     }
 
-    private fun filterOrders(query: String) {
+    private fun filterOrders(query: String = _uiState.value.searchText, group: OrderGroup = _uiState.value.selectedGroup) {
         _uiState.update { state ->
+            val groupFiltered = state.poList.filter { po ->
+                val endsWith9 = po.poNumber.startsWith("9")
+                when (group) {
+                    OrderGroup.PURCHASES -> !endsWith9
+                    OrderGroup.TRANSFERS -> endsWith9
+                }
+            }
             val filteredList = if (query.isBlank()) {
-                state.poList
+                groupFiltered
             } else {
-                state.poList.filter {
+                groupFiltered.filter {
                     it.poNumber.contains(query, ignoreCase = true) ||
                             it.vendorName.contains(query, ignoreCase = true)
                 }
             }
-            state.copy(poFilteredList = filteredList)
+            state.copy(
+                searchText = query,
+                selectedGroup = group,
+                poFilteredList = filteredList
+            )
         }
     }
 
@@ -117,17 +132,17 @@ class ReceivingSparePartsFromVendorListViewModel
         onEvent(ReceivingSparePartsFromVendorOrdersListEvent.OnSearchTextChanged(query))
     }
 
-    val filteredOrders: List<net.gbs.gbswarehouse.Order> get() {
+    val filteredOrders: List<Order> get() {
         return _uiState.value.poFilteredList.map {
-            net.gbs.gbswarehouse.Order(
+            Order(
                 id = it.poNumber,
                 info = it.vendorName,
                 date = "", // API doesn't provide date
                 items = it.purchaseOrderItems.size,
                 status = "", // API doesn't provide status
-                statusColor = net.gbs.gbswarehouse.GREEN,
-                materials = it.purchaseOrderItems.map { item -> 
-                    net.gbs.gbswarehouse.Material(item.materialCode, item.materialDescription, item.uom, item.orderedQuantity.toInt(), item.receivedQuantity.toInt())
+                statusColor = GREEN,
+                materials = it.purchaseOrderItems.map { item ->
+                    Material(item.materialCode, item.materialDescription, item.uom, item.orderedQuantity.toInt(), item.receivedQuantity.toInt())
                 }
             )
         }

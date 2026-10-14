@@ -18,6 +18,7 @@ sealed class ReceivingSparePartsFromProductionDetailsEvent {
     data class OnGoodsRecipientEntered(val name: String) : ReceivingSparePartsFromProductionDetailsEvent()
     data object OnAddButtonClicked : ReceivingSparePartsFromProductionDetailsEvent()
     data class OnDeleteAddedItemClicked(val index: Int) : ReceivingSparePartsFromProductionDetailsEvent()
+    data class OnEditAddedItemClicked(val index: Int) : ReceivingSparePartsFromProductionDetailsEvent()
     data object OnSaveButtonClicked : ReceivingSparePartsFromProductionDetailsEvent()
     data object OnClearMaterialButtonClicked : ReceivingSparePartsFromProductionDetailsEvent()
     data object HideSuccessDialog : ReceivingSparePartsFromProductionDetailsEvent()

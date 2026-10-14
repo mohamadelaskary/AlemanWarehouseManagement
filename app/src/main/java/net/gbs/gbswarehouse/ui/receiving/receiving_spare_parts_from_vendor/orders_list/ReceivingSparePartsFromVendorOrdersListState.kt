@@ -2,14 +2,20 @@ package net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.orde
 
 import net.gbs.gbswarehouse.domain.model.PurchaseOrder
 
+enum class OrderGroup {
+    PURCHASES,
+    TRANSFERS
+}
+
 data class ReceivingSparePartsFromVendorOrdersListState (
     val poList:List<PurchaseOrder> = emptyList(),
     val poFilteredList:List<PurchaseOrder> = emptyList(),
     val searchText:String="",
+    val selectedGroup: OrderGroup = OrderGroup.PURCHASES,
     val loadingStatus: LoadingPurchaseOrdersListStatus = LoadingPurchaseOrdersListStatus.LOADING,
     val isMaterialsShowed:Boolean = false,
     val showMaterialsClickedCardIndex:Int = -1
-    )
+)
 
 sealed class LoadingPurchaseOrdersListStatus {
     object IDLE : LoadingPurchaseOrdersListStatus()

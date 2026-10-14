@@ -27,6 +27,7 @@ import net.gbs.gbswarehouse.*
 import net.gbs.gbswarehouse.domain.model.PutAwayOrderLine
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.honeywellscanner.ScannerEffect
+import androidx.compose.runtime.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -229,7 +230,17 @@ fun PutAwayDetailsScreen(
             }
         }
     }
-
+    if (viewModel.isLoading.collectAsState().value) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.3f))
+                .clickable(enabled = false) { },
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = YELLOW)
+        }
+    }
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
@@ -257,8 +268,13 @@ fun PutAwayDetailsScreen(
                     ) {
                         Column {
                             Text(line.materialCode, color = YELLOW, fontWeight = FontWeight.Bold)
-                            Text(line.materialDescription ?: "", color = colors.text, fontSize = 12.sp)
-                            Text("Rem: ${line.remainingQuantity} ${line.uom}", color = colors.muted, fontSize = 11.sp)
+                            if (!line.materialDescription.isNullOrBlank()) {
+                                Text(line.materialDescription, color = colors.text, fontSize = 12.sp)
+                            }
+                            Text("${stringResource(R.string.remaining_quantity)}: ${line.remainingQuantity} ${line.uom}", color = colors.muted, fontSize = 11.sp)
+                            if (!line.carNo.isNullOrBlank()) {
+                                Text("${stringResource(R.string.car_number)}: ${line.carNo}", color = colors.muted, fontSize = 11.sp)
+                            }
                         }
                     }
                 }
@@ -328,9 +344,18 @@ fun PutAwayMaterialCard(
                 modifier = Modifier.weight(1f)
             )
             InfoCell(
-                label = stringResource(R.string.required),
+                label = stringResource(R.string.remaining_quantity),
                 value = line.remainingQuantity.toString(),
                 modifier = Modifier.weight(1f)
+            )
+        }
+
+        if (!line.carNo.isNullOrBlank()) {
+            MarginVertical(8.dp)
+            InfoCell(
+                label = stringResource(R.string.car_number),
+                value = line.carNo,
+                modifier = Modifier.fillMaxWidth()
             )
         }
 

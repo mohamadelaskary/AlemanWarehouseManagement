@@ -27,6 +27,10 @@ object AppTheme {
     val colors: AppColors
         @Composable
         get() = LocalAppColors.current
+
+    val dims: AppDimensions
+        @Composable
+        get() = LocalAppDimensions.current
 }
 
 // ── Your main theme — light is DEFAULT ────────────────────
@@ -36,6 +40,7 @@ fun GBSWarehouseJetPackComposeTheme(
     content: @Composable () -> Unit
 ) {
     val appColors = if (isDarkTheme) DarkAppColors else LightAppColors
+    val appDims   = AppDimensions()
 
     // Sync status bar with current theme
     val view = LocalView.current
@@ -47,7 +52,10 @@ fun GBSWarehouseJetPackComposeTheme(
         }
     }
 
-    CompositionLocalProvider(LocalAppColors provides appColors) {
+    CompositionLocalProvider(
+        LocalAppColors provides appColors,
+        LocalAppDimensions provides appDims
+    ) {
         MaterialTheme(
             colorScheme = if (isDarkTheme) M3Dark else M3Light,
             typography = Typography,

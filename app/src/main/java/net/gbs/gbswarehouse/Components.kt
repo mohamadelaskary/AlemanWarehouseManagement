@@ -1,8 +1,8 @@
 package net.gbs.gbswarehouse
 
 
-import android.provider.CalendarContract
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,10 +37,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.core.session.SessionManager
+import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
 import net.gbs.gbswarehouse.domain.model.ValuationType
 import net.gbs.gbswarehouse.domain.model.Warehouse
+import net.gbs.gbswarehouse.ui.plc.PLC_ACCENT
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.gbswarehouse.ui.theme.CairoFont
 import net.gbs.gbswarehouse.ui.theme.LocalDarkTheme
@@ -143,6 +146,59 @@ fun CarCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
         modifier = modifier
     )
 }
+
+// ── Bottom Sheet Dialog ───────────────────────────────────────────────────────
+@Composable
+fun BottomSheetDialog(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val colors = AppTheme.colors
+    val dims = AppTheme.dims
+    Dialog(
+        onDismissRequest = onClose,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.65f))
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) { onClose() },
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .background(colors.card)
+                    .border(1.dp, colors.border,
+                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .heightIn(max = 560.dp)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { /* consume */ }
+            ) {
+                // Dialog Header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp, color = colors.border,
+                            shape = RoundedCornerShape(0.dp)
+                        )
+                        .padding(horizontal = dims.padding, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("✕", color = colors.muted, fontSize = 18.sp,
+                        modifier = Modifier.clickable { onClose() }.padding(horizontal = 2.dp))
+                    Text(title, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.Bold)
+                }
+                content()
+            }
+        }
+    }
+}
 // ── TopBar (Hdr) ─────────────────────────────────────────────────────────────
 @Composable
 fun TopBar(
@@ -152,6 +208,7 @@ fun TopBar(
     onBack: () -> Unit,
     navController: NavController? = null) {
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     val actualNavController = navController ?: LocalNavController.current
     val sessionManager = SessionManager()
 
@@ -160,7 +217,7 @@ fun TopBar(
             .fillMaxWidth()
             .background(colors.card)
             .border(width = 1.dp, color = colors.border, shape = RoundedCornerShape(0.dp))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = dims.padding, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -179,15 +236,16 @@ fun TopBar(
             Text(
                 text = title,
                 color = colors.text,
-                fontSize = 14.sp,
+                fontSize = dims.fontSizeTitle,
                 fontWeight = FontWeight.ExtraBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             if (subtitle != null) {
-                Text(text = subtitle, color = accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = subtitle, color = accent, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.SemiBold)
             }
         }
+        ThemeToggleButton()
         LogoutButton( onClick = {
             actualNavController.navigate(Screens.LoginScreen.route) {
                 popUpTo(0) { inclusive = true }
@@ -201,18 +259,19 @@ fun TopBar(
 @Composable
 fun Section(label: String, accent: Color, content: @Composable ColumnScope.() -> Unit) {
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
 
-    Column(modifier = Modifier.padding(bottom = 14.dp)) {
+    Column(modifier = Modifier.padding(bottom = dims.padding)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = dims.paddingSmall)
         ) {
             Box(modifier = Modifier
                 .width(3.dp).height(12.dp)
                 .clip(RoundedCornerShape(2.dp))
                 .background(accent))
-            Text(label, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+            Text(label, color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.Bold,
                 letterSpacing = 0.6.sp)
         }
         Column(
@@ -221,7 +280,7 @@ fun Section(label: String, accent: Color, content: @Composable ColumnScope.() ->
                 .clip(RoundedCornerShape(12.dp))
                 .background(colors.card)
                 .border(1.dp, colors.border, RoundedCornerShape(12.dp))
-                .padding(12.dp)
+                .padding(dims.paddingMedium)
         ) {
             content()
         }
@@ -230,9 +289,9 @@ fun Section(label: String, accent: Color, content: @Composable ColumnScope.() ->
 
 // ── Pill ──────────────────────────────────────────────────────────────────────
 @Composable
-fun Pill(label: String, color: Color) {
+fun Pill(label: String, color: Color, modifier: Modifier?=Modifier) {
     Box(
-        modifier = Modifier
+        modifier = modifier?: Modifier
             .clip(RoundedCornerShape(6.dp))
             .background(color.copy(alpha = 0.15f))
             .padding(horizontal = 8.dp, vertical = 2.dp)
@@ -252,6 +311,7 @@ fun Field(
     center: Boolean = false,
     ltr: Boolean = false,
     withLabel: Boolean = true,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val colors = AppTheme.colors
@@ -262,12 +322,13 @@ fun Field(
                 modifier = Modifier.padding(bottom = 5.dp))
         BasicTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { if (enabled) onValueChange(it) },
+            enabled = enabled,
             singleLine = true,
             keyboardOptions = if (isNumber) KeyboardOptions(keyboardType = KeyboardType.Number)
             else KeyboardOptions.Default,
             textStyle = TextStyle(
-                color = colors.text,
+                color = if (enabled) colors.text else colors.dim,
                 fontSize = if (isNumber) 16.sp else 13.sp,
                 fontWeight = if (isNumber) FontWeight.Bold else FontWeight.Normal,
                 textAlign = if (center) TextAlign.Center else (if (LocalLanguage.current == "ar") TextAlign.Right else TextAlign.Left),
@@ -277,8 +338,8 @@ fun Field(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
-                .background(colors.dark)
-                .border(1.dp, colors.border2, RoundedCornerShape(8.dp))
+                .background(if (enabled) colors.dark else colors.dark.copy(alpha = 0.5f))
+                .border(1.dp, if (enabled) colors.border2 else colors.dim, RoundedCornerShape(8.dp))
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             decorationBox = { inner ->
                 if (value.isEmpty()) {
@@ -364,10 +425,10 @@ fun OrderNumberSearchBox(value: String, onValueChange: (String) -> Unit,onSearch
 
 // ── OutlineButton (Btn1) ──────────────────────────────────────────────────────
 @Composable
-fun OutlineBtn(label: String, color: Color, onClick: () -> Unit) {
+fun OutlineBtn(label: String, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
     var hovered by remember { mutableStateOf(false) }
     Box(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .background(if (hovered) color.copy(0.22f) else color.copy(0.12f))
             .border(1.dp, color.copy(0.28f), RoundedCornerShape(10.dp))
@@ -386,15 +447,17 @@ fun FullBtn(
     color: Color,
     onClick: () -> Unit,
     saving: Boolean = false,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier
 ) {
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     val bg     = if (!enabled) colors.dim.copy(0.22f) else color.copy(0.12f)
     val border = if (!enabled) colors.dim else color.copy(0.35f)
     val txtCol = if (!enabled) colors.dim else color
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(bg)
@@ -410,7 +473,7 @@ fun FullBtn(
                 strokeWidth = 2.dp
             )
         } else {
-            Text(label, color = txtCol, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+            Text(label, color = txtCol, fontSize = dims.fontSizeButton, fontWeight = FontWeight.ExtraBold)
         }
     }
 }
@@ -450,7 +513,13 @@ fun SuccessCard(kind: String?, accent: Color) {
     }
 }
 @Composable
-fun SuccessDialogCard(label: String,message: String, accent: Color) {
+fun SuccessDialogCard(
+    label: String,
+    message: String,
+    accent: Color,
+    loadingButtonText: String? = null,
+    onLoadingClick: (() -> Unit)? = null
+) {
     val colors = AppTheme.colors
 
     Column(
@@ -476,6 +545,15 @@ fun SuccessDialogCard(label: String,message: String, accent: Color) {
         Text(label, color = accent, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
         Spacer(Modifier.height(4.dp))
         Text(message, color = colors.muted, fontSize = 11.sp)
+
+        if (loadingButtonText != null && onLoadingClick != null) {
+            Spacer(Modifier.height(16.dp))
+            FullBtn(
+                label = loadingButtonText,
+                color = PLC_ACCENT,
+                onClick = onLoadingClick
+            )
+        }
     }
 }
 @Composable
@@ -537,7 +615,13 @@ fun ErrorDialogCard(label: String,message: String, accent: Color) {
     }
 }
 @Composable
-fun SuccessDialog(accent: Color,message: String,onClose: () -> Unit){
+fun SuccessDialog(
+    accent: Color,
+    message: String,
+    loadingButtonText: String? = null,
+    onLoadingClick: (() -> Unit)? = null,
+    onClose: () -> Unit
+){
     val colors = AppTheme.colors
     Dialog(onDismissRequest = onClose) {
         Box(modifier = Modifier.wrapContentSize()) {
@@ -546,6 +630,8 @@ fun SuccessDialog(accent: Color,message: String,onClose: () -> Unit){
                 label = stringResource(R.string.success),
                 message = message,
                 accent = accent,
+                loadingButtonText = loadingButtonText,
+                onLoadingClick = onLoadingClick
             )
             IconButton(onClick = {
                 onClose()
@@ -586,22 +672,23 @@ fun ErrorDialog(accent: Color,message: String,onClose: () -> Unit){
 fun InfoCell(
     label: String,
     value: String,
-    modifier: Modifier = Modifier,
-    color: Color = AppTheme.colors.text
+    color: Color = AppTheme.colors.text,
+    modifier: Modifier = Modifier
 ) {
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(colors.dark)
-            .padding(8.dp),
+            .padding(dims.paddingSmall),
         horizontalAlignment = Alignment.Start
     ) {
         Text(
-            label, color = colors.muted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
+            label, color = colors.muted, fontSize = dims.fontSizeCaption, fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(bottom = 2.dp)
         )
-        Text(value, color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text(value, color = color, fontSize = dims.fontSizeBody, fontWeight = FontWeight.Bold)
     }
 }
 @Composable
@@ -1257,8 +1344,14 @@ fun <T> SearchableSpinner(
     val focusRequester = remember { FocusRequester() }
 
     val filteredItems = remember(searchText, items) {
-        if (searchText.isBlank()) items
-        else items.filter { itemLabel(it).contains(searchText, ignoreCase = true) }
+        when {
+            searchText.isBlank() -> items
+            // The field doubles as the selection display, so once the text is exactly one
+            // item's label it is a selection rather than a query - keep the whole list
+            // reachable so the user can switch to a different item without clearing it.
+            items.any { itemLabel(it).equals(searchText, ignoreCase = true) } -> items
+            else -> items.filter { itemLabel(it).contains(searchText, ignoreCase = true) }
+        }
     }
 
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
@@ -1355,7 +1448,7 @@ fun WarehousesSpinner( hint:String=stringResource(R.string.select_a_warehouse),i
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.warehouseDescription} (${it.warehouseCode})" },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -1387,7 +1480,88 @@ fun WorkersGroupsSpinner( hint:String=stringResource(R.string.select_workers_gro
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.workerGroupDescription} (${it.workerGroupCode})" },
+            itemLabel = { it.spinnerLabel() },
+            onItemSelected = onItemSelected,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
+        )
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+
+fun WorkersGroupsNumsSpinner(hint:String=stringResource(R.string.select_workers_group), items : List<Int>, onItemSelected: (Int) -> Unit, accent: Color= GREEN, label: String = stringResource(R.string.workers_group), searchText: String="", onSearchTextChanged: (String) -> Unit) {
+    Column(modifier = Modifier.padding(bottom = 14.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp).height(12.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accent)
+            )
+            Text(
+                label, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                letterSpacing = 0.6.sp
+            )
+        }
+        SearchableSpinner(
+            hint = hint,
+            items = items,
+            itemLabel = { it.toString() },
+            onItemSelected = onItemSelected,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
+        )
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+
+fun StockOnHandSpinner(hint:String, items : List<MaterialOnHandStock>, onItemSelected: (MaterialOnHandStock) -> Unit, accent: Color, searchText: String="", onSearchTextChanged: (String) -> Unit) {
+    var hint = ""
+    var label = ""
+    when (items.first().isBatchManaged) {
+        true -> {
+            label = stringResource(R.string.batch)
+            hint  = stringResource(R.string.select_a_batch)
+        }
+        false if items.first().valuationType != null -> {
+            label = stringResource(R.string.valuation_type)
+            hint  = stringResource(R.string.please_select_a_valuation_type)
+        }
+
+        else -> {}
+    }
+
+    Column(modifier = Modifier.padding(bottom = 14.dp)) {
+        Text(
+            label, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 5.dp)
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp).height(12.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accent)
+            )
+            Text(
+                label, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                letterSpacing = 0.6.sp
+            )
+        }
+        SearchableSpinner(
+            hint = hint,
+            items = items,
+            itemLabel = { it.toString() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -1580,16 +1754,20 @@ fun <T> DropdownSpinner(
     items: List<T>,
     selectedItem: T? = null,
     onItemSelected: (T) -> Unit,
-    itemLabel: (T) -> String,           
+    itemLabel: (T) -> String,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val colors = AppTheme.colors
     var expanded by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf(selectedItem) }
+    LaunchedEffect(selectedItem) {
+        selected = selectedItem
+    }
 
     ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
+        expanded = expanded && enabled,
+        onExpandedChange = { if (enabled) expanded = !expanded },
         modifier = modifier.fillMaxWidth()
     ) {
         Box(
@@ -1597,9 +1775,12 @@ fun <T> DropdownSpinner(
                 .menuAnchor()
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(colors.dark)
-                .border(2.dp, colors.border2, RoundedCornerShape(12.dp))
-                .clickable { expanded = true }
+                .background(if (enabled) colors.dark else colors.dark.copy(alpha = 0.5f))
+                .border(2.dp, if (enabled) colors.border2 else colors.dim, RoundedCornerShape(12.dp))
+                .then(
+                    if (enabled) Modifier.clickable { expanded = true }
+                    else Modifier
+                )
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Row(
@@ -1609,7 +1790,7 @@ fun <T> DropdownSpinner(
             ) {
                 Text(
                     text = selected?.let { itemLabel(it) } ?: hint,
-                    color = if (selected == null) colors.muted else colors.text,
+                    color = if (!enabled) colors.dim else (if (selected == null) colors.muted else colors.text),
                     fontSize = 13.sp,
                     fontWeight = if (selected == null) FontWeight.Normal else FontWeight.SemiBold
                 )
@@ -1617,40 +1798,42 @@ fun <T> DropdownSpinner(
                     imageVector = if (expanded) Icons.Default.KeyboardArrowUp
                     else Icons.Default.ArrowDropDown,
                     contentDescription = null,
-                    tint = if (selected == null) colors.muted else GREEN
+                    tint = if (!enabled) colors.dim else (if (selected == null) colors.muted else GREEN)
                 )
             }
         }
 
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .background(colors.card)
-                .border(1.dp, colors.border2, RoundedCornerShape(8.dp))
-        ) {
-            items.forEach { item ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = itemLabel(item),
-                            color = if (item == selected) GREEN else colors.text,
-                            fontSize = 13.sp,
-                            fontWeight = if (item == selected) FontWeight.Bold
-                            else FontWeight.Normal
-                        )
-                    },
-                    onClick = {
-                        selected = item
-                        onItemSelected(item)
-                        expanded = false
-                    },
-                    modifier = Modifier
-                        .background(
-                            if (item == selected) GREEN.copy(alpha = 0.08f)
-                            else Color.Transparent
-                        )
-                )
+        if (enabled) {
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .background(colors.card)
+                    .border(1.dp, colors.border2, RoundedCornerShape(8.dp))
+            ) {
+                items.forEach { item ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = itemLabel(item),
+                                color = if (item == selected) GREEN else colors.text,
+                                fontSize = 13.sp,
+                                fontWeight = if (item == selected) FontWeight.Bold
+                                else FontWeight.Normal
+                            )
+                        },
+                        onClick = {
+                            selected = item
+                            onItemSelected(item)
+                            expanded = false
+                        },
+                        modifier = Modifier
+                            .background(
+                                if (item == selected) GREEN.copy(alpha = 0.08f)
+                                else Color.Transparent
+                            )
+                    )
+                }
             }
         }
     }
@@ -1672,6 +1855,9 @@ fun DatePickerField(
     modifier: Modifier = Modifier,
     label: String,
     hint: String,
+    dateFormatter: (Long) -> String = { millis ->
+        SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).format(Date(millis))
+    }
 ) {
     var showPicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
@@ -1692,7 +1878,7 @@ fun DatePickerField(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if(value.isNullOrEmpty())label else value  ,
+                text = if(value.isNullOrEmpty())label else value.take(10)  ,
                 color = if (value.isNullOrEmpty()) colors.muted else colors.text,
                 fontSize = 13.sp,
                 fontWeight = if (value.isNullOrEmpty()) FontWeight.Normal else FontWeight.SemiBold
@@ -1713,9 +1899,7 @@ fun DatePickerField(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
-
-                            val formatted = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
-                                .format(Date(millis))
+                            val formatted = dateFormatter(millis)
                             onDateSelected(formatted)
                         }
                         showPicker = false
@@ -1880,7 +2064,7 @@ fun ValuationTypeSpinner(hint:String, items : List<ValuationType>, onItemSelecte
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { it.type },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -1909,11 +2093,129 @@ fun CostCenterSpinner(hint: String, items: List<CostCenter>, onItemSelected: (Co
 }
 
 @Composable
-fun TransportingVendorSpinner(hint: String, items: List<TransportingVendor>, onItemSelected: (TransportingVendor) -> Unit) {
+fun TransportingVendorSpinner(
+hint: String, items: List<TransportingVendor>, onItemSelected: (TransportingVendor) -> Unit) {
     DropdownSpinner(
         hint = hint,
         items = items,
         onItemSelected = onItemSelected,
         itemLabel = { it.name }
     )
+}
+
+@Composable
+fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    val dims = AppTheme.dims
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.dark)
+            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = value, onValueChange = onValueChange, singleLine = true,
+            textStyle = TextStyle(
+                color = colors.text, fontSize = dims.fontSizeButton,
+                textDirection = TextDirection.Ltr
+            ),
+            cursorBrush = SolidColor(GREEN),
+            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            decorationBox = { inner ->
+                if (value.isEmpty()) Text("كود المادة...", color = colors.muted, fontSize = dims.fontSizeButton)
+                inner()
+            }
+        )
+    }
+}
+
+@Composable
+fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    val dims = AppTheme.dims
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.dark)
+            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = value, onValueChange = onValueChange, singleLine = true,
+            textStyle = TextStyle(
+                color = colors.text, fontSize = dims.fontSizeButton,
+                textDirection = TextDirection.Ltr
+            ),
+            cursorBrush = SolidColor(YELLOW),
+            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            decorationBox = { inner ->
+                if (value.isEmpty()) Text("كود البن (Bin Code)...", color = colors.muted, fontSize = dims.fontSizeButton)
+                inner()
+            }
+        )
+    }
+}
+
+@Composable
+fun MaterialDialogItem(mat: Material, accent: Color, doneLabel: String, onClick: () -> Unit) {
+    val colors = AppTheme.colors
+    val dims = AppTheme.dims
+    var hovered by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (hovered) colors.card2 else colors.dark)
+            .border(1.dp, if (hovered) accent.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
+            .clickable { onClick(); hovered = false }
+            .padding(all = 11.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(mat.code, color = accent, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.Bold)
+            Text(mat.unit, color = colors.muted, fontSize = dims.fontSizeSubtitle)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(mat.desc, color = colors.text, fontSize = dims.fontSizeBody, fontWeight = FontWeight.SemiBold,
+            lineHeight = 18.sp)
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("المطلوب: ${mat.qty}", color = colors.muted, fontSize = dims.fontSizeSubtitle)
+            Text("$doneLabel: ${mat.done}",
+                color = if (mat.done == mat.qty) colors.succ else colors.muted, fontSize = dims.fontSizeSubtitle)
+        }
+    }
+}
+
+@Composable
+fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
+    val colors = AppTheme.colors
+    val dims = AppTheme.dims
+    var hovered by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (hovered) colors.card2 else colors.dark)
+            .border(1.dp, if (hovered) accent.copy(0.35f) else colors.border, RoundedCornerShape(10.dp))
+            .clickable { onClick(); hovered = false }
+            .padding(12.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("📍 ${bin.code}", color = accent, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.Bold)
+            Text("متاح", color = colors.succ, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(Modifier.height(4.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            listOf("المنطقة" to bin.zone, "الممر" to bin.aisle, "المتاح" to bin.avail)
+                .forEach { (l, v) ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(l, color = colors.muted, fontSize = dims.fontSizeCaption)
+                        Text(v, color = colors.text, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.Bold)
+                    }
+                }
+        }
+    }
 }

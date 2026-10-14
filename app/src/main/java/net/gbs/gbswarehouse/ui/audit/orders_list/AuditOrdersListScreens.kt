@@ -32,14 +32,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.BLUE
-import net.gbs.gbswarehouse.MarginTenDp
 import net.gbs.gbswarehouse.Order
-import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.Pill
 import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.TopBar
-import net.gbs.gbswarehouse.ui.receiving.receiving_raw_materials_from_vendor.orders_list.OrderCard
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 
 @Composable
@@ -115,7 +112,7 @@ fun AuditOrderCard(order: Order, accent: Color, onClick: () -> Unit,isMaterialsS
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text("#${order.id}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Pill(order.status, order.statusColor)
+            Pill(order.status, order.statusColor,)
         }
         Spacer(Modifier.height(6.dp))
         Text(order.info, color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)

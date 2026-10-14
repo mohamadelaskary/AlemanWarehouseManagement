@@ -9,6 +9,7 @@ import net.gbs.gbswarehouse.data.remote.dto.response.*
 import net.gbs.gbswarehouse.data.remote.mapper.*
 import net.gbs.gbswarehouse.domain.model.*
 import net.gbs.gbswarehouse.domain.repository.ReceivingRepository
+import net.gbs.gbswarehouse.QualityDecision
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -70,12 +71,12 @@ class ReceivingRepositoryImpl @Inject constructor(
     }
 
     // Raw materials
-    override suspend fun getAllRawMaterialsPurchaseOrders(): NetworkResult<List<RawMaterialsPurchaseOrder>> {
-        return safeApiCall { api.getAllRawMaterialsPurchaseOrders() }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
+    override suspend fun getAllRawMaterialsPurchaseOrdersByCarNumber(): NetworkResult<List<RawMaterialsPurchaseOrder>> {
+        return safeApiCall { api.getAllRawMaterialsPurchaseOrdersByCarNumber() }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
     }
 
-    override suspend fun getRawMaterialsPurchaseOrderData(poNumber: String): NetworkResult<RawMaterialsPurchaseOrder> {
-        return safeApiCall { api.getRawMaterialsPurchaseOrderData(GetPurchaseOrderReqDto(poNumber)) }.map { it.data!!.toDomain() }
+    override suspend fun getRawMaterialsPurchaseOrderData(carNo: String): NetworkResult<RawMaterialsPurchaseOrder> {
+        return safeApiCall { api.getRawMaterialsPurchaseOrderData(GetRawMaterialsPurchaseOrderDataRequestDto(carNo)) }.map { it.data!!.toDomain() }
     }
 
     override suspend fun receiveRawMaterials(request: ReceiveRawMaterialsDto): NetworkResult<ReceiveRawMaterialsResult> {
@@ -84,11 +85,11 @@ class ReceivingRepositoryImpl @Inject constructor(
 
     // Packaging materials
     override suspend fun getAllPackagingMaterialsPurchaseOrders(): NetworkResult<List<PackagingMaterialsPurchaseOrder>> {
-        return safeApiCall { api.getAllPackagingMaterialsPurchaseOrders() }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
+        return safeApiCall { api.getAllPackagingMaterialsPurchaseOrdersByCarNumber() }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
     }
 
-    override suspend fun getPackagingMaterialsPurchaseOrderData(poNumber: String): NetworkResult<PackagingMaterialsPurchaseOrder> {
-        return safeApiCall { api.getPackagingMaterialsPurchaseOrderData(GetPurchaseOrderReqDto(poNumber)) }.map { it.data!!.toDomain() }
+    override suspend fun getPackagingMaterialsPurchaseOrderData(carNo: String): NetworkResult<PackagingMaterialsPurchaseOrder> {
+        return safeApiCall { api.getPackagingMaterialsPurchaseOrderData(GetPackagingMaterialsPurchaseOrderDataRequestDto(carNo)) }.map { it.data!!.toDomain() }
     }
 
     override suspend fun receivePackagingMaterials(request: ReceivePackagingMaterialsDto): NetworkResult<ReceivePackagingMaterialsResult> {
@@ -100,12 +101,12 @@ class ReceivingRepositoryImpl @Inject constructor(
     }
 
     // Poultry
-    override suspend fun getAllPoultryMaterialsPurchaseOrders(): NetworkResult<List<PoultryMaterialsPurchaseOrder>> {
-        return safeApiCall { api.getAllPoultryMaterialsPurchaseOrders() }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
+    override suspend fun getAllPoultryMaterialsPurchaseOrdersByCarNumber(): NetworkResult<List<PoultryMaterialsPurchaseOrder>> {
+        return safeApiCall { api.getAllPoultryMaterialsPurchaseOrdersByCarNumber() }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
     }
 
-    override suspend fun getPoultryMaterialsPurchaseOrderData(poNumber: String): NetworkResult<PoultryMaterialsPurchaseOrder> {
-        return safeApiCall { api.getPoultryMaterialsPurchaseOrderData(GetPurchaseOrderReqDto(poNumber)) }.map { it.data!!.toDomain() }
+    override suspend fun getPoultryMaterialsPurchaseOrderData(carNo: String): NetworkResult<PoultryMaterialsPurchaseOrder> {
+        return safeApiCall { api.getPoultryMaterialsPurchaseOrderData(GetPoultryMaterialsPurchaseOrderDataRequestDto(carNo)) }.map { it.data!!.toDomain() }
     }
 
     override suspend fun receivePoultryMaterials(request: ReceiveVendorPoultryMaterialsDto): NetworkResult<ReceiveVendorPoultryMaterialsResult> {
@@ -113,16 +114,20 @@ class ReceivingRepositoryImpl @Inject constructor(
     }
 
     // Transit order
-    override suspend fun getAllTransitOrderMaterialPurchaseOrders(): NetworkResult<List<TransitOrderMaterialPurchaseOrder>> {
-        return safeApiCall { api.getAllTransitOrderMaterialPurchaseOrders() }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
+    override suspend fun getAllTransitOrderMaterialPurchaseOrdersByCarNumber(): NetworkResult<List<TransitOrderMaterialPurchaseOrder>> {
+        return safeApiCall { api.getAllTransitOrderMaterialPurchaseOrdersByCarNumber() }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
     }
 
-    override suspend fun getTransitOrderMaterialPurchaseOrderData(poNumber: String): NetworkResult<TransitOrderMaterialPurchaseOrder> {
-        return safeApiCall { api.getTransitOrderMaterialPurchaseOrderData(GetPurchaseOrderReqDto(poNumber)) }.map { it.data!!.toDomain() }
+    override suspend fun getTransitOrderMaterialPurchaseOrderData(carNo: String): NetworkResult<TransitOrderMaterialPurchaseOrder> {
+        return safeApiCall { api.getTransitOrderMaterialPurchaseOrderDataByCarNumber(GetTransitOrderMaterialPurchaseOrderDataRequestDto(carNo)) }.map { it.data!!.toDomain() }
     }
 
     override suspend fun receiveTransitOrderMaterial(request: ReceiveTransitOrderMaterialDto): NetworkResult<ReceiveTransitOrderMaterialResult> {
-        return safeApiCall { api.receiveTransitOrderMaterial(request) }.map { it.data!!.toDomain() }
+        return safeApiCall { api.receiveTransitOrderMaterial(request) }.map {
+            ReceiveTransitOrderMaterialResult(
+                purchaseOrder = it.data?.toDomain()
+            )
+        }
     }
 
     // Spare parts return
@@ -139,7 +144,9 @@ class ReceivingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun postSparePartsReturn(request: PostSparePartsReturnDto): NetworkResult<PostSparePartsReturnResult> {
-        return safeApiCall { api.postSparePartsReturn(request) }.map { it.data!!.toDomain() }
+        return safeApiCall { api.postSparePartsReturn(request) }.map { response ->
+            (response.data ?: emptyList()).toDomain()
+        }
     }
 
     // Finished goods
@@ -182,4 +189,37 @@ class ReceivingRepositoryImpl @Inject constructor(
     override suspend fun confirmPutAway(request: ConfirmPutAwayRequestDto): NetworkResult<String> {
         return safeApiCall { api.confirmPutAway(request) }.map { it.responseStatus.statusMessage }
     }
+
+    override suspend fun getReceivingOpenOrderCounts(): NetworkResult<ReceivingOpenOrderCounts> {
+        return safeApiCall { api.getReceivingOpenOrderCounts() }.map { response ->
+            response.data?.toDomain() ?: ReceivingOpenOrderCounts()
+        }
+    }
+
+    override suspend fun getPutAwayOpenOrderCounts(): NetworkResult<PutAwayOpenOrderCounts> {
+        return safeApiCall { api.getPutAwayOpenOrderCounts() }.map { response ->
+            response.data?.toDomain() ?: PutAwayOpenOrderCounts()
+        }
+    }
+
+    override suspend fun searchBlindReceiveMaterials(filter: String, pageSize: Int): NetworkResult<List<BlindReceiveMaterial>> {
+        return safeApiCall { api.searchBlindReceiveMaterials(filter, pageSize) }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
+    }
+
+    override suspend fun getBlindReceiveUoms(): NetworkResult<List<Uom>> {
+        return safeApiCall { api.getBlindReceiveUoms() }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
+    }
+
+    override suspend fun getBlindReceiveQualityDecisions(): NetworkResult<List<QualityDecision>> {
+        return safeApiCall { api.getBlindReceiveQualityDecisions() }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
+    }
+
+    override suspend fun getUserPlants(): NetworkResult<List<Plant>> {
+        return safeApiCall { api.getUserPlants() }.map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
+    }
+
+    override suspend fun createBlindReceive(request: CreateBlindReceiveRequestDto): NetworkResult<CreateBlindReceiveResult> {
+        return safeApiCall { api.createBlindReceive(request) }.map { response -> response.data!!.toDomain() }
+    }
 }
+

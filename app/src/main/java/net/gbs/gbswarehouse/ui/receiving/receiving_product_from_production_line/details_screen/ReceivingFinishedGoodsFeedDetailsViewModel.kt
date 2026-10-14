@@ -1,7 +1,5 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line.details_screen
 
-import android.content.ContentValues.TAG
-import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -9,7 +7,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -21,6 +18,7 @@ import net.gbs.gbswarehouse.data.remote.mapper.toDto
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedLine
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedProductionOrder
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedProductionOrderItem
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.usecase.GetPlantWarehousesUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllFinishedGoodsFeedProductionOrdersUseCase
@@ -28,10 +26,11 @@ import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllWorkerGroupsUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetFinishedGoodsFeedProductionOrderDataUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.ReceiveFinishedGoodsFeedUseCase
 import javax.inject.Inject
+import net.gbs.gbswarehouse.formatQty
+import net.gbs.gbswarehouse.spinnerLabel
 
 @HiltViewModel
 class ReceivingFinishedGoodsFeedDetailsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val getFinishedGoodsFeedProductionOrderDataUseCase: GetFinishedGoodsFeedProductionOrderDataUseCase,
     private val getAllFinishedGoodsFeedProductionOrdersUseCase: GetAllFinishedGoodsFeedProductionOrdersUseCase,
     private val getPlantWarehousesUseCase: GetPlantWarehousesUseCase,
@@ -59,7 +58,7 @@ class ReceivingFinishedGoodsFeedDetailsViewModel @Inject constructor(
                 loadWorkerGroups()
             }
             is ReceivingFinishedGoodsFeedEvent.OnMaterialCodeInputEntered -> {
-                _uiState.update { it.copy(materialCodeInput = event.materialCode, materialCodeError = "") }
+                _uiState.update { it.copy(materialCodeInput = event.materialCode, materialCodeError = null) }
             }
             is ReceivingFinishedGoodsFeedEvent.OnMaterialSelected -> {
                 selectMaterial(event.materialCode)
@@ -74,13 +73,13 @@ class ReceivingFinishedGoodsFeedDetailsViewModel @Inject constructor(
             }
             is ReceivingFinishedGoodsFeedEvent.OnQuantityEntered -> {
                 _uiState.update { 
-                    val newState = it.copy(quantity = event.quantity, quantityError = "")
+                    val newState = it.copy(quantity = event.quantity, quantityError = null)
                     newState.copy(isReadyToReceive = newState.selectedMaterial != null && newState.selectedWarehouse != null && newState.selectedWorkersGroup != null && newState.quantity.isNotEmpty())
                 }
             }
             is ReceivingFinishedGoodsFeedEvent.OnWarehouseSelected -> {
                 _uiState.update { 
-                    val newState = it.copy(selectedWarehouse = event.warehouse, warehouseError = "", warehouseSearchText = event.warehouse.warehouseDescription)
+                    val newState = it.copy(selectedWarehouse = event.warehouse, warehouseError = null, warehouseSearchText = event.warehouse.warehouseDescription)
                     newState.copy(isReadyToReceive = newState.selectedMaterial != null && newState.selectedWarehouse != null && newState.selectedWorkersGroup != null && newState.quantity.isNotEmpty())
                 }
             }
@@ -89,28 +88,18 @@ class ReceivingFinishedGoodsFeedDetailsViewModel @Inject constructor(
             }
             is ReceivingFinishedGoodsFeedEvent.OnWorkersGroupSelected -> {
                 _uiState.update { 
-                    val newState = it.copy(selectedWorkersGroup = event.workersGroup, workersGroupError = "", workersGroupSearchText = event.workersGroup.workerGroupDescription)
+                    val newState = it.copy(selectedWorkersGroup = event.workersGroup, workersGroupError = null, workersGroupSearchText = event.workersGroup.workerGroupDescription)
                     newState.copy(isReadyToReceive = newState.selectedMaterial != null && newState.selectedWarehouse != null && newState.selectedWorkersGroup != null && newState.quantity.isNotEmpty())
                 }
             }
             is ReceivingFinishedGoodsFeedEvent.OnWorkersGroupSearchTextChanged -> {
                 _uiState.update { it.copy(workersGroupSearchText = event.text) }
             }
-            ReceivingFinishedGoodsFeedEvent.OnAddButtonClicked -> {
-                addItem()
-            }
-            is ReceivingFinishedGoodsFeedEvent.OnDeleteAddedMaterialButtonClicked -> {
-                _uiState.update { state ->
-                    val newList = state.addedItems.toMutableList()
-                    newList.removeAt(event.index)
-                    state.copy(addedItems = newList)
-                }
-            }
             ReceivingFinishedGoodsFeedEvent.OnSaveButtonClicked -> {
                 saveReceiving()
             }
             ReceivingFinishedGoodsFeedEvent.OnClearMaterialButtonClicked -> {
-                _uiState.update { it.copy(selectedMaterial = null, quantity = "", selectedWarehouse = null, selectedWorkersGroup = null, materialCodeInput = "", materialCodeError = "", warehouseSearchText = "", workersGroupSearchText = "") }
+                _uiState.update { it.copy(selectedMaterial = null, quantity = "", selectedWarehouse = null, selectedWorkersGroup = null, materialCodeInput = "", materialCodeError = null, warehouseSearchText = "", workersGroupSearchText = "") }
             }
             ReceivingFinishedGoodsFeedEvent.HideSuccessDialog -> {
                 _uiState.update { it.copy(showSuccessDialog = false) }
@@ -169,8 +158,8 @@ class ReceivingFinishedGoodsFeedDetailsViewModel @Inject constructor(
                     }
                     _uiState.update {
                         it.copy(
-                            searchError = message,
-                            orderGetDataStatus = FinishedGoodsFeedOrderGetDataStatus.ERROR(message)
+                            searchError = Message.real(message),
+                            orderGetDataStatus = FinishedGoodsFeedOrderGetDataStatus.ERROR(Message.real(message))
                         )
                     }
                 }
@@ -214,14 +203,14 @@ class ReceivingFinishedGoodsFeedDetailsViewModel @Inject constructor(
         if (material != null) {
             val alreadyAdded = state.addedItems.any { it.orderNumber == state.productionOrder?.orderNumber && it.itemNumber == material.itemNumber }
             if (alreadyAdded) {
-                _uiState.update { it.copy(materialCodeError = context.getString(R.string.material_already_added)) }
+                _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added)) }
                 return
             }
             _uiState.update {
                 it.copy(
                     selectedMaterial = material,
                     materialCodeInput = materialCode,
-                    materialCodeError = "",
+                    materialCodeError = null,
                     quantity = material.remainingQuantity.toString(),
                     )
             }
@@ -230,7 +219,7 @@ class ReceivingFinishedGoodsFeedDetailsViewModel @Inject constructor(
             // If repository needs it, we might need to adjust.
             loadWarehouses(material.plantCode!!)
         } else {
-            _uiState.update { it.copy(materialCodeError = context.getString(R.string.wrong_material_code)) }
+            _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.wrong_material_code)) }
         }
     }
 
@@ -256,60 +245,6 @@ class ReceivingFinishedGoodsFeedDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun addItem() {
-        val state = _uiState.value
-        val mat = state.selectedMaterial
-        val qty = state.quantity.toDoubleOrNull() ?: 0.0
-        val wh = state.selectedWarehouse
-        val wg = state.selectedWorkersGroup
-
-        if (mat == null) return
-        if (qty <= 0) {
-            _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
-            return
-        }
-        // In production orders it is planned quantity
-        if (qty > (mat.remainingQuantity ?: 0.0)) {
-            _uiState.update { it.copy(quantityError = context.getString(R.string.quantity_cannot_exceed_remaining_quantity, mat.remainingQuantity.toString())) }
-            return
-        }
-        if (wh == null) {
-            _uiState.update { it.copy(warehouseError = context.getString(R.string.please_select_a_warehouse)) }
-            return
-        }
-        if (wg == null) {
-            _uiState.update { it.copy(workersGroupError = context.getString(R.string.please_select_workers_group)) }
-            return
-        }
-
-        val line = FinishedGoodsFeedLine(
-            materialCode = mat.materialCode ?: "",
-            materialDescription = mat.materialDescription ?: "",
-            plantCode = mat.plantCode?:"",
-            warehouseCode = wh.warehouseCode,
-            orderNumber = state.productionOrder?.orderNumber ?: "",
-            itemNumber = mat.itemNumber?:"",
-            uom = mat.uom ?: "",
-            receivedQuantity = qty,
-            workerGroupCode = wg.workerGroupCode,
-            workerGroupName = wg.workerGroupDescription
-        )
-
-        _uiState.update {
-            it.copy(
-                addedItems = it.addedItems + line,
-                selectedMaterial = null,
-                quantity = "",
-                selectedWarehouse = null,
-                selectedWorkersGroup = null,
-                materialCodeInput = "",
-                warehouseSearchText = "",
-                workersGroupSearchText = "",
-                isReadyToReceive = false
-            )
-        }
-    }
-
     private fun saveReceiving() {
         val state = _uiState.value
         val mat = state.selectedMaterial
@@ -317,70 +252,92 @@ class ReceivingFinishedGoodsFeedDetailsViewModel @Inject constructor(
         val wh = state.selectedWarehouse
         val wg = state.selectedWorkersGroup
 
-        if (state.addedItems.isEmpty()) {
-            if (mat == null) return
-            if (qty <= 0) {
-                _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
-                return
-            }
-            if (qty > (mat.remainingQuantity ?: 0.0)) {
-                _uiState.update { it.copy(quantityError = context.getString(R.string.quantity_cannot_exceed_remaining_quantity, mat.remainingQuantity.toString())) }
-                return
-            }
-            if (wh == null) {
-                _uiState.update { it.copy(warehouseError = context.getString(R.string.please_select_a_warehouse)) }
-                return
-            }
-            if (wg == null) {
-                _uiState.update { it.copy(workersGroupError = context.getString(R.string.please_select_workers_group)) }
-                return
-            }
-
-            val line = FinishedGoodsFeedLine(
-                materialCode = mat.materialCode ?: "",
-                materialDescription = mat.materialDescription ?: "",
-                plantCode = mat.plantCode ?: "",
-                warehouseCode = wh.warehouseCode,
-                orderNumber = state.productionOrder?.orderNumber ?: "",
-                itemNumber = mat.itemNumber ?: "",
-                uom = mat.uom ?: "",
-                receivedQuantity = qty,
-                workerGroupCode = wg.workerGroupCode,
-                workerGroupName = wg.workerGroupDescription
-            )
-            _uiState.update { it.copy(addedItems = listOf(line)) }
+        // A finished-goods feed order only ever carries a single material, so the form is
+        // validated and posted straight away instead of going through an added-lines list.
+        if (mat == null) return
+        if (qty <= 0) {
+            _uiState.update { it.copy(quantityError = Message.Resource(R.string.please_enter_a_valid_quantity)) }
+            return
+        }
+        if (qty > (mat.remainingQuantity ?: 0.0)) {
+            _uiState.update { it.copy(quantityError = Message.Resource(R.string.quantity_cannot_exceed_remaining_quantity, mat.remainingQuantity.toString())) }
+            return
+        }
+        if (wh == null) {
+            _uiState.update { it.copy(warehouseError = Message.Resource(R.string.please_select_a_warehouse)) }
+            return
+        }
+        if (wg == null) {
+            _uiState.update { it.copy(workersGroupError = Message.Resource(R.string.please_select_workers_group)) }
+            return
         }
 
-        val linesToSave = _uiState.value.addedItems
-        if (linesToSave.isEmpty()) return
+        val line = FinishedGoodsFeedLine(
+            materialCode = mat.materialCode ?: "",
+            materialDescription = mat.materialDescription ?: "",
+            plantCode = mat.plantCode ?: "",
+            warehouseCode = wh.warehouseCode,
+            orderNumber = state.productionOrder?.orderNumber ?: "",
+            itemNumber = mat.itemNumber ?: "",
+            uom = mat.uom ?: "",
+            receivedQuantity = qty,
+            workerGroupCode = wg.workerGroupCode,
+            workerGroupName = wg.workerGroupDescription
+        )
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingLoading = true) }
             val result = receiveFinishedGoodsFeedUseCase(
                 ReceiveFinishedGoodsFeedDto(
                     orderNumber = state.productionOrder?.orderNumber ?: "",
-                    lines = linesToSave.map { it.toDto() }
+                    lines = listOf(line.toDto())
                 )
             )
 
             when (result) {
                 is NetworkResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isSavingLoading = false,
-                            showSuccessDialog = true,
-                            savingSuccessStatusMessage = context.getString(R.string.success_save),
-                            addedItems = emptyList(),
-                            selectedMaterial = null,
-                            quantity = "",
-                            selectedWarehouse = null,
-                            selectedWorkersGroup = null,
-                            materialCodeInput = "",
-                            warehouseSearchText = "",
-                            workersGroupSearchText = ""
-                        )
+                    val updatedOrder = result.data.productionOrder
+                    Log.d("" +
+                            "receivingFinishedGoodsFe", "saveReceiving: ")
+                    if (updatedOrder != null) {
+                        _uiState.update {
+                            it.copy(
+                                isSavingLoading = false,
+                                showSuccessDialog = true,
+                                savingSuccessStatusMessage = Message.of(result.message, R.string.success_save),
+                                addedItems = emptyList(),
+                                productionOrder = updatedOrder,
+                                materials = updatedOrder.productionOrderItems,
+                                filteredMaterials = updatedOrder.productionOrderItems,
+                                orderGetDataStatus = FinishedGoodsFeedOrderGetDataStatus.SUCCESS(updatedOrder),
+                                selectedMaterial = null,
+                                quantity = "",
+                                selectedWarehouse = null,
+                                selectedWorkersGroup = null,
+                                materialCodeInput = "",
+                                warehouseSearchText = "",
+                                workersGroupSearchText = "",
+                                isReadyToReceive = false
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isSavingLoading = false,
+                                showSuccessDialog = true,
+                                savingSuccessStatusMessage = Message.of(result.message, R.string.success_save),
+                                addedItems = emptyList(),
+                                selectedMaterial = null,
+                                quantity = "",
+                                selectedWarehouse = null,
+                                selectedWorkersGroup = null,
+                                materialCodeInput = "",
+                                warehouseSearchText = "",
+                                workersGroupSearchText = ""
+                            )
+                        }
+                        state.productionOrder?.orderNumber?.let { getOrderData(it) }
                     }
-                    state.productionOrder?.orderNumber?.let { getOrderData(it) }
                 }
                 else -> {
                     val message = when (result) {
@@ -393,7 +350,7 @@ class ReceivingFinishedGoodsFeedDetailsViewModel @Inject constructor(
                         it.copy(
                             isSavingLoading = false,
                             showErrorDialog = true,
-                            savingErrorStatusMessage = message,
+                            savingErrorStatusMessage = Message.real(message),
                             addedItems = emptyList()
                         )
                     }

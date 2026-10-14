@@ -4,12 +4,12 @@ import net.gbs.gbswarehouse.data.remote.dto.response.ReceiveTransitOrderMaterial
 import net.gbs.gbswarehouse.domain.repository.ReceivingRepository
 import javax.inject.Inject
 
-class GetAllTransitOrderMaterialPurchaseOrdersUseCase @Inject constructor(private val repository: ReceivingRepository) {
-    suspend operator fun invoke() = repository.getAllTransitOrderMaterialPurchaseOrders()
+class GetAllTransitOrderMaterialPurchaseOrdersByCarNumberUseCase @Inject constructor(private val repository: ReceivingRepository) {
+    suspend operator fun invoke() = repository.getAllTransitOrderMaterialPurchaseOrdersByCarNumber()
 }
 
 class GetTransitOrderMaterialPurchaseOrderDataUseCase @Inject constructor(private val repository: ReceivingRepository) {
-    suspend operator fun invoke(poNumber: String) = repository.getTransitOrderMaterialPurchaseOrderData(poNumber)
+    suspend operator fun invoke(carNo: String) = repository.getTransitOrderMaterialPurchaseOrderData(carNo)
 }
 
 class ReceiveTransitOrderMaterialUseCase @Inject constructor(private val repository: ReceivingRepository) {

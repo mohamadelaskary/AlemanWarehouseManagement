@@ -13,8 +13,6 @@ sealed class ReceivingFinishedGoodsFeedEvent {
     data class OnWarehouseSearchTextChanged(val text: String) : ReceivingFinishedGoodsFeedEvent()
     data class OnWorkersGroupSelected(val workersGroup: WorkersGroup) : ReceivingFinishedGoodsFeedEvent()
     data class OnWorkersGroupSearchTextChanged(val text: String) : ReceivingFinishedGoodsFeedEvent()
-    object OnAddButtonClicked : ReceivingFinishedGoodsFeedEvent()
-    data class OnDeleteAddedMaterialButtonClicked(val index: Int) : ReceivingFinishedGoodsFeedEvent()
     object OnSaveButtonClicked : ReceivingFinishedGoodsFeedEvent()
     object OnClearMaterialButtonClicked : ReceivingFinishedGoodsFeedEvent()
     object HideSuccessDialog : ReceivingFinishedGoodsFeedEvent()

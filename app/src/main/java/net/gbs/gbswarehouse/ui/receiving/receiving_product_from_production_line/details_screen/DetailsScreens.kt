@@ -45,6 +45,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.Bin
+import net.gbs.gbswarehouse.BottomSheetDialog
 import net.gbs.gbswarehouse.Field
 import net.gbs.gbswarehouse.FullBtn
 import net.gbs.gbswarehouse.InfoCell
@@ -73,6 +74,7 @@ fun ReceivingFinishedGoodFromProductionDetailsScreenOld(
 ){
     val viewModel: DetailsViewModel = viewModel()
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     val accent = colors.green
     val doneLabel = "الكمية المستلمة"
     val order = ORDERS["PROD"]?.find { it.id == orderId }!!
@@ -85,9 +87,9 @@ fun ReceivingFinishedGoodFromProductionDetailsScreenOld(
 
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
+                    start = dims.padding, end = dims.padding,
                     top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
+                    bottom = if (viewModel.showFixedSave) dims.bottomBarHeight else 20.dp
                 )
             ) {
 
@@ -192,7 +194,7 @@ fun ReceivingFinishedGoodFromProductionDetailsScreenOld(
                             0f to Color.Transparent, 0.35f to colors.bg
                         )
                     )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(
                     "حفظ الاستلام", accent, { viewModel.doSave("save") },
@@ -204,12 +206,13 @@ fun ReceivingFinishedGoodFromProductionDetailsScreenOld(
 
     // ── Material Dialog ───────────────────────────────────────────────────
     if (viewModel.matDlg) {
+        val dims = AppTheme.dims
         BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
             SearchBox(viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
+                    start = dims.padding, end = dims.padding, bottom = 20.dp,
                 )
             ) {
                 itemsIndexed(viewModel.filteredMaterials) { _, m ->
@@ -224,11 +227,12 @@ fun ReceivingFinishedGoodFromProductionDetailsScreenOld(
 
     // ── Bin Dialog ────────────────────────────────────────────────────────
     if (viewModel.binDlg) {
+        val dims = AppTheme.dims
         BottomSheetDialog(title = "اختيار موقع التسكين", onClose = { viewModel.binDlg = false }) {
             SearchBox(viewModel.binInput, { viewModel.binInput = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
             LazyColumn(contentPadding = PaddingValues(
-                start = 14.dp, end = 14.dp, bottom = 20.dp
+                start = dims.padding, end = dims.padding, bottom = 20.dp
             )) {
                 itemsIndexed(viewModel.filteredBins) { _, b ->
                     BinDialogItem(b, viewModel.accent) { viewModel.selectBin(b) }
@@ -245,6 +249,7 @@ fun InspectingFinishedGoodFromProductionDetailsScreenOld(
 ){
     val viewModel: DetailsViewModel = viewModel()
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     val accent = colors.purple
     val order = ORDERS["PROD"]?.find { it.id == orderId }!!
     val doneLabel = "الكمية المستلمة"
@@ -257,9 +262,9 @@ fun InspectingFinishedGoodFromProductionDetailsScreenOld(
 
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
+                    start = dims.padding, end = dims.padding,
                     top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
+                    bottom = if (viewModel.showFixedSave) dims.bottomBarHeight else 20.dp
                 )
             ) {
 
@@ -362,7 +367,7 @@ fun InspectingFinishedGoodFromProductionDetailsScreenOld(
                             0f to Color.Transparent, 0.35f to colors.bg
                         )
                     )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(viewModel.saveLabel, accent, { viewModel.doSave("save") },
                     saving = viewModel.saving)
@@ -372,14 +377,15 @@ fun InspectingFinishedGoodFromProductionDetailsScreenOld(
 
     // ── Material Dialog ───────────────────────────────────────────────────
     if (viewModel.matDlg) {
+        val dims = AppTheme.dims
         BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
             SearchBox(
                 viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp)
             )
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
+                    start = dims.padding, end = dims.padding, bottom = 20.dp,
                 )
             ) {
                 itemsIndexed(viewModel.filteredMaterials) { _, m ->
@@ -414,6 +420,7 @@ fun SelectedMaterialCard(
 ) {
     val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
 
     Column(
         modifier = Modifier
@@ -425,12 +432,12 @@ fun SelectedMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
+            Text(mat.code, color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+            Text("✕", color = colors.muted, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        Text(mat.desc, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
         Spacer(Modifier.height(8.dp))
         // Stats row
@@ -438,9 +445,9 @@ fun SelectedMaterialCard(
             listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
                 "الوحدة" to mat.unit,).forEach { (l, v) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(l, color = colors.muted, fontSize = 9.sp,
+                    Text(l, color = colors.muted, fontSize = dims.fontSizeCaption,
                         modifier = Modifier.padding(bottom = 2.dp))
-                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(v, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -448,8 +455,8 @@ fun SelectedMaterialCard(
         // Progress bar
         Column {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("التنفيذ", color = colors.muted, fontSize = 9.sp)
-                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
+                Text("التنفيذ", color = colors.muted, fontSize = dims.fontSizeCaption)
+                Text("${(progress * 100).toInt()}%", color = accent, fontSize = dims.fontSizeCaption,
                     fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(3.dp))
@@ -489,6 +496,7 @@ fun PutAwayFinishedGoodFromProductionDetailsScreenOld(
 ){
     val vm: DetailsViewModel = viewModel()
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     val ord = ORDERS["PROD"]?.find { it.id == orderId }!!
     val accent = colors.yellow
     val doneLabel = "الكمية المستلمة"
@@ -503,9 +511,9 @@ fun PutAwayFinishedGoodFromProductionDetailsScreenOld(
 
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
+                    start = dims.padding, end = dims.padding,
                     top = 10.dp,
-                    bottom = if (vm.showFixedSave) 90.dp else 20.dp
+                    bottom = if (vm.showFixedSave) dims.bottomBarHeight else 20.dp
                 )
             ) {
 
@@ -626,7 +634,7 @@ fun PutAwayFinishedGoodFromProductionDetailsScreenOld(
                             0f to Color.Transparent, 0.35f to colors.bg
                         )
                     )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn("تأكيد التسكين", accent, { vm.doSave("save") },
                     saving = vm.saving)
@@ -636,12 +644,13 @@ fun PutAwayFinishedGoodFromProductionDetailsScreenOld(
 
     // ── Material Dialog ───────────────────────────────────────────────────
     if (vm.matDlg) {
+        val dims = AppTheme.dims
         BottomSheetDialog(title = "اختيار الصنف", onClose = { vm.matDlg = false }) {
             SearchBox(vm.matSearch, { vm.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
+                    start = dims.padding, end = dims.padding, bottom = 20.dp,
                 )
             ) {
                 itemsIndexed(vm.filteredMaterials) { _, m ->
@@ -656,11 +665,12 @@ fun PutAwayFinishedGoodFromProductionDetailsScreenOld(
 
     // ── Bin Dialog ────────────────────────────────────────────────────────
     if (vm.binDlg) {
+        val dims = AppTheme.dims
         BottomSheetDialog(title = "اختيار موقع التسكين", onClose = { vm.binDlg = false }) {
             SearchBox(vm.binInput, { vm.binInput = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
             LazyColumn(contentPadding = PaddingValues(
-                start = 14.dp, end = 14.dp, bottom = 20.dp
+                start = dims.padding, end = dims.padding, bottom = 20.dp
             )) {
                 itemsIndexed(vm.filteredBins) { _, b ->
                     BinDialogItem(b, vm.accent) { vm.selectBin(b) }
@@ -685,6 +695,7 @@ fun PutAwaySelectedMaterialCard(
 ) {
     val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
 
     Column(
         modifier = Modifier
@@ -696,12 +707,12 @@ fun PutAwaySelectedMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
+            Text(mat.code, color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+            Text("✕", color = colors.muted, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        Text(mat.desc, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
         Spacer(Modifier.height(8.dp))
         // Stats row
@@ -709,9 +720,9 @@ fun PutAwaySelectedMaterialCard(
             listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
                 "الوحدة" to mat.unit,).forEach { (l, v) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(l, color = colors.muted, fontSize = 9.sp,
+                    Text(l, color = colors.muted, fontSize = dims.fontSizeCaption,
                         modifier = Modifier.padding(bottom = 2.dp))
-                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(v, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -719,8 +730,8 @@ fun PutAwaySelectedMaterialCard(
         // Progress bar
         Column {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("التنفيذ", color = colors.muted, fontSize = 9.sp)
-                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
+                Text("التنفيذ", color = colors.muted, fontSize = dims.fontSizeCaption)
+                Text("${(progress * 100).toInt()}%", color = accent, fontSize = dims.fontSizeCaption,
                     fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(3.dp))
@@ -759,6 +770,7 @@ fun PutAwaySelectedMaterialCard(
 fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) -> Unit,
                     onClear: () -> Unit) {
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -769,8 +781,8 @@ fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) 
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text("📍 ${bin.code}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
+            Text("📍 ${bin.code}", color = accent, fontSize = dims.fontSizeTitle, fontWeight = FontWeight.ExtraBold)
+            Text("✕", color = colors.muted, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(8.dp))
@@ -781,8 +793,8 @@ fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) 
                     modifier = Modifier.weight(1f)
                         .clip(RoundedCornerShape(6.dp)).background(colors.dark).padding(horizontal = 6.dp, vertical = 8.dp)
                 ) {
-                    Text(l, color = colors.muted, fontSize = 9.sp)
-                    Text(v, color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(l, color = colors.muted, fontSize = dims.fontSizeCaption)
+                    Text(v, color = colors.text, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -793,6 +805,7 @@ fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) 
 @Composable
 fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
@@ -804,13 +817,13 @@ fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
         BasicTextField(
             value = value, onValueChange = onValueChange, singleLine = true,
             textStyle = TextStyle(
-                color = colors.text, fontSize = 13.sp,
+                color = colors.text, fontSize = dims.fontSizeButton,
                 textDirection = TextDirection.Ltr
             ),
             cursorBrush = SolidColor(colors.green),
             modifier = Modifier.weight(1f).padding(vertical = 10.dp),
             decorationBox = { inner ->
-                if (value.isEmpty()) Text("كود المادة...", color = colors.muted, fontSize = 13.sp)
+                if (value.isEmpty()) Text("كود المادة...", color = colors.muted, fontSize = dims.fontSizeButton)
                 inner()
             }
         )
@@ -820,6 +833,7 @@ fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
 @Composable
 fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
@@ -831,13 +845,13 @@ fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
         BasicTextField(
             value = value, onValueChange = onValueChange, singleLine = true,
             textStyle = TextStyle(
-                color = colors.text, fontSize = 13.sp,
+                color = colors.text, fontSize = dims.fontSizeButton,
                 textDirection = TextDirection.Ltr
             ),
             cursorBrush = SolidColor(colors.yellow),
             modifier = Modifier.weight(1f).padding(vertical = 10.dp),
             decorationBox = { inner ->
-                if (value.isEmpty()) Text("كود البن (Bin Code)...", color = colors.muted, fontSize = 13.sp)
+                if (value.isEmpty()) Text("كود البن (Bin Code)...", color = colors.muted, fontSize = dims.fontSizeButton)
                 inner()
             }
         )
@@ -849,6 +863,7 @@ fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
 fun MaterialDialogItem(mat: Material, accent: Color, doneLabel: String, onClick: () -> Unit) {
     var hovered by remember { mutableStateOf(false) }
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -859,17 +874,17 @@ fun MaterialDialogItem(mat: Material, accent: Color, doneLabel: String, onClick:
             .padding(all = 11.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(mat.code, color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text(mat.unit, color = colors.muted, fontSize = 10.sp)
+            Text(mat.code, color = accent, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.Bold)
+            Text(mat.unit, color = colors.muted, fontSize = dims.fontSizeSubtitle)
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+        Text(mat.desc, color = colors.text, fontSize = dims.fontSizeBody, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("المطلوب: ${mat.qty}", color = colors.muted, fontSize = 10.sp)
+            Text("المطلوب: ${mat.qty}", color = colors.muted, fontSize = dims.fontSizeSubtitle)
             Text("$doneLabel: ${mat.done}",
-                color = if (mat.done == mat.qty) colors.succ else colors.muted, fontSize = 10.sp)
+                color = if (mat.done == mat.qty) colors.succ else colors.muted, fontSize = dims.fontSizeSubtitle)
         }
     }
 }
@@ -878,6 +893,7 @@ fun MaterialDialogItem(mat: Material, accent: Color, doneLabel: String, onClick:
 fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
     var hovered by remember { mutableStateOf(false) }
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -888,114 +904,21 @@ fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
             .padding(12.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("📍 ${bin.code}", color = colors.yellow, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text("متاح", color = colors.succ, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+            Text("📍 ${bin.code}", color = colors.yellow, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.Bold)
+            Text("متاح", color = colors.succ, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(4.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             listOf("المنطقة" to bin.zone, "الممر" to bin.aisle, "المتاح" to bin.avail)
                 .forEach { (l, v) ->
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(l, color = colors.muted, fontSize = 9.sp)
-                        Text(v, color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(l, color = colors.muted, fontSize = dims.fontSizeCaption)
+                        Text(v, color = colors.text, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.Bold)
                     }
                 }
         }
     }
 }
 
-// ── Bottom Sheet Dialog ───────────────────────────────────────────────────────
-@Composable
-fun BottomSheetDialog(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    val colors = AppTheme.colors
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.65f))
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { onClose() },
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(colors.card)
-                    .border(1.dp, colors.border2,
-                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .heightIn(max = 560.dp)
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { /* consume */ }
-            ) {
-                // Dialog Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(
-                            width = 1.dp, color = colors.border,
-                            shape = RoundedCornerShape(0.dp)
-                        )
-                        .padding(horizontal = 14.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("✕", color = colors.muted, fontSize = 18.sp,
-                        modifier = Modifier.clickable { onClose() }.padding(horizontal = 2.dp))
-                    Text(title, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-                content()
-            }
-        }
-    }
-}
 
-// ── FullBtn overload with Modifier ────────────────────────────────────────────
-@Composable
-fun FullBtn(label: String, color: Color, onClick: () -> Unit,
-            saving: Boolean = false, enabled: Boolean = true, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    val bg     = if (!enabled) colors.dim.copy(0.22f) else color.copy(0.12f)
-    val border = if (!enabled) colors.dim else color.copy(0.35f)
-    val txtCol = if (!enabled) colors.dim else color
 
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .border(1.dp, border, RoundedCornerShape(10.dp))
-            .clickable(enabled = enabled && !saving) { onClick() }
-            .padding(vertical = 13.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (saving) {
-            CircularProgressIndicator(
-                color = color, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-        } else {
-            Text(label, color = txtCol, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-        }
-    }
-}
-
-// ── InfoCell with Modifier ────────────────────────────────────────────────────
-@Composable
-fun InfoCell(label: String, value: String, color: Color = Color.Unspecified, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    val textColor = if (color == Color.Unspecified) colors.text else color
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(colors.dark)
-            .padding(all = 8.dp)
-    ) {
-        Text(label, color = colors.muted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 2.dp))
-        Text(value, color = textColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-    }
-}

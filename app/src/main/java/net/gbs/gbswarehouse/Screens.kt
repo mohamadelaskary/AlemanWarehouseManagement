@@ -347,11 +347,11 @@ sealed class Screens(val route: String) {
             "issuing_sales_orders"
     }
 
-    object IssuingSalesOrdersDetailsScreen : Screens("issuing_sales_orders_details_screen/{orderId}"){
+    object IssuingSalesOrdersDetailsScreen : Screens("issuing_sales_orders_details_screen/{carNo}"){
         fun createRoute(
-            orderId: String
+            carNo: String
         ) =
-            "issuing_sales_orders_details_screen/$orderId"
+            "issuing_sales_orders_details_screen/$carNo"
     }
     object IssuingSalesOrdersPlastic : Screens("issuing_sales_orders_plastic"){
         fun createRoute() =
@@ -369,11 +369,12 @@ sealed class Screens(val route: String) {
             "issuing_spare_parts_for_maintenance"
     }
 
-    object IssuingSparePartsForMaintenanceDetailsScreen : Screens("issuing_spare_parts_for_maintenance_details_screen/{orderId}"){
+    object IssuingSparePartsForMaintenanceDetailsScreen : Screens("issuing_spare_parts_for_maintenance_details_screen/{orderId}/{orderNumber}"){
         fun createRoute(
-            orderId: String
+            orderId: String,
+            orderNumber: String
         ) =
-            "issuing_spare_parts_for_maintenance_details_screen/$orderId"
+            "issuing_spare_parts_for_maintenance_details_screen/$orderId/$orderNumber"
     }
     object IssuingInternalOrders : Screens("issuing_internal_orders"){
         fun createRoute() =
@@ -396,6 +397,14 @@ sealed class Screens(val route: String) {
             orderId: String
         ) =
             "issuing_cost_center_orders_details_screen/$orderId"
+    }
+
+    object IssuingTransferPlants : Screens("issuing_transfer_plants") {
+        fun createRoute() = "issuing_transfer_plants"
+    }
+
+    object IssuingTransferPlantsDetailsScreen : Screens("issuing_transfer_plants_details_screen/{carNo}") {
+        fun createRoute(carNo: String) = "issuing_transfer_plants_details_screen/$carNo"
     }
     object AuditOrders : Screens("audit_orders"){
         fun createRoute() =
@@ -465,6 +474,30 @@ sealed class Screens(val route: String) {
 
     object PutAwayDetails : Screens("put_away_details/{receiptType}/{orderNumber}") {
         fun createRoute(receiptType: String, orderNumber: String) = "put_away_details/$receiptType/$orderNumber"
+    }
+
+    object DirectTransferPutAwayOrders : Screens("direct_transfer_put_away_orders") {
+        fun createRoute() = "direct_transfer_put_away_orders"
+    }
+
+    object DirectTransferPutAwayDetails : Screens("direct_transfer_put_away_details/{receiptNo}") {
+        fun createRoute(receiptNo: String) = "direct_transfer_put_away_details/$receiptNo"
+    }
+
+    object LoadingOrders : Screens("loading_orders?orderNumber={orderNumber}") {
+        fun createRoute(orderNumber: String = "") = "loading_orders?orderNumber=$orderNumber"
+    }
+
+    object LoadingOrderDetails : Screens("loading_order_details/{orderId}") {
+        fun createRoute(orderId: Int) = "loading_order_details/$orderId"
+    }
+
+    object LoadingConveyors : Screens("loading_conveyors") {
+        fun createRoute() = "loading_conveyors"
+    }
+
+    object LoadingOperation : Screens("loading_operation/{operationId}") {
+        fun createRoute(operationId: String) = "loading_operation/$operationId"
     }
 
 }

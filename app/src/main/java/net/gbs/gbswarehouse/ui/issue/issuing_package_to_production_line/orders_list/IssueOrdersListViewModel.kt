@@ -20,6 +20,12 @@ import net.gbs.gbswarehouse.RAW_MATERIALS
 import net.gbs.gbswarehouse.Screens
 
 class IssueOrdersListViewModel: ViewModel() {
+    var expandedOrderIds by mutableStateOf<Set<String>>(emptySet())
+
+    fun toggleOrderExpanded(id: String) {
+        expandedOrderIds = if (expandedOrderIds.contains(id)) expandedOrderIds - id else expandedOrderIds + id
+    }
+
     var currentClickedOrderIndex by mutableStateOf(-1)
     var showMaterials by mutableStateOf(false)
     var screen    by mutableStateOf(Screens.Home)

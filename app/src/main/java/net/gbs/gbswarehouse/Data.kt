@@ -8,6 +8,7 @@ import net.gbs.gbswarehouse.ReceivingScreenNames.RawMaterialsFromVendor
 import net.gbs.gbswarehouse.ReceivingScreenNames.SparePartsFromVendor
 import net.gbs.gbswarehouse.ReceivingScreenNames.SparePartsReturn
 import net.gbs.gbswarehouse.ReceivingScreenNames.TransitOrderMaterial
+import net.gbs.gbswarehouse.domain.model.LoadingVendor
 import net.gbs.gbswarehouse.domain.model.ValuationType
 import net.gbs.gbswarehouse.domain.model.Warehouse
 
@@ -379,30 +380,45 @@ val BINS = listOf(
     Bin("B-02-R1", "منطقة ب", "ممر 02", "R1", "1000 كجم", "750 كجم"),
     Bin("C-03-R3", "منطقة ج", "ممر 03", "R3", "200 قطعة", "150 قطعة"),
 )
-
+val AlEmanLoadingVendor = LoadingVendor(
+    vendorCode = "11800005",
+    vendorName = "نور الايمان للنقل"
+)
 val RECV_OPS = listOf(
     Operation(ReceivingScreenNames.RawMaterialsFromVendor, enName = "Raw materials from vendor",        "مواد خام من مورد",                  "PO"),
     Operation(ReceivingScreenNames.SparePartsFromVendor,enName = "Spare parts from vendor",      "قطع غيار من مورد",                  "PO"),
     Operation(ReceivingScreenNames.PackagingMaterialsFromVendor,  enName = "Packaging materials from vendor",      "مواد تعبئة وتغليف من مورد",         "PO"),
     Operation(ReceivingScreenNames.PoultryMaterialsFromVendor, enName = "Poultry materials from vendor",   "إضافات أعلاف من مورد",              "PROD"),
     Operation("recv-blind", enName = "Receiving without purchase order",     "استلام بدون أمر شراء",                       null, blind = true),
-    Operation(ReceivingScreenNames.FinishedGoodsFeedFromProductionOrder,enName = "Finished goods ()",    "منتج تام من الإنتاج(علف)",              "PROD"),
+    Operation(FinishedGoodsFeedFromProductionOrder,enName = "Finished goods (Feed)",    "منتج تام من الإنتاج(علف)",              "PROD"),
     Operation(ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder, enName = "Finished goods (Plastic)",   "منتج تام من الإنتاج(بلاستيك)",              "PROD"),
     Operation(ReceivingScreenNames.SparePartsReturn, enName = "Return spare parts to warehouse","ارتجاع قطع غيار للمخزن",      "PROD"),
-    Operation(ReceivingScreenNames.TransitOrderMaterial,  enName = "Warehouse transfers between Locations",   "تحويلات مخزنية بين المواقع",              "TRANSFER"),
-    Operation("recv-return",  enName = "Returns from customers",   "استلام منتج تام مرتجع من العميل",  "SO"),
+    Operation(ReceivingScreenNames.TransitOrderMaterial,  enName = "Warehouse transfers between Locations(Incoming)",   "تحويلات مخزنية بين المواقع(وارد)",              "TRANSFER"),
+//    Operation("recv-return",  enName = "Returns from customers",   "استلام منتج تام مرتجع من العميل",  "SO"),
 )
 
 val ISSUE_OPS = listOf(
     Operation("issue-raw",enName = "Transfers to production warehouses",      "تحويلات إلى مخازن الانتاج",             "PROD"),
-    Operation("issue-spare",   enName = "Spare parts fo maintenance", "قطع غيار للصيانة",                 "MAINT"),
+    Operation("issue-spare",   enName = "Spare parts fo maintenance(Z61)", "قطع غيار للصيانة(Z61)",                 "MAINT"),
     Operation("issue-internal",enName = "Internal order", "أمر داخلي",                         "INTERNAL"),
-    Operation("issue-sales",  enName = "Finished goods for sales or shipping ()",  "منتج تام للبيع أو الشحن (علف)",          "SO"),
+    Operation("issue-sales",  enName = "Finished goods for sales or shipping (Feed)",  "منتج تام للبيع أو الشحن (علف)",          "SO"),
     Operation("issue-sales_plastic",enName = "Finished goods for sales or shipping (Plastic)", "منتج تام للبيع أو الشحن (بلاستيك)",          "SO"),
     Operation("issue-cost-center", enName = "Direct issuing on cost center",   "صرف مباشر علي مركز تكلفة",          "RESERVATION"),
-    Operation("issue-direct-transfer",enName = "Direct transfers",    "تحويلات مباشرة",          "SO"),
+    Operation("issue-direct-transfer",enName = "Direct transfers (311)",    "تحويلات مباشرة(311)",          "SO"),
+    Operation("issue-transfer-plants", enName = "Warehouse transfers between plants ( Outcoming )", "تحويلات مخزنية بين الفروع (صادر)", "TRANSFER"),
 //    Operation("issue-sub", enName = "For vendors (subcontracting)",     "للمورد (تصنيع لدى الغير)",         "PO"),
     Operation("issue-scrap",   enName = "Scrap", "هالك أو إعدام أو خردة",            "SCRAP"),
+)
+
+val PUT_AWAY_OPS = listOf(
+    Operation(RawMaterialsFromVendor, enName = "Raw materials from vendor",        "مواد خام من مورد",                  "PO"),
+    Operation(SparePartsFromVendor,  enName = "Spare parts from vendor",      "قطع غيار من مورد",                  "PO"),
+    Operation(PackagingMaterialsFromVendor,  enName = "Packaging materials from vendor",      "مواد تعبئة وتغليف من مورد",         "PO"),
+    Operation(FinishedGoodsFeedFromProductionOrder, enName = "Finished goods (Feed)",    "منتج تام من الإنتاج(علف)",              "PROD"),
+    Operation(FinishedGoodsPlasticFromProductionOrder, enName = "Finished goods (Plastic)",   "منتج تام من الإنتاج(بلاستيك)",              "PROD"),
+    Operation(SparePartsReturn, enName = "Return spare parts to warehouse","ارتجاع قطع غيار للمخزن",      "PROD"),
+    Operation(TransitOrderMaterial,  enName = "Warehouse transfers between Locations(Incoming)",   "تحويلات مخزنية بين المواقع(وارد)",              "TRANSFER"),
+    Operation("issue-direct-transfer-putaway", enName = "Stock transfers put away", "تسكين التحويلات المخزنية", "TRANSFER"),
 )
 
 val OP_TYPES = listOf(
@@ -434,8 +450,8 @@ fun arabicScreenNames(name:String):String{
        PackagingMaterialsFromVendor -> "مواد تعبئة وتغليف من مورد"
        RawMaterialsFromVendor -> "مواد خام من مورد"
            PoultryMaterialsFromVendor -> "دواجن من مورد"
-       FinishedGoodsPlasticFromProductionOrder -> "منتج تام من الانتاج (علف)"
-       FinishedGoodsFeedFromProductionOrder -> "منتج تام من الانتاج (بلاستيك)"
+       FinishedGoodsFeedFromProductionOrder -> "منتج تام من الانتاج (علف)"
+       FinishedGoodsPlasticFromProductionOrder -> "منتج تام من الانتاج (بلاستيك)"
        TransitOrderMaterial -> "تحويلات مخزنية بين المواقع"
        SparePartsReturn -> "ارتجاع قطع غيار للمخزن"
        else -> name

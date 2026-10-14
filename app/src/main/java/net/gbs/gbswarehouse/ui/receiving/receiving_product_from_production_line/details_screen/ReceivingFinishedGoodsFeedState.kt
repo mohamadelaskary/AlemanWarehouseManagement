@@ -3,6 +3,7 @@ package net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedProductionOrder
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedLine
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedProductionOrderItem
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.model.WorkersGroup
 
@@ -25,14 +26,14 @@ data class ReceivingFinishedGoodsFeedState (
     val warehouseSearchText: String = "",
     val workersGroupSearchText: String = "",
     val addedItems: List<FinishedGoodsFeedLine> = emptyList(),
-    val materialCodeError: String = "",
-    val searchError: String = "",
-    val quantityError: String = "",
-    val warehouseError: String = "",
-    val workersGroupError: String = "",
-    val error: String = "",
-    val savingSuccessStatusMessage: String = "",
-    val savingErrorStatusMessage: String = "",
+    val materialCodeError: Message? = null,
+    val searchError: Message? = null,
+    val quantityError: Message? = null,
+    val warehouseError: Message? = null,
+    val workersGroupError: Message? = null,
+    val error: Message? = null,
+    val savingSuccessStatusMessage: Message? = null,
+    val savingErrorStatusMessage: Message? = null,
     val isSavingLoading: Boolean = false,
     val showSuccessDialog: Boolean = false,
     val showErrorDialog: Boolean = false,
@@ -49,5 +50,5 @@ sealed class FinishedGoodsFeedOrderGetDataStatus {
     data object IDLE : FinishedGoodsFeedOrderGetDataStatus()
     data object LOADING : FinishedGoodsFeedOrderGetDataStatus()
     data class SUCCESS(val order: FinishedGoodsFeedProductionOrder) : FinishedGoodsFeedOrderGetDataStatus()
-    data class ERROR(val error: String) : FinishedGoodsFeedOrderGetDataStatus()
+    data class ERROR(val error: Message) : FinishedGoodsFeedOrderGetDataStatus()
 }

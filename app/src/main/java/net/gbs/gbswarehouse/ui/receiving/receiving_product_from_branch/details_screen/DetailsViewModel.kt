@@ -1,21 +1,23 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.details_screen
 
-import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.gbs.gbswarehouse.AlEmanLoadingVendor
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.data.remote.dto.response.ReceiveTransitOrderMaterialDto
 import net.gbs.gbswarehouse.data.remote.mapper.toDto
+import net.gbs.gbswarehouse.domain.model.LoadingVendor
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.TransitOrderMaterialLine
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllCarNumbersUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllCarTypesUseCase
@@ -27,12 +29,14 @@ import net.gbs.gbswarehouse.domain.usecase.receiving.GetNaolonPerTonValueUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetPlantWarehousesUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetTransitOrderMaterialPurchaseOrderDataUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.ReceiveTransitOrderMaterialUseCase
+import net.gbs.gbswarehouse.transportationTypes
 import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.NaolonLoadingStatus
 import javax.inject.Inject
+import net.gbs.gbswarehouse.formatQty
+import net.gbs.gbswarehouse.spinnerLabel
 
 @HiltViewModel
 class DetailsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val getTransitOrderMaterialPurchaseOrderDataUseCase: GetTransitOrderMaterialPurchaseOrderDataUseCase,
     private val getPlantWarehousesUseCase: GetPlantWarehousesUseCase,
     private val getWorkersGroupUseCase: GetAllWorkerGroupsUseCase,
@@ -59,12 +63,12 @@ class DetailsViewModel @Inject constructor(
         when (event) {
             is ReceivingProductFromBranchEvent.OnScreenLoaded -> {
                 if (_uiState.value.purchaseOrder == null) {
-                    getPOData(event.poNumber)
+                    getPOData(event.carNo)
                 }
                 loadAllNeededData()
             }
             is ReceivingProductFromBranchEvent.OnMaterialCodeInputEntered -> {
-                _uiState.update { it.copy(materialCodeInput = event.materialCode, materialCodeError = "") }
+                _uiState.update { it.copy(materialCodeInput = event.materialCode, materialCodeError = null) }
             }
             is ReceivingProductFromBranchEvent.OnMaterialSelected -> {
                 selectMaterial(event.materialCode)
@@ -79,7 +83,7 @@ class DetailsViewModel @Inject constructor(
                 }
             }
             is ReceivingProductFromBranchEvent.OnQuantityEntered -> {
-                _uiState.update { it.copy(quantity = event.quantity, quantityError = "") }
+                _uiState.update { it.copy(quantity = event.quantity, quantityError = null) }
                 val state = _uiState.value
                 if (state.naolonLoadStatus is NaolonLoadingStatus.SUCCESS) {
                     val naolonPerTon = (state.naolonLoadStatus as NaolonLoadingStatus.SUCCESS).naolon.toDoubleOrNull() ?: 0.0
@@ -89,10 +93,10 @@ class DetailsViewModel @Inject constructor(
                 }
             }
             is ReceivingProductFromBranchEvent.OnWarehouseSelected -> {
-                _uiState.update { it.copy(selectedWarehouse = event.warehouse, warehouseError = "") }
+                _uiState.update { it.copy(selectedWarehouse = event.warehouse, warehouseError = null) }
             }
             is ReceivingProductFromBranchEvent.OnCarNoSelected -> {
-                _uiState.update { it.copy(selectedCarNo = event.carNo, carNoError = "") }
+                _uiState.update { it.copy(selectedCarNo = event.carNo, carNoError = null) }
             }
             ReceivingProductFromBranchEvent.OnAddButtonClicked -> {
                 addItem()
@@ -104,11 +108,14 @@ class DetailsViewModel @Inject constructor(
                     state.copy(addedItems = newList)
                 }
             }
+            is ReceivingProductFromBranchEvent.OnEditAddedMaterialButtonClicked -> {
+                editAddedMaterial(event.index)
+            }
             ReceivingProductFromBranchEvent.OnSaveButtonClicked -> {
                 saveReceiving()
             }
             ReceivingProductFromBranchEvent.OnClearMaterialButtonClicked -> {
-                _uiState.update { it.copy(selectedMaterial = null, quantity = "", selectedWarehouse = null, selectedCarNo = null, materialCodeInput = "", materialCodeError = "") }
+                _uiState.update { it.copy(selectedMaterial = null, quantity = "", selectedWarehouse = null, selectedCarNo = null, materialCodeInput = "", materialCodeError = null) }
             }
             ReceivingProductFromBranchEvent.HideSuccessDialog -> {
                 _uiState.update { it.copy(showSuccessDialog = false) }
@@ -118,19 +125,19 @@ class DetailsViewModel @Inject constructor(
             }
             is ReceivingProductFromBranchEvent.OnWarehouseSearchTextChange -> _uiState.update { it.copy(warehouseSearchText = event.searchText) }
             is ReceivingProductFromBranchEvent.OnCarNoTextSearchChange ->
-                _uiState.update { it.copy(carNoSearchText = event.searchText, carNoError = "") }
+                _uiState.update { it.copy(carNoSearchText = event.searchText, carNoError = null) }
             is ReceivingProductFromBranchEvent.OnCarTypeSelected -> {
-                _uiState.update { it.copy(selectedCarType = event.carType, carTypeError = "", naolonLoadStatus = NaolonLoadingStatus.LOADING) }
+                _uiState.update { it.copy(selectedCarType = event.carType, carTypeError = null, naolonLoadStatus = NaolonLoadingStatus.LOADING) }
                 calculateNaolon()
             }
             is ReceivingProductFromBranchEvent.OnCarTypeTextSearchChange ->
-                _uiState.update { it.copy(carTypeSearchText = event.searchText, carTypeError = "") }
-            is ReceivingProductFromBranchEvent.OnContNoEntered ->
-                _uiState.update { it.copy(contNo = event.contNo, contNoError = "") }
+                _uiState.update { it.copy(carTypeSearchText = event.searchText, carTypeError = null) }
+            is ReceivingProductFromBranchEvent.OnProductionDateEntered ->
+                _uiState.update { it.copy(productionDate = event.productionDate, productionDateError = null) }
             is ReceivingProductFromBranchEvent.OnLoadingVendorSelected ->
-                _uiState.update { it.copy(selectedLoadingVendor = event.loadingVendor, loadingVendorError = "") }
+                _uiState.update { it.copy(selectedLoadingVendor = event.loadingVendor, loadingVendorError = null) }
             is ReceivingProductFromBranchEvent.OnLoadingVendorTextSearchChange ->
-                _uiState.update { it.copy(loadingVendorSearchText = event.searchText, loadingVendorError = "") }
+                _uiState.update { it.copy(loadingVendorSearchText = event.searchText, loadingVendorError = null) }
             is ReceivingProductFromBranchEvent.OnNaolonDescriptionSelected -> {
                 _uiState.update {
                     it.copy(
@@ -143,17 +150,17 @@ class DetailsViewModel @Inject constructor(
             is ReceivingProductFromBranchEvent.OnNaolonDescriptionTextSearchChange ->
                 _uiState.update { it.copy(naolonDescriptionSearchText = event.searchText) }
             is ReceivingProductFromBranchEvent.OnUnloadingPointEntered ->
-                _uiState.update { it.copy(unloadingPoint = event.unloadingPoint, unloadingPointError = "") }
+                _uiState.update { it.copy(unloadingPoint = event.unloadingPoint, unloadingPointError = null) }
             is ReceivingProductFromBranchEvent.OnWorkerGroupSelected ->
-                _uiState.update { it.copy(selectedWorkerGroup = event.workerGroup, workerGroupError = "") }
+                _uiState.update { it.copy(selectedWorkerGroup = event.workerGroup, workerGroupError = null) }
             is ReceivingProductFromBranchEvent.OnWorkerGroupTextSearchChange ->
-                _uiState.update { it.copy(workerGroupSearchText = event.searchText, workerGroupError = "") }
+                _uiState.update { it.copy(workerGroupSearchText = event.searchText, workerGroupError = null) }
             is ReceivingProductFromBranchEvent.OnPackingTypeSelected ->
                 _uiState.update {
-                    it.copy(selectedPackingType = event.packingType, packingTypeError = "")
+                    it.copy(selectedPackingType = event.packingType, packingTypeError = null)
                 }
             is ReceivingProductFromBranchEvent.OnPackingTypeTextSearchChange ->
-                _uiState.update { it.copy(packingTypeSearchText = event.text, packingTypeError = "") }
+                _uiState.update { it.copy(packingTypeSearchText = event.text, packingTypeError = null) }
 
             else -> {}
         }
@@ -170,18 +177,16 @@ class DetailsViewModel @Inject constructor(
                 )
                 if (result is NetworkResult.Success) {
                     val naolonPerTon = result.data.naolonPerTon ?: 0f
-                    val qty = _uiState.value.quantity.toDoubleOrNull() ?: 0.0
-                    val totalNaolon = naolonPerTon.toDouble() * qty
                     _uiState.update {
                         it.copy(
                             naolonLoadStatus = NaolonLoadingStatus.SUCCESS(result.data.naolonPerTon.toString()),
-                            naolon = totalNaolon.toString()
+                            naolon = naolonPerTon.toString()
                         )
                     }
                 } else {
                     _uiState.update {
                         it.copy(
-                            naolonLoadStatus = NaolonLoadingStatus.ERROR(context.getString(R.string.error_in_calculating_naolon)),
+                            naolonLoadStatus = NaolonLoadingStatus.ERROR(Message.Resource(R.string.error_in_calculating_naolon)),
                         )
                     }
                 }
@@ -252,10 +257,10 @@ class DetailsViewModel @Inject constructor(
         }
     }
 
-    private fun getPOData(poNumber: String) {
+    private fun getPOData(carNo: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(purchaseOrderGetDataStatus = TransitPurchaseOrderGetDataStatus.LOADING) }
-            val result = getTransitOrderMaterialPurchaseOrderDataUseCase(poNumber)
+            val result = getTransitOrderMaterialPurchaseOrderDataUseCase(carNo)
             when (result) {
                 is NetworkResult.Success -> {
                     val po = result.data
@@ -269,11 +274,11 @@ class DetailsViewModel @Inject constructor(
                     }
                 }
                 else -> {
-                    val message = when (result) {
-                        is NetworkResult.BusinessError -> result.message
-                        is NetworkResult.HttpError -> result.message
-                        is NetworkResult.NetworkError -> result.message
-                        else -> "Error loading PO data"
+                    val message: Message = when (result) {
+                        is NetworkResult.BusinessError -> Message.Real(result.message)
+                        is NetworkResult.HttpError -> Message.Real(result.message)
+                        is NetworkResult.NetworkError -> Message.Real(result.message)
+                        else -> Message.Real("Error loading PO data")
                     }
                     _uiState.update {
                         it.copy(
@@ -290,23 +295,27 @@ class DetailsViewModel @Inject constructor(
         val state = _uiState.value
         val material = state.materials.find { it.materialCode == materialCode }
         if (material != null) {
-            val alreadyAdded = state.addedItems.any { it.purchaseOrder == state.purchaseOrder?.poNumber && it.purchaseOrderItem == material.poItemNumber }
+            val alreadyAdded = state.addedItems.any { it.purchaseOrder == (material.poNumber ?: state.purchaseOrder?.poNumber) && it.purchaseOrderItem == material.poItemNumber }
             if (alreadyAdded) {
-                _uiState.update { it.copy(materialCodeError = context.getString(R.string.material_already_added)) }
+                _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added)) }
                 return
             }
+
             _uiState.update {
                 it.copy(
                     selectedMaterial = material,
                     materialCodeInput = materialCode,
-                    materialCodeError = "",
+                    materialCodeError = null,
                     quantity = material.remainingQuantity.toString(),
-                    quantityError = ""
+                    quantityError = null,
+                    selectedCarNo = material.carNo,
+                    transportingType = if (material.isFactoryCar) transportationTypes.first() else transportationTypes[1],
+                    selectedLoadingVendor = if (material.isFactoryCar) AlEmanLoadingVendor else null
                 )
             }
             loadWarehouses(material.plantCode ?: "")
         } else {
-            _uiState.update { it.copy(materialCodeError = context.getString(R.string.wrong_material_code)) }
+            _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.wrong_material_code)) }
         }
     }
 
@@ -334,70 +343,80 @@ class DetailsViewModel @Inject constructor(
         val carType = state.selectedCarType
         val naolonDesc = state.selectedNaolonDescription
         val unloadingPoint = state.unloadingPoint
-        val contNo = state.contNo
+        val productionDate = state.productionDate
 
         if (mat == null) return
 
         var hasError = false
 
         if (qty <= 0) {
-            _uiState.update { it.copy(quantityError = context.getString(R.string.please_enter_a_valid_quantity)) }
+            _uiState.update { it.copy(quantityError = Message.Resource(R.string.please_enter_a_valid_quantity)) }
             hasError = true
+            Log.d("ReceivingProductFromBranchViewModel", "addItem: qty <=0")
         } else if (qty > (mat.remainingQuantity ?: 0.0)) {
-            _uiState.update { it.copy(quantityError = context.getString(R.string.quantity_cannot_exceed_remaining_quantity, mat.remainingQuantity.toString())) }
+            _uiState.update { it.copy(quantityError = Message.Resource(R.string.quantity_cannot_exceed_remaining_quantity, mat.remainingQuantity.toString())) }
             hasError = true
+            Log.d("ReceivingProductFromBranchViewModel", "addItem: qty > remaining qty")
         }
 
         if (wh == null) {
-            _uiState.update { it.copy(warehouseError = context.getString(R.string.please_select_a_warehouse)) }
+            _uiState.update { it.copy(warehouseError = Message.Resource(R.string.please_select_a_warehouse)) }
             hasError = true
+            Log.d("ReceivingProductFromBranchViewModel", "addItem: warehouse null")
         }
 
-        if (carNo == null) {
-            _uiState.update { it.copy(carNoError = context.getString(R.string.please_enter_car_number)) }
-            hasError = true
-        }
+//        if (carNo == null) {
+//            _uiState.update { it.copy(carNoError = context.getString(R.string.please_enter_car_number)) }
+//            hasError = true
+//        }
 
         if (workerGroup == null) {
-            _uiState.update { it.copy(workerGroupError = context.getString(R.string.please_select_workers_group)) }
+            _uiState.update { it.copy(workerGroupError = Message.Resource(R.string.please_select_workers_group)) }
             hasError = true
+            Log.d("ReceivingProductFromBranchViewModel", "addItem: workersGroup null")
         }
 
         if (loadingVendor == null) {
-            _uiState.update { it.copy(loadingVendorError = context.getString(R.string.select_loading_vendor)) }
+            _uiState.update { it.copy(loadingVendorError = Message.Resource(R.string.select_loading_vendor)) }
             hasError = true
+            Log.d("ReceivingProductFromBranchViewModel", "addItem: loading vendor null")
         }
 
         if (packingType == null) {
-            _uiState.update { it.copy(packingTypeError = context.getString(R.string.select_packing_type)) }
+            _uiState.update { it.copy(packingTypeError = Message.Resource(R.string.select_packing_type)) }
             hasError = true
+            Log.d("ReceivingProductFromBranchViewModel", "addItem: packing type null")
         }
 
         if (carType == null) {
-            _uiState.update { it.copy(carTypeError = context.getString(R.string.select_car_type)) }
+            _uiState.update { it.copy(carTypeError = Message.Resource(R.string.select_car_type)) }
             hasError = true
+            Log.d("ReceivingProductFromBranchViewModel", "addItem: car type null")
         }
 
-        if (naolonDesc == null) {
-            _uiState.update { it.copy(naolonError = context.getString(R.string.select_naolon_description)) }
+        if (naolonDesc == null && state.selectedMaterial.isFactoryCar) {
+            _uiState.update { it.copy(naolonError = Message.Resource(R.string.select_naolon_description)) }
             hasError = true
+            Log.d("ReceivingProductFromBranchViewModel", "addItem: naolon desc null")
         }
 
         if (unloadingPoint.isBlank()) {
-            _uiState.update { it.copy(unloadingPointError = context.getString(R.string.please_enter_unloading_point)) }
+            _uiState.update { it.copy(unloadingPointError = Message.Resource(R.string.please_enter_unloading_point)) }
             hasError = true
+            Log.d("ReceivingProductFromBranchViewModel", "addItem: unloading point null")
         }
 
-        if (contNo.isBlank()) {
-            _uiState.update { it.copy(contNoError = context.getString(R.string.enter_cont_no)) }
+        if (productionDate.isBlank()) {
+            _uiState.update { it.copy(productionDateError = Message.Resource(R.string.please_select_production_date)) }
             hasError = true
+            Log.d("ReceivingProductFromBranchViewModel", "addItem: production date null")
         }
 
         if (hasError) return
 
-        val alreadyAdded = state.addedItems.any { it.purchaseOrder == state.purchaseOrder?.poNumber && it.purchaseOrderItem == mat.poItemNumber }
+        val alreadyAdded = state.addedItems.any { it.purchaseOrder == (mat.poNumber ?: state.purchaseOrder?.poNumber) && it.purchaseOrderItem == mat.poItemNumber }
         if (alreadyAdded) {
-            _uiState.update { it.copy(materialCodeError = context.getString(R.string.material_already_added)) }
+            _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added)) }
             return
         }
 
@@ -406,17 +425,17 @@ class DetailsViewModel @Inject constructor(
             materialDescription = mat.materialDescription ?: "",
             plantCode = mat.plantCode ?: "",
             warehouseCode = wh!!.warehouseCode,
-            purchaseOrder = state.purchaseOrder?.poNumber ?: "",
+            purchaseOrder = mat.poNumber ?: state.purchaseOrder?.poNumber ?: "",
             purchaseOrderItem = mat.poItemNumber,
             uom = mat.uom ?: "",
             receivedQuantity = qty,
-            carNo = carNo!!.carNumber,
+            carNo = carNo!!,
             unloadingPoint = unloadingPoint,
             naolon = state.naolon.toDoubleOrNull(),
-            contNo = contNo,
+            contNo = productionDate,
             loadingVendorCode = loadingVendor!!.vendorCode,
             wrokerGroupCode = workerGroup!!.workerGroupCode,
-            naolonDescription = naolonDesc!!.naolonDescription,
+            naolonDescription = naolonDesc?.naolonDescription,
             packTypeCode = packingType!!.packTypeCode,
             carType = carType!!.vehicleTypeName
         )
@@ -435,7 +454,7 @@ class DetailsViewModel @Inject constructor(
                 selectedCarType = null,
                 selectedNaolonDescription = null,
                 unloadingPoint = "",
-                contNo = "",
+                productionDate = "",
                 naolon = "",
                 naolonLoadStatus = NaolonLoadingStatus.IDLE,
                 warehouseSearchText = "",
@@ -452,7 +471,14 @@ class DetailsViewModel @Inject constructor(
     private fun saveReceiving() {
         val state = _uiState.value
         if (state.addedItems.isEmpty()) return
-
+        if (state.addedItems.size!=state.materials.size){
+            _uiState.update {
+                it.copy(
+                    showErrorDialog = true,
+                    savingErrorStatusMessage = Message.Resource(R.string.please_add_all_car_items_to_save_receiving)
+                )
+            }
+        }
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingLoading = true) }
 
@@ -465,22 +491,66 @@ class DetailsViewModel @Inject constructor(
 
             when (result) {
                 is NetworkResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isSavingLoading = false,
-                            showSuccessDialog = true,
-                            savingSuccessStatusMessage = context.getString(R.string.success_save),
-                            addedItems = emptyList()
-                        )
+                    val updatedPo = result.data.purchaseOrder
+                    if (updatedPo != null) {
+                        _uiState.update {
+                            it.copy(
+                                isSavingLoading = false,
+                                showSuccessDialog = true,
+                                savingSuccessStatusMessage = Message.of(result.message, R.string.success_save),
+                                addedItems = emptyList(),
+                                purchaseOrder = updatedPo,
+                                materials = updatedPo.purchaseOrderItems,
+                                filteredMaterials = if (it.materialSearch.isBlank()) {
+                                    updatedPo.purchaseOrderItems
+                                } else {
+                                    updatedPo.purchaseOrderItems.filter { item ->
+                                        item.materialCode?.contains(it.materialSearch, ignoreCase = true) == true ||
+                                                item.materialDescription?.contains(it.materialSearch, ignoreCase = true) == true
+                                    }
+                                },
+                                purchaseOrderGetDataStatus = TransitPurchaseOrderGetDataStatus.SUCCESS(updatedPo),
+                                selectedMaterial = null,
+                                materialCodeInput = "",
+                                quantity = "",
+                                selectedWarehouse = null,
+                                selectedCarNo = null,
+                                selectedWorkerGroup = null,
+                                selectedLoadingVendor = null,
+                                selectedPackingType = null,
+                                selectedCarType = null,
+                                selectedNaolonDescription = null,
+                                unloadingPoint = "",
+                                productionDate = "",
+                                naolon = "",
+                                naolonLoadStatus = NaolonLoadingStatus.IDLE,
+                                warehouseSearchText = "",
+                                carNoSearchText = "",
+                                workerGroupSearchText = "",
+                                loadingVendorSearchText = "",
+                                packingTypeSearchText = "",
+                                carTypeSearchText = "",
+                                naolonDescriptionSearchText = ""
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isSavingLoading = false,
+                                showSuccessDialog = true,
+                                savingSuccessStatusMessage = Message.of(result.message, R.string.success_save),
+                                addedItems = emptyList()
+                            )
+                        }
+                        state.purchaseOrder?.poNumber?.let { getPOData(it) }
                     }
-                    state.purchaseOrder?.poNumber?.let { getPOData(it) }
                 }
                 else -> {
-                    val message = when (result) {
-                        is NetworkResult.BusinessError -> result.message
-                        is NetworkResult.HttpError -> result.message
-                        is NetworkResult.NetworkError -> result.message
-                        else -> "Error saving receiving"
+                    val message: Message = when (result) {
+                        is NetworkResult.BusinessError -> Message.Real(result.message)
+                        is NetworkResult.HttpError -> Message.Real(result.message)
+                        is NetworkResult.NetworkError -> Message.Real(result.message)
+                        else -> Message.Real("Error saving receiving")
                     }
                     _uiState.update {
                         it.copy(
@@ -491,6 +561,56 @@ class DetailsViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    private fun editAddedMaterial(index: Int) {
+        val state = _uiState.value
+        val item = state.addedItems.getOrNull(index) ?: return
+        val newList = state.addedItems.toMutableList().apply { removeAt(index) }
+        val material = state.materials.find { it.materialCode == item.materialCode && it.poItemNumber == item.purchaseOrderItem }
+            ?: state.materials.find { it.materialCode == item.materialCode }
+        val warehouse = state.warehouses.find { it.warehouseCode == item.warehouseCode }
+        val carNumber = state.carNos.find { it.carNumber == item.carNo }
+        val workerGroup = state.workerGroups.find { it.workerGroupCode == item.wrokerGroupCode }
+        val loadingVendor = state.loadingVendors.find { it.vendorCode == item.loadingVendorCode }
+        val packingType = state.packingTypes.find { it.packTypeCode == item.packTypeCode }
+        val naolonDescription = state.naolonDescriptions.find { it.naolonDescription == item.naolonDescription }
+        val carType = state.carTypes.find { it.vehicleTypeName == item.carType || it.description == item.carType }
+        _uiState.update {
+            it.copy(
+                addedItems = newList,
+                selectedMaterial = material,
+                materialCodeInput = item.materialCode,
+                quantity = formatQty(item.receivedQuantity),
+                selectedWarehouse = warehouse,
+                warehouseSearchText = warehouse?.spinnerLabel().orEmpty(),
+                selectedCarNo = item.carNo,
+                carNoSearchText = carNumber?.spinnerLabel().orEmpty(),
+                unloadingPoint = item.unloadingPoint.orEmpty(),
+                naolon = item.naolon?.let { formatQty(it) }.orEmpty(),
+                productionDate = item.contNo.orEmpty(),
+                selectedWorkerGroup = workerGroup,
+                workerGroupSearchText = workerGroup?.spinnerLabel().orEmpty(),
+                selectedLoadingVendor = loadingVendor,
+                loadingVendorSearchText = loadingVendor?.spinnerLabel().orEmpty(),
+                selectedPackingType = packingType,
+                packingTypeSearchText = packingType?.spinnerLabel().orEmpty(),
+                selectedNaolonDescription = naolonDescription,
+                naolonDescriptionSearchText = naolonDescription?.spinnerLabel().orEmpty(),
+                selectedCarType = carType,
+                carTypeSearchText = carType?.spinnerLabel().orEmpty(),
+                naolonLoadStatus = NaolonLoadingStatus.SUCCESS(item.naolon?.let { formatQty(it) } ?: "0"),
+                materialCodeError = null,
+                quantityError = null,
+                warehouseError = null,
+                carNoError = null,
+                workerGroupError = null,
+                loadingVendorError = null,
+                packingTypeError = null,
+                unloadingPointError = null,
+                productionDateError = null
+            )
         }
     }
 }

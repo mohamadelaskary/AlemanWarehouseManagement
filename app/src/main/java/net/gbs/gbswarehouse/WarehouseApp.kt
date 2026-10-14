@@ -20,7 +20,9 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import dagger.hilt.android.lifecycle.HiltViewModel
+import net.gbs.gbswarehouse.core.loading.LoadingNavigation
 import net.gbs.gbswarehouse.core.session.SessionManager
 import net.gbs.gbswarehouse.core.session.SessionState
 import net.gbs.gbswarehouse.ui.HomeScreen.HomeScreen
@@ -46,9 +48,17 @@ import net.gbs.gbswarehouse.ui.issue.issuing_scrap.details_screen.IssueScrapDeta
 import net.gbs.gbswarehouse.ui.issue.issuing_scrap.orders_list.IssuingScrapScreen
 import net.gbs.gbswarehouse.ui.issue.issuing_spare_parts_for_maintainance.details_screen.IssueSparePartsForMaintenanceDetailsScreen
 import net.gbs.gbswarehouse.ui.issue.issuing_spare_parts_for_maintainance.orders_list.IssuingSparePartsForMaintenanceScreen
+import net.gbs.gbswarehouse.ui.issue.issuing_transfer_plants.details_screen.IssuingTransferPlantsDetailsScreen
+import net.gbs.gbswarehouse.ui.issue.issuing_transfer_plants.orders_list.IssuingTransferPlantsScreen
 import net.gbs.gbswarehouse.ui.issue.issuing_to_vendor.details_screen.IssueToVendorDetailsScreen
 import net.gbs.gbswarehouse.ui.issue.issuing_to_vendor.orders_list.IssuingToVendorScreen
 import net.gbs.gbswarehouse.ui.login.LoginScreen
+import net.gbs.gbswarehouse.ui.issue.issuing_direct_transfer_put_away.details_screen.DirectTransferPutAwayDetailsScreen
+import net.gbs.gbswarehouse.ui.issue.issuing_direct_transfer_put_away.orders_list.DirectTransferPutAwayOrdersScreen
+import net.gbs.gbswarehouse.ui.plc.conveyors.ConveyorsScreen
+import net.gbs.gbswarehouse.ui.plc.loading.LoadingOperationScreen
+import net.gbs.gbswarehouse.ui.plc.order_details.LoadingOrderDetailsScreen
+import net.gbs.gbswarehouse.ui.plc.orders.LoadingOrdersScreen
 import net.gbs.gbswarehouse.ui.receiving.put_away.details_screen.PutAwayDetailsScreen
 import net.gbs.gbswarehouse.ui.receiving.put_away.orders_list.PutAwayOrdersScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_packaging_materials_from_vendor.details_screen.InspectingPackagingMaterialsFromVendorDetailsScreen
@@ -99,6 +109,7 @@ import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.order
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.orders_list.ReceivingSparePartsFromVendorListScreen
 import net.gbs.gbswarehouse.ui.receiving.receiving_without_order.blind_receiving.BlindReceivingScreen
 import net.gbs.gbswarehouse.ui.settings.SettingsScreen
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 val LocalNavController = staticCompositionLocalOf<NavController> { error("No NavController provided") }
@@ -121,6 +132,19 @@ fun WarehouseApp () {
             }
 
             else -> {}
+        }
+    }
+
+    val pendingLoadingOperationId by LoadingNavigation.target.collectAsState()
+    LaunchedEffect(pendingLoadingOperationId, sessionState) {
+        val operationId = pendingLoadingOperationId ?: return@LaunchedEffect
+        if (sessionState !is SessionState.Authenticated) return@LaunchedEffect
+        // The graph is installed by NavHost in a later effect; wait for the back stack
+        // before navigating so a notification tap is never dropped.
+        navController.currentBackStackEntryFlow.first()
+        LoadingNavigation.consume()
+        navController.navigate(Screens.LoadingOperation.createRoute(operationId)) {
+            launchSingleTop = true
         }
     }
 
@@ -536,7 +560,8 @@ fun WarehouseApp () {
             composable(Screens.IssuingSparePartsForMaintenanceDetailsScreen.route) {
                 IssueSparePartsForMaintenanceDetailsScreen(
                     navController = navController,
-                    orderId = it.arguments?.getString("orderId")!!
+                    orderId = it.arguments?.getString("orderId")!!,
+                    orderNumber = it.arguments?.getString("orderNumber")!!
                 )
             }
             composable(Screens.IssuingScrap.route) {
@@ -569,12 +594,23 @@ fun WarehouseApp () {
             composable(Screens.IssuingSalesOrdersDetailsScreen.route) {
                 IssueSalesOrdersDetailsScreen(
                     navController = navController,
-                    orderId = it.arguments?.getString("orderId")!!
+                    carNo = it.arguments?.getString("carNo")!!
                 )
             }
             composable(Screens.IssuingSalesOrdersPlastic.route) {
                 IssuingSalesOrdersPlasticScreen(
                     navController = navController,
+                )
+            }
+            composable(Screens.IssuingTransferPlants.route) {
+                IssuingTransferPlantsScreen(
+                    navController = navController
+                )
+            }
+            composable(Screens.IssuingTransferPlantsDetailsScreen.route) {
+                IssuingTransferPlantsDetailsScreen(
+                    navController = navController,
+                    carNo = it.arguments?.getString("carNo")!!
                 )
             }
             composable(Screens.IssuingSalesOrdersDetailsPlasticScreen.route) {
@@ -660,6 +696,44 @@ fun WarehouseApp () {
                     navController = navController,
                     receiptType = it.arguments?.getString("receiptType")!!,
                     orderNumber = it.arguments?.getString("orderNumber")!!
+                )
+            }
+
+            composable(Screens.DirectTransferPutAwayOrders.route) {
+                DirectTransferPutAwayOrdersScreen(
+                    navController = navController
+                )
+            }
+
+            composable(Screens.DirectTransferPutAwayDetails.route) {
+                DirectTransferPutAwayDetailsScreen(
+                    navController = navController,
+                    receiptNo = it.arguments?.getString("receiptNo")!!
+                )
+            }
+
+            composable(
+                route = Screens.LoadingOrders.route,
+                arguments = listOf(navArgument("orderNumber") { defaultValue = "" })
+            ) {
+                LoadingOrdersScreen(navController = navController)
+            }
+
+            composable(Screens.LoadingOrderDetails.route) {
+                LoadingOrderDetailsScreen(
+                    navController = navController,
+                    orderId = it.arguments?.getString("orderId")?.toIntOrNull() ?: 0
+                )
+            }
+
+            composable(Screens.LoadingConveyors.route) {
+                ConveyorsScreen(navController = navController)
+            }
+
+            composable(Screens.LoadingOperation.route) {
+                LoadingOperationScreen(
+                    navController = navController,
+                    operationId = it.arguments?.getString("operationId") ?: ""
                 )
             }
         }

@@ -10,7 +10,7 @@ import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.model.WorkersGroup
 
 sealed class ReceivingPoultryFromVendorEvent {
-    data class OnScreenLoaded(val poNumber: String) : ReceivingPoultryFromVendorEvent()
+    data class OnScreenLoaded(val carNo: String) : ReceivingPoultryFromVendorEvent()
     data class OnMaterialCodeInputEntered(val materialCode: String) : ReceivingPoultryFromVendorEvent()
     data class OnMaterialSelected(val materialCode: String) : ReceivingPoultryFromVendorEvent()
     data class OnMaterialSearchTextEntered(val text: String) : ReceivingPoultryFromVendorEvent()
@@ -19,6 +19,7 @@ sealed class ReceivingPoultryFromVendorEvent {
 
     object OnAddButtonClicked : ReceivingPoultryFromVendorEvent()
     data class OnDeleteAddedMaterialButtonClicked(val index: Int) : ReceivingPoultryFromVendorEvent()
+    data class OnEditAddedMaterialButtonClicked(val index: Int) : ReceivingPoultryFromVendorEvent()
     object OnSaveButtonClicked : ReceivingPoultryFromVendorEvent()
     object OnClearMaterialButtonClicked : ReceivingPoultryFromVendorEvent()
     object HideSuccessDialog : ReceivingPoultryFromVendorEvent()
@@ -26,12 +27,12 @@ sealed class ReceivingPoultryFromVendorEvent {
     
     object OnChangePoButtonClicked : ReceivingPoultryFromVendorEvent()
     data class OnPurchaseOrderSearchTextEntered(val text: String) : ReceivingPoultryFromVendorEvent()
-    data class OnPurchaseOrderSelected(val poNumber: String) : ReceivingPoultryFromVendorEvent()
+    data class OnPurchaseOrderSelected(val carNo: String) : ReceivingPoultryFromVendorEvent()
     object OnDismissChangePoDialog : ReceivingPoultryFromVendorEvent()
     data class OnWarehouseSearchTextChange(val searchText: String) : ReceivingPoultryFromVendorEvent()
 
-    data class OnCarNoSelected(val carNo: CarNumber) : ReceivingPoultryFromVendorEvent()
-    data class OnCarNoTextSearchChange(val searchText: String) : ReceivingPoultryFromVendorEvent()
+//    data class OnCarNoSelected(val carNo: CarNumber) : ReceivingPoultryFromVendorEvent()
+//    data class OnCarNoTextSearchChange(val searchText: String) : ReceivingPoultryFromVendorEvent()
 
     data class OnUnloadingPointEntered(val unloadingPoint: String) : ReceivingPoultryFromVendorEvent()
 

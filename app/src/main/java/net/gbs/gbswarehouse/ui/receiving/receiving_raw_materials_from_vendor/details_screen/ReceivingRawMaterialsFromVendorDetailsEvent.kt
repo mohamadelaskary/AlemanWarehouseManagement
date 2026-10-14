@@ -47,6 +47,7 @@ sealed class ReceivingRawMaterialsFromVendorDetailsEvent {
 
     data object OnAddItem : ReceivingRawMaterialsFromVendorDetailsEvent()
     data class OnRemoveItem(val index: Int) : ReceivingRawMaterialsFromVendorDetailsEvent()
+    data class OnEditItem(val index: Int) : ReceivingRawMaterialsFromVendorDetailsEvent()
 
     data object OnSave : ReceivingRawMaterialsFromVendorDetailsEvent()
     data object OnDismissDialogs : ReceivingRawMaterialsFromVendorDetailsEvent()

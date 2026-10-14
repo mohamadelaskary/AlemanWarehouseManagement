@@ -1,26 +1,26 @@
 package net.gbs.gbswarehouse.core.network
 
-import android.content.ContentValues.TAG
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import net.gbs.gbswarehouse.data.remote.dto.response.BaseResponse
-import net.gbs.gbswarehouse.data.remote.dto.response.ResponseStatus
 import retrofit2.Response
 import java.io.IOException
 
 suspend inline fun <T : BaseResponse> safeApiCall(
     crossinline apiCall: suspend () -> Response<T>
 ): NetworkResult<T> {
+    val tag = "SafeApiCall"
 
     return try {
 
         val response = apiCall()
 
         if (!response.isSuccessful) {
-            Log.e(TAG, "safeApiCallNetworkException: ")
+            val errorMsg = response.errorBody()?.string() ?: response.message()
+            Log.e(tag, "safeApiCallHttpError: code=${response.code()}, message=$errorMsg")
             return NetworkResult.HttpError(
                 code = response.code(),
-                message = response.errorBody()?.string()
-                    ?: response.message()
+                message = errorMsg
             )
         }
 
@@ -30,11 +30,10 @@ suspend inline fun <T : BaseResponse> safeApiCall(
         val status = body.responseStatus
 
         if (!status.isSuccess) {
+            Log.e(tag, "safeApiCallBusinessError: ${status.errorMessage}")
             return NetworkResult.BusinessError(
-                message = status.errorMessage.toString(),
-
+                message = status.errorMessage.toString()
             )
-            Log.e(TAG, "safeApiCallNetworkException: ")
         }
 
         NetworkResult.Success(
@@ -42,14 +41,16 @@ suspend inline fun <T : BaseResponse> safeApiCall(
             message = status.statusMessage
         )
 
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: IOException) {
-        Log.e(TAG, "safeApiCallIOException: ", e)
+        Log.e(tag, "safeApiCallIOException: ${e.message}", e)
         NetworkResult.NetworkError(
             e.message ?: "Network Error"
         )
 
     } catch (e: Exception) {
-        Log.e(TAG, "safeApiCallUnknownError: ", e)
+        Log.e(tag, "safeApiCallUnknownError: ${e.message}", e)
         NetworkResult.UnknownError(
             e.message ?: "Unknown Error"
         )

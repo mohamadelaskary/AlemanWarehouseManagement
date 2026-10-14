@@ -70,20 +70,14 @@ fun IssuingSalesOrdersPlasticScreen(
             }
         } else {
             LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
-                itemsIndexed(orders) { index, ord ->
+                itemsIndexed(orders) { _, ord ->
                     OrderCard(order = ord, accent = accent,
                         onClick = {
-                           // vm.navigate(Screens.DETAIL, order = ord)
                             navController.navigate(Screens.IssuingSalesOrdersDetailsPlasticScreen.createRoute(ord.id))
                         },
-                        isMaterialsShowed = viewModel.showMaterials && viewModel.currentClickedOrderIndex == index,
+                        isMaterialsShowed = viewModel.expandedOrderIds.contains(ord.id),
                         showMaterialsClicked = {
-                            if (viewModel.currentClickedOrderIndex == index && viewModel.showMaterials) {
-                                viewModel.showMaterials = false
-                            } else {
-                                viewModel.currentClickedOrderIndex = index
-                                viewModel.showMaterials = true
-                            }
+                            viewModel.toggleOrderExpanded(ord.id)
                         })
                     Spacer(Modifier.height(8.dp))
                 }

@@ -124,7 +124,7 @@ fun ReceivingSparePartsFromProductionListScreen(
                         accent = accent,
                         onClick = {
                             order.let {
-                                navController.navigate(Screens.ReceivingSparePartsFromProductionDetailsScreen.createRoute(it.toJson(),state.selectedMovementType!!.returnReason?:""))
+                                navController.navigate(Screens.ReceivingSparePartsFromProductionDetailsScreen.createRoute(it.toJson(),state.selectedMovementType!!.value?:""))
                             }
                         }
                     )

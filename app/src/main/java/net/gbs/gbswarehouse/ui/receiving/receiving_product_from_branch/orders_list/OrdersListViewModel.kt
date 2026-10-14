@@ -11,13 +11,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.gbs.gbswarehouse.core.network.NetworkResult
-import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllTransitOrderMaterialPurchaseOrdersUseCase
+import net.gbs.gbswarehouse.domain.model.TransitOrderMaterialPurchaseOrder
+import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllTransitOrderMaterialPurchaseOrdersByCarNumberUseCase
 import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.details_screen.ReceivingProductFromBranchState
 import javax.inject.Inject
 
 @HiltViewModel
 class OrdersListViewModel @Inject constructor(
-    private val getAllTransitOrderMaterialPurchaseOrdersUseCase: GetAllTransitOrderMaterialPurchaseOrdersUseCase
+    private val getAllTransitOrderMaterialPurchaseOrdersByCarNumberUseCase: GetAllTransitOrderMaterialPurchaseOrdersByCarNumberUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReceivingProductFromBranchState())
@@ -29,9 +30,8 @@ class OrdersListViewModel @Inject constructor(
 
     fun onSearchTextEntered(text: String) {
         _uiState.update { state ->
-            val filtered = state.allPurchaseOrders.filter {
-                it.poNumber.contains(text, ignoreCase = true) ||
-                        (it.vendorName?.contains(text, ignoreCase = true) == true)
+            val filtered = state.allPurchaseOrders.filter { order ->
+                matchesSearch(order, text)
             }
             state.copy(purchaseOrderSearch = text, filteredPurchaseOrders = filtered)
         }
@@ -44,7 +44,7 @@ class OrdersListViewModel @Inject constructor(
     fun loadOrders() {
         viewModelScope.launch {
             _uiState.update { it.copy(isAllPurchaseOrdersLoading = true) }
-            val result = getAllTransitOrderMaterialPurchaseOrdersUseCase()
+            val result = getAllTransitOrderMaterialPurchaseOrdersByCarNumberUseCase()
             if (result is NetworkResult.Success) {
                 _uiState.update {
                     it.copy(
@@ -58,4 +58,15 @@ class OrdersListViewModel @Inject constructor(
             }
         }
     }
+
+    private fun matchesSearch(order: TransitOrderMaterialPurchaseOrder, text: String): Boolean =
+        order.carNo?.contains(text, ignoreCase = true) == true ||
+                order.factoryCarDescription?.contains(text, ignoreCase = true) == true ||
+                (order.vendorName?.contains(text, ignoreCase = true) == true) ||
+                (order.vendorCode?.contains(text, ignoreCase = true) == true) ||
+                order.purchaseOrderItems.any { item ->
+                    item.materialCode?.contains(text, ignoreCase = true) == true ||
+                            item.materialDescription?.contains(text, ignoreCase = true) == true ||
+                            item.poNumber?.contains(text, ignoreCase = true) == true
+                }
 }

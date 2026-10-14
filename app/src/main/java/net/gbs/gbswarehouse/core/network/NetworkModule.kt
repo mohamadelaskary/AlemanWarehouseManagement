@@ -48,9 +48,9 @@ object NetworkModule {
         val logging = HttpLoggingInterceptor()
         logging.level = HttpLoggingInterceptor.Level.BODY
         return OkHttpClient.Builder()
-            .connectTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
-            .writeTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
+            .connectTimeout(200, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(200, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(200, java.util.concurrent.TimeUnit.SECONDS)
             .addInterceptor(baseUrlInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor (logging)
@@ -74,6 +74,24 @@ object NetworkModule {
                 level = HttpLoggingInterceptor.Level.BODY
             })
             .addInterceptor (logging)
+            .build()
+    }
+
+    /**
+     * Dedicated client for the long-lived conveyor stream (SignalR / SSE).
+     * No BODY logging (it would buffer the whole stream) and no read timeout
+     * so the event stream can stay open indefinitely.
+     */
+    @Provides
+    @Singleton
+    @Named("StreamClient")
+    fun provideStreamOkHttp(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(0, java.util.concurrent.TimeUnit.NANOSECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .pingInterval(20, java.util.concurrent.TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .build()
     }
 

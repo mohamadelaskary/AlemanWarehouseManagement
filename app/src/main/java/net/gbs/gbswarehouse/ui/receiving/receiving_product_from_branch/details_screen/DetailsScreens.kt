@@ -1,5 +1,6 @@
 package net.gbs.gbswarehouse.ui.receiving.receiving_product_from_branch.details_screen
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,14 +41,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.Field
 import net.gbs.gbswarehouse.FullBtn
-import net.gbs.gbswarehouse.GREEN
+import net.gbs.gbswarehouse.BottomSheetDialog
 import net.gbs.gbswarehouse.MarginVertical
 import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.R
@@ -56,6 +62,7 @@ import net.gbs.gbswarehouse.SuccessDialog
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.WarehousesSpinner
 import net.gbs.gbswarehouse.WorkersGroupsSpinner
+import net.gbs.gbswarehouse.DatePickerField
 import net.gbs.gbswarehouse.domain.model.CarNumber
 import net.gbs.gbswarehouse.domain.model.CarType
 import net.gbs.gbswarehouse.domain.model.LoadingVendor
@@ -66,16 +73,19 @@ import net.gbs.gbswarehouse.domain.model.TransitOrderMaterialPurchaseOrderItem
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.model.WorkersGroup
 import net.gbs.gbswarehouse.ui.receiving.ReceivingMatCodeInput
-import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.BottomSheetDialog
+import net.gbs.gbswarehouse.ui.receiving.ReceivingInfoCell
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.CarNumberSpinner
 import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.CarTypeSpinner
-import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.InfoCell
 import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.LoadingVendorSpinner
 import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.NaolonCard
 import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.NaolonDescriptionSpinner
 import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.NaolonLoadingStatus
 import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_screen.PackingTypeSpinner
 import net.gbs.gbswarehouse.ui.theme.AppTheme
+import net.gbs.gbswarehouse.GREEN
+import net.gbs.gbswarehouse.transportationTypes
+import net.gbs.gbswarehouse.ui.receiving.receiving_raw_materials_from_vendor.details_screen.ReceivingRawMaterialsFromVendorDetailsEvent
 import net.gbs.gbswarehouse.ui.theme.DANGER
 import net.gbs.honeywellscanner.ScannerEffect
 
@@ -87,6 +97,7 @@ fun ReceivingProductFromBranchDetailsScreen(
     val viewModel: DetailsViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsState()
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     val accent = colors.green
     val doneLabel = stringResource(R.string.received_qty)
 
@@ -125,7 +136,7 @@ fun ReceivingProductFromBranchDetailsScreen(
                 is TransitPurchaseOrderGetDataStatus.ERROR -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(state.searchError, color = colors.text)
+                            Text(state.searchError!!.text, color = colors.text)
                             Spacer(Modifier.height(10.dp))
                             OutlineBtn(stringResource(R.string.retry), accent) {
                                 viewModel.onEvent(ReceivingProductFromBranchEvent.OnScreenLoaded(orderId))
@@ -138,22 +149,36 @@ fun ReceivingProductFromBranchDetailsScreen(
                     if (order != null) {
                         LazyColumn(
                             contentPadding = PaddingValues(
-                                start = 14.dp, end = 14.dp, top = 10.dp,
-                                bottom = if (state.addedItems.isNotEmpty()) 90.dp else 20.dp
+                                start = dims.padding, end = dims.padding, top = 10.dp,
+                                bottom = if (state.addedItems.isNotEmpty()) dims.bottomBarHeight else 20.dp
                             )
                         ) {
                             item {
                                 Section(label = stringResource(R.string.order_data), accent = accent) {
-                                    Row(
-                                        Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        InfoCell(stringResource(R.string.po_number), order.poNumber, accent, Modifier.weight(1f))
+                                    val fields = listOf(
+                                        Triple(stringResource(R.string.car_number), order.carNo ?: "", null),
+                                        Triple(stringResource(R.string.issuing_plant), order.issuingPlantDescription ?: "", null),
+                                        Triple(stringResource(R.string.issuing_plant_code), order.issuingPlantCode ?: "", null),
+                                        Triple(stringResource(R.string.items_count), "${order.purchaseOrderItems.size} " + stringResource(R.string.items), null),
+                                    )
+                                    for (i in fields.indices step 2) {
+                                        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            val f1 = fields[i]
+                                            val f2 = if (i + 1 < fields.size) fields[i + 1] else null
+                                            ReceivingInfoCell(f1.first, f1.second, f1.third ?: colors.text, modifier = Modifier.weight(1f))
+                                            if (f2 != null) {
+                                                ReceivingInfoCell(f2.first, f2.second, f2.third ?: colors.text, modifier = Modifier.weight(1f))
+                                            }
+                                        }
                                     }
-                                    InfoCell(stringResource(R.string.vendor), order.vendorName ?: "", colors.text, Modifier.fillMaxWidth())
+                                    if (!order.factoryCarDescription.isNullOrBlank()) {
+                                        Spacer(Modifier.height(4.dp))
+                                        ReceivingInfoCell(stringResource(R.string.factory_car_description), order.factoryCarDescription ?: "", colors.text)
+                                    }
                                     if (!order.warehouseCode.isNullOrEmpty()){
-                                        InfoCell(stringResource(R.string.warehouse), "${order.warehouseCode} - ${order.warehouseDescription}", colors.text, Modifier.fillMaxWidth())
+                                        Spacer(Modifier.height(4.dp))
+                                        ReceivingInfoCell(stringResource(R.string.warehouse), "${order.warehouseCode} - ${order.warehouseDescription}", colors.text)
                                     }
                                 }
                             }
@@ -171,8 +196,8 @@ fun ReceivingProductFromBranchDetailsScreen(
                                                 onValueChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialCodeInputEntered(it)) },
                                                 onKeyboardAction = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(state.materialCodeInput)) }
                                             )
-                                            if (state.materialCodeError.isNotEmpty()){
-                                                Text(state.materialCodeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                                            if (state.materialCodeError != null){
+                                                Text(state.materialCodeError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
                                             }
                                         }
                                         OutlineBtn(stringResource(R.string.select_item), accent) { viewModel.matDlg = true }
@@ -184,6 +209,7 @@ fun ReceivingProductFromBranchDetailsScreen(
                                             accent = accent,
                                             doneLabel = doneLabel,
                                             qty = state.quantity,
+                                            state = state,
                                             onQtyChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnQuantityEntered(it)) },
                                             onClear = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnClearMaterialButtonClicked) },
                                             warehouses = state.warehouses,
@@ -196,7 +222,7 @@ fun ReceivingProductFromBranchDetailsScreen(
                                             carNumberSearchText = state.carNoSearchText,
                                             carNumbersList = state.carNos,
                                             onCarNumberSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoTextSearchChange(it)) },
-                                            onCarNoSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoSelected(it)) },
+//                                            onCarNoSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoSelected(it)) },
                                             unloadingPoint = state.unloadingPoint,
                                             unloadingPointError = state.unloadingPointError,
                                             onUnloadingPointChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnUnloadingPointEntered(it)) },
@@ -205,9 +231,9 @@ fun ReceivingProductFromBranchDetailsScreen(
                                             onWorkersGroupSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupTextSearchChange(it)) },
                                             onWorkersGroupSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupSelected(it)) },
                                             workersGroupError = state.workerGroupError,
-                                            contractNumber = state.contNo,
-                                            onContractNumberEntered = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnContNoEntered(it)) },
-                                            contractNumberError = state.contNoError,
+                                            productionDate = state.productionDate,
+                                            onProductionDateEntered = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnProductionDateEntered(it)) },
+                                            productionDateError = state.productionDateError,
                                             loadingVendors = state.loadingVendors,
                                             onLoadingVendorSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnLoadingVendorSelected(it)) },
                                             loadingVendorSearchText = state.loadingVendorSearchText,
@@ -246,9 +272,15 @@ fun ReceivingProductFromBranchDetailsScreen(
                             }
 
                             itemsIndexed(state.addedItems) { index, item ->
-                                ReceivingTransitMaterialsLineItem(item) {
-                                    viewModel.onEvent(ReceivingProductFromBranchEvent.OnDeleteAddedMaterialButtonClicked(index))
-                                }
+                                ReceivingTransitMaterialsLineItem(
+                                    item = item,
+                                    onDelete = {
+                                        viewModel.onEvent(ReceivingProductFromBranchEvent.OnDeleteAddedMaterialButtonClicked(index))
+                                    },
+                                    onEdit = {
+                                        viewModel.onEvent(ReceivingProductFromBranchEvent.OnEditAddedMaterialButtonClicked(index))
+                                    }
+                                )
                             }
                         }
                     }
@@ -262,7 +294,7 @@ fun ReceivingProductFromBranchDetailsScreen(
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .background(Brush.verticalGradient(0f to Color.Transparent, 0.35f to colors.bg))
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(
                     stringResource(R.string.save_receiving), accent,
@@ -273,23 +305,35 @@ fun ReceivingProductFromBranchDetailsScreen(
         }
 
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage) {
+            SuccessDialog(colors.succ, state.savingSuccessStatusMessage!!.text) {
                 viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
             }
-            navController.popBackStack()
+//            navController.popBackStack()
         }
         if (state.showErrorDialog) {
-            ErrorDialog(DANGER, state.savingErrorStatusMessage) {
+            ErrorDialog(DANGER, state.savingErrorStatusMessage!!.text) {
                 viewModel.onEvent(ReceivingProductFromBranchEvent.HideErrorDialog)
             }
         }
-    }
 
+    }
+    if (state.isSavingLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.3f))
+                .clickable(enabled = false) { },
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = accent)
+        }
+    }
     if (viewModel.matDlg) {
+        val dims = AppTheme.dims
         BottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
             SearchBox(state.materialSearch, { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSearchTextEntered(it)) },
-                stringResource(R.string.search_for_item), Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
+                stringResource(R.string.search_for_item), Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
+            LazyColumn(contentPadding = PaddingValues(start = dims.padding, end = dims.padding, bottom = 20.dp)) {
                 itemsIndexed(state.filteredMaterials) { _, m ->
                     TransitMaterialDialogItem(m, accent, doneLabel) {
                         viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(m.materialCode ?: ""))
@@ -308,54 +352,56 @@ fun SelectedTransitMaterialCard(
     accent: Color,
     doneLabel: String,
     qty: String,
+    state: ReceivingProductFromBranchState,
     onQtyChange: (String) -> Unit,
     onClear: () -> Unit,
     warehouses: List<Warehouse>,
     onWarehouseSelected: (Warehouse) -> Unit,
-    onCarNoSelected: (CarNumber) -> Unit,
-    quantityError: String = "",
-    warehouseError: String = "",
-    carNoError: String = "",
+//    onCarNoSelected: (CarNumber) -> Unit,
+    quantityError: Message? = null,
+    warehouseError: Message? = null,
+    carNoError: Message? = null,
     searchText: String = "",
     onSearchTextChanged: (String) -> Unit,
     carNumberSearchText: String = "",
     carNumbersList: List<CarNumber> = emptyList(),
     onCarNumberSearchTextChange: (String) -> Unit,
     unloadingPoint: String = "",
-    unloadingPointError: String = "",
+    unloadingPointError: Message? = null,
     onUnloadingPointChange: (String) -> Unit,
     workersGroup: List<WorkersGroup> = emptyList(),
     workersGroupSearchText: String = "",
     onWorkersGroupSearchTextChange: (String) -> Unit,
     onWorkersGroupSelected: (WorkersGroup) -> Unit,
-    workersGroupError: String = "",
-    contractNumber: String = "",
-    onContractNumberEntered: (String) -> Unit,
-    contractNumberError: String = "",
+    workersGroupError: Message? = null,
+    productionDate: String = "",
+    onProductionDateEntered: (String) -> Unit,
+    productionDateError: Message? = null,
     loadingVendors: List<LoadingVendor> = emptyList(),
     onLoadingVendorSelected: (LoadingVendor) -> Unit,
     loadingVendorSearchText: String = "",
     onSearchLoadingVendorTextChange: (String) -> Unit,
-    loadingVendorError: String = "",
+    loadingVendorError: Message? = null,
     packingTypes: List<PackageType> = emptyList(),
     onPackingTypeSelected: (PackageType) -> Unit,
-    packingTypeError: String = "",
+    packingTypeError: Message? = null,
     packingTypeSearchText: String = "",
     onSearchPackingTypeTextChange: (String) -> Unit,
     carTypesList: List<CarType> = emptyList(),
     onCarTypeSelected: (CarType) -> Unit,
-    carTypesErrorMessage: String = "",
+    carTypesErrorMessage: Message? = null,
     carTypeTextSearch: String = "",
     onCarTypeTextSearchChange: (String) -> Unit,
     naoloanDescriptions: List<NaolonDescription> = emptyList(),
     onNaolonDescriptionSelected: (NaolonDescription) -> Unit,
     naolonDescriptionTextSearch: String = "",
     onNaolonDescriptionTextSearchChange: (String) -> Unit,
-    naolonDescriptionErrorMessage: String = "",
+    naolonDescriptionErrorMessage: Message? = null,
     naolonLoadingStatus: NaolonLoadingStatus
 ) {
     val progress = if ((mat.orderedQuantity ?: 0.0) > 0) (mat.receivedQuantity ?: 0.0) / mat.orderedQuantity!! else 0.0
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
 
     Column(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
@@ -364,28 +410,30 @@ fun SelectedTransitMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.materialCode ?: "", color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
+            Text(mat.materialCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+            Text("✕", color = colors.muted, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.materialDescription ?: "", color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        Text(mat.materialDescription ?: "", color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
+        Spacer(Modifier.height(2.dp))
+        Text("#${mat.poNumber ?: ""}", color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             listOf(doneLabel to mat.receivedQuantity.toString(), stringResource(R.string.required) to mat.orderedQuantity.toString(),
                 stringResource(R.string.unit) to (mat.uom ?: ""),).forEach { (l, v) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(l, color = colors.muted, fontSize = 9.sp, modifier = Modifier.padding(bottom = 2.dp))
-                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(l, color = colors.muted, fontSize = dims.fontSizeCaption, modifier = Modifier.padding(bottom = 2.dp))
+                    Text(v, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.Bold)
                 }
             }
         }
         Spacer(Modifier.height(10.dp))
         Column {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(R.string.execution), color = colors.muted, fontSize = 9.sp)
-                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.execution), color = colors.muted, fontSize = dims.fontSizeCaption)
+                Text("${(progress * 100).toInt()}%", color = accent, fontSize = dims.fontSizeCaption, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(3.dp))
             Box(modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(colors.dark)) {
@@ -395,8 +443,27 @@ fun SelectedTransitMaterialCard(
         }
         Spacer(Modifier.height(10.dp))
         Field("${stringResource(R.string.receiving_qty)} (${mat.uom ?: ""})", "", qty, onQtyChange, isNumber = true, center = true)
-        if (quantityError.isNotEmpty()) Text(quantityError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
-        
+        if (quantityError != null) Text(quantityError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        Spacer(Modifier.height(16.dp))
+        Box(
+            modifier = Modifier.fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .clip(shape=RoundedCornerShape(size = 10.dp))
+                .background(accent.copy(0.3f))
+                .border(1.dp, accent, RoundedCornerShape(10.dp))
+        ){
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    state.transportingType?.arName?:"",
+                    textAlign = TextAlign.Center,
+                    color = colors.text
+                )
+            }
+        }
         Spacer(Modifier.height(10.dp))
         WarehousesSpinner(
             hint = stringResource(R.string.warehouse),
@@ -406,19 +473,36 @@ fun SelectedTransitMaterialCard(
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
         )
-        if (warehouseError.isNotEmpty()) Text(warehouseError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (warehouseError != null) Text(warehouseError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         
+//        Spacer(Modifier.height(10.dp))
+////        CarNumberSpinner(
+////            hint = stringResource(R.string.select_car_number),
+////            items = carNumbersList,
+////            onItemSelected = onCarNoSelected,
+////            accent = accent,
+////            label = stringResource(R.string.car_number),
+////            searchText = carNumberSearchText,
+////            onSearchTextChanged = { onCarNumberSearchTextChange(it) }
+////        )
+//        if (carNoError.isNotEmpty()) Text(
+//            carNoError,
+//            color = DANGER,
+//            fontSize = 10.sp,
+//            modifier = Modifier.padding(top = 4.dp)
+//        )
         Spacer(Modifier.height(10.dp))
-        CarNumberSpinner(
-            hint = stringResource(R.string.select_car_number),
-            items = carNumbersList,
-            onItemSelected = onCarNoSelected,
-            accent = accent,
-            label = stringResource(R.string.car_number),
-            searchText = carNumberSearchText,
-            onSearchTextChanged = { onCarNumberSearchTextChange(it) }
-        )
-        if (carNoError.isNotEmpty()) Text(carNoError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.bg.copy(alpha = 0.65f)).padding(10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.car_number),color = colors.muted)
+                Text(state.selectedMaterial?.factoryCarDescription?:state.selectedMaterial?.carNo?:"", color = accent, fontWeight = FontWeight.Bold)
+            }
+        }
         Spacer(Modifier.height(10.dp))
         Field(
             label = stringResource(R.string.unloading_point),
@@ -428,7 +512,7 @@ fun SelectedTransitMaterialCard(
             isNumber = false,
             center = true
             )
-        if (unloadingPointError.isNotEmpty()) Text(unloadingPointError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (unloadingPointError != null) Text(unloadingPointError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(10.dp))
         WorkersGroupsSpinner(
             hint = stringResource(R.string.select_workers_group),
@@ -439,26 +523,51 @@ fun SelectedTransitMaterialCard(
             searchText = workersGroupSearchText,
             onSearchTextChanged = { onWorkersGroupSearchTextChange(it) }
         )
-        if (workersGroupError.isNotEmpty()) Text(workersGroupError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (workersGroupError != null) Text(workersGroupError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+
         Spacer(Modifier.height(10.dp))
-        Field(
-            label = stringResource(R.string.cont_no),
-            hint = stringResource(R.string.enter_cont_no),
-            value = contractNumber,
-            onValueChange = onContractNumberEntered,
-            isNumber = false,
-            center = true
+
+        Text(stringResource(R.string.production_date), color = colors.muted, fontSize = dims.fontSizeCaption)
+        DatePickerField(
+            label = stringResource(R.string.production_date),
+            hint = stringResource(R.string.please_select_production_date),
+            value = productionDate,
+            onDateSelected = onProductionDateEntered,
+            dateFormatter = { millis ->
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).format(Date(millis))
+            }
         )
-        if (contractNumberError.isNotEmpty()) Text(contractNumberError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
-        Spacer(Modifier.height(10.dp))
-        LoadingVendorSpinner(
-            items = loadingVendors,
-            onItemSelected = onLoadingVendorSelected,
-            accent = accent,
-            searchText = loadingVendorSearchText,
-            onSearchTextChanged = { onSearchLoadingVendorTextChange(it) }
-        )
-        if (loadingVendorError.isNotEmpty()) Text(loadingVendorError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (productionDateError != null) Text(productionDateError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        Log.d("SelectedTransitMaterialCard", "SelectedTransitMaterialCard: ${state.selectedMaterial?.isFactoryCar}")
+        if (state.selectedMaterial?.isFactoryCar!=true) {
+            Spacer(Modifier.height(10.dp))
+            LoadingVendorSpinner(
+                items = loadingVendors,
+                onItemSelected = onLoadingVendorSelected,
+                accent = accent,
+                searchText = loadingVendorSearchText,
+                onSearchTextChanged = { onSearchLoadingVendorTextChange(it) }
+            )
+            if (loadingVendorError != null) Text(
+                loadingVendorError!!.text,
+                color = DANGER,
+                fontSize = 10.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        } else {
+            Spacer(Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(colors.bg.copy(alpha = 0.65f)).padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(stringResource(R.string.loading_vendor),color = colors.muted)
+                    Text(state.selectedLoadingVendor?.vendorName?:"", color = accent, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
         Spacer(Modifier.height(10.dp))
         PackingTypeSpinner(
             hint = stringResource(R.string.select_packing_type),
@@ -468,7 +577,7 @@ fun SelectedTransitMaterialCard(
             searchText = packingTypeSearchText,
             onSearchTextChanged = { onSearchPackingTypeTextChange(it) }
         )
-        if (packingTypeError.isNotEmpty()) Text(packingTypeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        if (packingTypeError != null) Text(packingTypeError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(10.dp))
         NaolonCard(
             carTypes = carTypesList,
@@ -483,6 +592,7 @@ fun SelectedTransitMaterialCard(
             naolonDescriptionErrorMessage = naolonDescriptionErrorMessage,
             accent = accent,
             naolonLoadingStatus = naolonLoadingStatus,
+            isFactoryCar = state.selectedMaterial?.isFactoryCar?:true
         )
     }
 }
@@ -501,7 +611,7 @@ fun AddTransitLineButton(onClick: () -> Unit) {
 }
 
 @Composable
-fun ReceivingTransitMaterialsLineItem(item: TransitOrderMaterialLine, onDelete: () -> Unit) {
+fun ReceivingTransitMaterialsLineItem(item: TransitOrderMaterialLine, onDelete: () -> Unit, onEdit: () -> Unit) {
     val colors = AppTheme.colors
     val accent = GREEN
 
@@ -541,7 +651,7 @@ fun ReceivingTransitMaterialsLineItem(item: TransitOrderMaterialLine, onDelete: 
                         Chip(stringResource(R.string.workers_group) + ": " + item.wrokerGroupCode)
                     }
                     if (!item.contNo.isNullOrBlank()) {
-                        Chip(stringResource(R.string.cont_no) + ": " + item.contNo)
+                        Chip(stringResource(R.string.production_date) + ": " + item.contNo.take(10))
                     }
                     if (!item.loadingVendorCode.isNullOrBlank()) {
                         Chip(stringResource(R.string.loading_vendor) + ": " + item.loadingVendorCode)
@@ -559,8 +669,11 @@ fun ReceivingTransitMaterialsLineItem(item: TransitOrderMaterialLine, onDelete: 
                         Chip(stringResource(R.string.naolon_cost) + ": " + item.naolon)
                     }
                 }
+                IconButton(onClick = onEdit) {
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = colors.text)
+                }
                 IconButton(onClick = onDelete) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = colors.danger)
                 }
             }
         }
@@ -583,6 +696,7 @@ fun InspectingProductFromBranchDetailsScreen(
     val viewModel: DetailsViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsState()
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     val accent = colors.purple
     val doneLabel = stringResource(R.string.received_qty)
 
@@ -621,7 +735,7 @@ fun InspectingProductFromBranchDetailsScreen(
                 is TransitPurchaseOrderGetDataStatus.ERROR -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(state.searchError, color = colors.text)
+                            Text(state.searchError!!.text, color = colors.text)
                             Spacer(Modifier.height(10.dp))
                             OutlineBtn(stringResource(R.string.retry), accent) {
                                 viewModel.onEvent(ReceivingProductFromBranchEvent.OnScreenLoaded(orderId))
@@ -634,22 +748,36 @@ fun InspectingProductFromBranchDetailsScreen(
                     if (order != null) {
                         LazyColumn(
                             contentPadding = PaddingValues(
-                                start = 14.dp, end = 14.dp, top = 10.dp,
-                                bottom = if (state.addedItems.isNotEmpty()) 90.dp else 20.dp
+                                start = dims.padding, end = dims.padding, top = 10.dp,
+                                bottom = if (state.addedItems.isNotEmpty()) dims.bottomBarHeight else 20.dp
                             )
                         ) {
                             item {
                                 Section(label = stringResource(R.string.order_data), accent = accent) {
-                                    Row(
-                                        Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        InfoCell(stringResource(R.string.po_number), order.poNumber, accent, Modifier.weight(1f))
+                                    val fields = listOf(
+                                        Triple(stringResource(R.string.car_number), order.carNo ?: "", null),
+                                        Triple(stringResource(R.string.vendor), order.vendorName ?: "", null),
+                                        Triple(stringResource(R.string.vendor_code), order.vendorCode ?: "", null),
+                                        Triple(stringResource(R.string.items_count), "${order.purchaseOrderItems.size} " + stringResource(R.string.items), null),
+                                    )
+                                    for (i in fields.indices step 2) {
+                                        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            val f1 = fields[i]
+                                            val f2 = if (i + 1 < fields.size) fields[i + 1] else null
+                                            ReceivingInfoCell(f1.first, f1.second, f1.third ?: colors.text, modifier = Modifier.weight(1f))
+                                            if (f2 != null) {
+                                                ReceivingInfoCell(f2.first, f2.second, f2.third ?: colors.text, modifier = Modifier.weight(1f))
+                                            }
+                                        }
                                     }
-                                    InfoCell(stringResource(R.string.vendor), order.vendorName ?: "", colors.text, Modifier.fillMaxWidth())
+                                    if (!order.factoryCarDescription.isNullOrBlank()) {
+                                        Spacer(Modifier.height(4.dp))
+                                        ReceivingInfoCell(stringResource(R.string.factory_car_description), order.factoryCarDescription ?: "", colors.text)
+                                    }
                                     if (!order.warehouseCode.isNullOrEmpty()){
-                                        InfoCell(stringResource(R.string.warehouse), "${order.warehouseCode} - ${order.warehouseDescription}", colors.text, Modifier.fillMaxWidth())
+                                        Spacer(Modifier.height(4.dp))
+                                        ReceivingInfoCell(stringResource(R.string.warehouse), "${order.warehouseCode} - ${order.warehouseDescription}", colors.text)
                                     }
                                 }
                             }
@@ -667,8 +795,8 @@ fun InspectingProductFromBranchDetailsScreen(
                                                 onValueChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialCodeInputEntered(it)) },
                                                 onKeyboardAction = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(state.materialCodeInput)) }
                                             )
-                                            if (state.materialCodeError.isNotEmpty()){
-                                                Text(state.materialCodeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                                            if (state.materialCodeError != null){
+                                                Text(state.materialCodeError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
                                             }
                                         }
                                         OutlineBtn(stringResource(R.string.select_item), accent) { viewModel.matDlg = true }
@@ -692,7 +820,7 @@ fun InspectingProductFromBranchDetailsScreen(
                                             carNumberSearchText = state.carNoSearchText,
                                             carNumbersList = state.carNos,
                                             onCarNumberSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoTextSearchChange(it)) },
-                                            onCarNoSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoSelected(it)) },
+//                                            onCarNoSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoSelected(it)) },
                                             unloadingPoint = state.unloadingPoint,
                                             unloadingPointError = state.unloadingPointError,
                                             onUnloadingPointChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnUnloadingPointEntered(it)) },
@@ -701,9 +829,9 @@ fun InspectingProductFromBranchDetailsScreen(
                                             onWorkersGroupSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupTextSearchChange(it)) },
                                             onWorkersGroupSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupSelected(it)) },
                                             workersGroupError = state.workerGroupError,
-                                            contractNumber = state.contNo,
-                                            onContractNumberEntered = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnContNoEntered(it)) },
-                                            contractNumberError = state.contNoError,
+                                            productionDate = state.productionDate,
+                                            onProductionDateEntered = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnProductionDateEntered(it)) },
+                                            productionDateError = state.productionDateError,
                                             loadingVendors = state.loadingVendors,
                                             onLoadingVendorSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnLoadingVendorSelected(it)) },
                                             loadingVendorSearchText = state.loadingVendorSearchText,
@@ -727,6 +855,7 @@ fun InspectingProductFromBranchDetailsScreen(
                                             onNaolonDescriptionTextSearchChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnNaolonDescriptionTextSearchChange(it)) },
                                             naolonDescriptionErrorMessage = state.naolonError,
                                             naolonLoadingStatus = state.naolonLoadStatus,
+                                            state = state,
                                         )
                                     }
                                 }
@@ -742,9 +871,15 @@ fun InspectingProductFromBranchDetailsScreen(
                             }
 
                             itemsIndexed(state.addedItems) { index, item ->
-                                ReceivingTransitMaterialsLineItem(item) {
-                                    viewModel.onEvent(ReceivingProductFromBranchEvent.OnDeleteAddedMaterialButtonClicked(index))
-                                }
+                                ReceivingTransitMaterialsLineItem(
+                                    item = item,
+                                    onDelete = {
+                                        viewModel.onEvent(ReceivingProductFromBranchEvent.OnDeleteAddedMaterialButtonClicked(index))
+                                    },
+                                    onEdit = {
+                                        viewModel.onEvent(ReceivingProductFromBranchEvent.OnEditAddedMaterialButtonClicked(index))
+                                    }
+                                )
                             }
                         }
                     }
@@ -758,7 +893,7 @@ fun InspectingProductFromBranchDetailsScreen(
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .background(Brush.verticalGradient(0f to Color.Transparent, 0.35f to colors.bg))
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(
                     stringResource(R.string.save), accent,
@@ -769,23 +904,24 @@ fun InspectingProductFromBranchDetailsScreen(
         }
 
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage) {
+            SuccessDialog(colors.succ, state.savingSuccessStatusMessage!!.text) {
                 viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
             }
-            navController.popBackStack()
+//            navController.popBackStack()
         }
         if (state.showErrorDialog) {
-            ErrorDialog(DANGER, state.savingErrorStatusMessage) {
+            ErrorDialog(DANGER, state.savingErrorStatusMessage!!.text) {
                 viewModel.onEvent(ReceivingProductFromBranchEvent.HideErrorDialog)
             }
         }
     }
 
     if (viewModel.matDlg) {
+        val dims = AppTheme.dims
         BottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
             SearchBox(state.materialSearch, { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSearchTextEntered(it)) },
-                stringResource(R.string.search_for_item), Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
+                stringResource(R.string.search_for_item), Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
+            LazyColumn(contentPadding = PaddingValues(start = dims.padding, end = dims.padding, bottom = 20.dp)) {
                 itemsIndexed(state.filteredMaterials) { _, m ->
                     TransitMaterialDialogItem(m, accent, doneLabel) {
                         viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(m.materialCode ?: ""))
@@ -806,6 +942,7 @@ fun PutAwayProductFromBranchDetailsScreen(
     val viewModel: DetailsViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsState()
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     val accent = colors.yellow
     val doneLabel = stringResource(R.string.received_qty)
 
@@ -844,7 +981,7 @@ fun PutAwayProductFromBranchDetailsScreen(
                 is TransitPurchaseOrderGetDataStatus.ERROR -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(state.searchError, color = colors.text)
+                            Text(state.searchError!!.text, color = colors.text)
                             Spacer(Modifier.height(10.dp))
                             OutlineBtn(stringResource(R.string.retry), accent) {
                                 viewModel.onEvent(ReceivingProductFromBranchEvent.OnScreenLoaded(orderId))
@@ -857,22 +994,36 @@ fun PutAwayProductFromBranchDetailsScreen(
                     if (order != null) {
                         LazyColumn(
                             contentPadding = PaddingValues(
-                                start = 14.dp, end = 14.dp, top = 10.dp,
-                                bottom = if (state.addedItems.isNotEmpty()) 90.dp else 20.dp
+                                start = dims.padding, end = dims.padding, top = 10.dp,
+                                bottom = if (state.addedItems.isNotEmpty()) dims.bottomBarHeight else 20.dp
                             )
                         ) {
                             item {
                                 Section(label = stringResource(R.string.order_data), accent = accent) {
-                                    Row(
-                                        Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        InfoCell(stringResource(R.string.po_number), order.poNumber, accent, Modifier.weight(1f))
+                                    val fields = listOf(
+                                        Triple(stringResource(R.string.car_number), order.carNo ?: "", null),
+                                        Triple(stringResource(R.string.vendor), order.vendorName ?: "", null),
+                                        Triple(stringResource(R.string.vendor_code), order.vendorCode ?: "", null),
+                                        Triple(stringResource(R.string.items_count), "${order.purchaseOrderItems.size} " + stringResource(R.string.items), null),
+                                    )
+                                    for (i in fields.indices step 2) {
+                                        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            val f1 = fields[i]
+                                            val f2 = if (i + 1 < fields.size) fields[i + 1] else null
+                                            ReceivingInfoCell(f1.first, f1.second, f1.third ?: colors.text, modifier = Modifier.weight(1f))
+                                            if (f2 != null) {
+                                                ReceivingInfoCell(f2.first, f2.second, f2.third ?: colors.text, modifier = Modifier.weight(1f))
+                                            }
+                                        }
                                     }
-                                    InfoCell(stringResource(R.string.vendor), order.vendorName ?: "", colors.text, Modifier.fillMaxWidth())
+                                    if (!order.factoryCarDescription.isNullOrBlank()) {
+                                        Spacer(Modifier.height(4.dp))
+                                        ReceivingInfoCell(stringResource(R.string.factory_car_description), order.factoryCarDescription ?: "", colors.text)
+                                    }
                                     if (!order.warehouseCode.isNullOrEmpty()){
-                                        InfoCell(stringResource(R.string.warehouse), "${order.warehouseCode} - ${order.warehouseDescription}", colors.text, Modifier.fillMaxWidth())
+                                        Spacer(Modifier.height(4.dp))
+                                        ReceivingInfoCell(stringResource(R.string.warehouse), "${order.warehouseCode} - ${order.warehouseDescription}", colors.text)
                                     }
                                 }
                             }
@@ -890,8 +1041,8 @@ fun PutAwayProductFromBranchDetailsScreen(
                                                 onValueChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialCodeInputEntered(it)) },
                                                 onKeyboardAction = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(state.materialCodeInput)) }
                                             )
-                                            if (state.materialCodeError.isNotEmpty()){
-                                                Text(state.materialCodeError, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                                            if (state.materialCodeError != null){
+                                                Text(state.materialCodeError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
                                             }
                                         }
                                         OutlineBtn(stringResource(R.string.select_item), accent) { viewModel.matDlg = true }
@@ -915,7 +1066,7 @@ fun PutAwayProductFromBranchDetailsScreen(
                                             carNumberSearchText = state.carNoSearchText,
                                             carNumbersList = state.carNos,
                                             onCarNumberSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoTextSearchChange(it)) },
-                                            onCarNoSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoSelected(it)) },
+//                                            onCarNoSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnCarNoSelected(it)) },
                                             unloadingPoint = state.unloadingPoint,
                                             unloadingPointError = state.unloadingPointError,
                                             onUnloadingPointChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnUnloadingPointEntered(it)) },
@@ -924,9 +1075,9 @@ fun PutAwayProductFromBranchDetailsScreen(
                                             onWorkersGroupSearchTextChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupTextSearchChange(it)) },
                                             onWorkersGroupSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnWorkerGroupSelected(it)) },
                                             workersGroupError = state.workerGroupError,
-                                            contractNumber = state.contNo,
-                                            onContractNumberEntered = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnContNoEntered(it)) },
-                                            contractNumberError = state.contNoError,
+                                            productionDate = state.productionDate,
+                                            onProductionDateEntered = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnProductionDateEntered(it)) },
+                                            productionDateError = state.productionDateError,
                                             loadingVendors = state.loadingVendors,
                                             onLoadingVendorSelected = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnLoadingVendorSelected(it)) },
                                             loadingVendorSearchText = state.loadingVendorSearchText,
@@ -950,6 +1101,7 @@ fun PutAwayProductFromBranchDetailsScreen(
                                             onNaolonDescriptionTextSearchChange = { viewModel.onEvent(ReceivingProductFromBranchEvent.OnNaolonDescriptionTextSearchChange(it)) },
                                             naolonDescriptionErrorMessage = state.naolonError,
                                             naolonLoadingStatus = state.naolonLoadStatus,
+                                            state =  state,
                                         )
                                     }
                                 }
@@ -965,9 +1117,15 @@ fun PutAwayProductFromBranchDetailsScreen(
                             }
 
                             itemsIndexed(state.addedItems) { index, item ->
-                                ReceivingTransitMaterialsLineItem(item) {
-                                    viewModel.onEvent(ReceivingProductFromBranchEvent.OnDeleteAddedMaterialButtonClicked(index))
-                                }
+                                ReceivingTransitMaterialsLineItem(
+                                    item = item,
+                                    onDelete = {
+                                        viewModel.onEvent(ReceivingProductFromBranchEvent.OnDeleteAddedMaterialButtonClicked(index))
+                                    },
+                                    onEdit = {
+                                        viewModel.onEvent(ReceivingProductFromBranchEvent.OnEditAddedMaterialButtonClicked(index))
+                                    }
+                                )
                             }
                         }
                     }
@@ -981,7 +1139,7 @@ fun PutAwayProductFromBranchDetailsScreen(
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .background(Brush.verticalGradient(0f to Color.Transparent, 0.35f to colors.bg))
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(
                     stringResource(R.string.confirm_putaway), accent,
@@ -992,23 +1150,24 @@ fun PutAwayProductFromBranchDetailsScreen(
         }
 
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage) {
+            SuccessDialog(colors.succ, state.savingSuccessStatusMessage!!.text) {
                 viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
             }
-            navController.popBackStack()
+//            navController.popBackStack()
         }
         if (state.showErrorDialog) {
-            ErrorDialog(DANGER, state.savingErrorStatusMessage) {
+            ErrorDialog(DANGER, state.savingErrorStatusMessage!!.text) {
                 viewModel.onEvent(ReceivingProductFromBranchEvent.HideErrorDialog)
             }
         }
     }
 
     if (viewModel.matDlg) {
+        val dims = AppTheme.dims
         BottomSheetDialog(title = stringResource(R.string.select_item), onClose = { viewModel.matDlg = false }) {
             SearchBox(state.materialSearch, { viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSearchTextEntered(it)) },
-                stringResource(R.string.search_for_item), Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-            LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
+                stringResource(R.string.search_for_item), Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
+            LazyColumn(contentPadding = PaddingValues(start = dims.padding, end = dims.padding, bottom = 20.dp)) {
                 itemsIndexed(state.filteredMaterials) { _, m ->
                     TransitMaterialDialogItem(m, accent, doneLabel) {
                         viewModel.onEvent(ReceivingProductFromBranchEvent.OnMaterialSelected(m.materialCode ?: ""))
@@ -1024,21 +1183,22 @@ fun PutAwayProductFromBranchDetailsScreen(
 @Composable
 fun TransitMaterialDialogItem(mat: TransitOrderMaterialPurchaseOrderItem, accent: Color, doneLabel: String, onClick: () -> Unit) {
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Column(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
             .background(colors.dark).border(1.dp, colors.border, RoundedCornerShape(10.dp))
             .clickable { onClick() }.padding(all = 11.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(mat.materialCode ?: "", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text(mat.uom ?: "", color = colors.muted, fontSize = 10.sp)
+            Text(mat.materialCode ?: "", color = accent, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.Bold)
+            Text("#${mat.poNumber ?: ""}", color = accent, fontSize = dims.fontSizeSubtitle, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.materialDescription ?: "", color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, lineHeight = 18.sp)
+        Text(mat.materialDescription ?: "", color = colors.text, fontSize = dims.fontSizeBody, fontWeight = FontWeight.SemiBold, lineHeight = 18.sp)
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("${stringResource(R.string.required)}: ${mat.orderedQuantity}", color = colors.muted, fontSize = 10.sp)
-            Text("$doneLabel: ${mat.receivedQuantity}", color = if (mat.receivedQuantity == mat.orderedQuantity) colors.succ else colors.muted, fontSize = 10.sp)
+            Text("${stringResource(R.string.required)}: ${mat.orderedQuantity}", color = colors.muted, fontSize = dims.fontSizeSubtitle)
+            Text("$doneLabel: ${mat.receivedQuantity}", color = if (mat.receivedQuantity == mat.orderedQuantity) colors.succ else colors.muted, fontSize = dims.fontSizeSubtitle)
         }
     }
 }

@@ -1,12 +1,20 @@
 package net.gbs.gbswarehouse
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import net.gbs.gbswarehouse.core.loading.LoadingNavigation
+import net.gbs.gbswarehouse.service.LoadingService
 import net.gbs.gbswarehouse.ui.theme.GBSWarehouseJetPackComposeTheme
 import net.gbs.gbswarehouse.ui.theme.LocalDarkTheme
 import net.gbs.gbswarehouse.ui.theme.LocalThemeToggle
@@ -19,8 +27,14 @@ val LocalLanguage = staticCompositionLocalOf { "en" }
 val LocalLanguageToggle = staticCompositionLocalOf { { _: String -> } }
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private val requestNotificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleLoadingIntent(intent)
+        askForNotificationPermission()
         val settingsPrefs = SettingsPrefs(this)
         val initialLang = settingsPrefs.getLanguage()
         val initialIsDark = settingsPrefs.getIsDark()
@@ -53,6 +67,33 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleLoadingIntent(intent)
+    }
+
+    private fun askForNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    private fun handleLoadingIntent(intent: Intent?) {
+        val operationId =
+            intent?.getStringExtra(LoadingService.EXTRA_OPERATION_ID)?.takeIf { it.isNotBlank() }
+                ?: return
+        // Consume the extra so a later configuration change or recreate() does not
+        // replay the pending navigation.
+        intent.removeExtra(LoadingService.EXTRA_OPERATION_ID)
+        LoadingNavigation.request(operationId)
     }
 
     private fun updateLocale(lang: String) {

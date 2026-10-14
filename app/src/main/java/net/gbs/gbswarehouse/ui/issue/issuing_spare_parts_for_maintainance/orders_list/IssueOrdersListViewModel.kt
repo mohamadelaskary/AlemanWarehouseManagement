@@ -54,6 +54,15 @@ class IssueOrdersListViewModel @Inject constructor(
 
     // list search
     var orderSearch by mutableStateOf("")
+    var expandedOrderNumbers by mutableStateOf<Set<String>>(emptySet())
+
+    fun toggleOrderExpanded(reservationNumber: String) {
+        expandedOrderNumbers = if (expandedOrderNumbers.contains(reservationNumber)) {
+            expandedOrderNumbers - reservationNumber
+        } else {
+            expandedOrderNumbers + reservationNumber
+        }
+    }
 
     val filteredOrders: List<SparePartsReturnReservationOrder> get() {
         return if (orderSearch.isBlank()) orders

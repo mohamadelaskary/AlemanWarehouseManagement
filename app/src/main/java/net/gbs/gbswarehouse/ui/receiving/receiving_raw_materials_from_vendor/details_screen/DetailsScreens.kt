@@ -21,10 +21,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,12 +47,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,6 +64,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
 import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.Field
 import net.gbs.gbswarehouse.FullBtn
@@ -90,6 +96,7 @@ import net.gbs.gbswarehouse.ui.receiving.ReceivingMatCodeInput
 import net.gbs.gbswarehouse.ui.receiving.ReceivingMaterialDialogItem
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.honeywellscanner.ScannerEffect
+import net.gbs.gbswarehouse.spinnerLabel
 
 @Composable
 fun ReceivingRawMaterialsFromVendorDetailsScreen(
@@ -99,6 +106,7 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
     val viewModel: DetailsViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     val accent = colors.green
     var showMatDlg by remember { mutableStateOf(false) }
 
@@ -111,10 +119,9 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
     if (state.showSuccessDialog) {
         SuccessDialog(
             accent = accent,
-            message = stringResource(R.string.save_success_message),
+            message = state.saveSuccessMessage!!.text,
             onClose = {
                 viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnDismissDialogs)
-                navController.popBackStack()
             }
         )
     }
@@ -122,7 +129,7 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
     if (state.showErrorDialog) {
         ErrorDialog(
             accent = accent,
-            message = state.saveError,
+            message = state.saveErrorMessage!!.text,
             onClose = { viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnDismissDialogs) }
         )
     }
@@ -142,22 +149,22 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
                 }
                 is RawMaterialsPurchaseOrderGetDataStatus.ERROR -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(status.message, color = colors.text)
+                        Text(status.message.text, color = colors.text)
                     }
                 }
                 is RawMaterialsPurchaseOrderGetDataStatus.SUCCESS, RawMaterialsPurchaseOrderGetDataStatus.IDLE -> {
                     LazyColumn(
                         contentPadding = PaddingValues(
-                            start = 14.dp, end = 14.dp,
+                            start = dims.padding, end = dims.padding,
                             top = 10.dp,
-                            bottom = if (state.addedItems.isNotEmpty()) 90.dp else 20.dp
+                            bottom = if (state.addedItems.isNotEmpty()) dims.bottomBarHeight else 20.dp
                         )
                     ) {
                         item {
                             Section(label = stringResource(R.string.order_data), accent = colors.green) {
                                 val po = state.purchaseOrder
                                 val fields = listOf(
-                                    Triple(stringResource(R.string.po_number), po?.poNumber ?: "", null),
+                                    Triple(stringResource(R.string.car_number), po?.carNo ?: "", null),
                                     Triple(stringResource(R.string.vendor), po?.vendorName ?: "", null),
                                     Triple(stringResource(R.string.vendor_code), po?.vendorCode ?: "", null),
                                     Triple(stringResource(R.string.items_count), "${po?.purchaseOrderItems?.size ?: 0} " + stringResource(R.string.items), null),
@@ -172,6 +179,10 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
                                             ReceivingInfoCell(f2.first, f2.second, f2.third ?: colors.text, modifier = Modifier.weight(1f))
                                         }
                                     }
+                                }
+                                if (!po?.factoryCarDescription.isNullOrBlank()) {
+                                    Spacer(Modifier.height(4.dp))
+                                    ReceivingInfoCell(stringResource(R.string.car_number), po?.factoryCarDescription ?: "", colors.text)
                                 }
                             }
                         }
@@ -194,9 +205,9 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
                                             showMatDlg = true
                                         }
                                     }
-                                    if (state.materialCodeError.isNotEmpty()) {
+                                    if (state.materialCodeError != null) {
                                         Text(
-                                            state.materialCodeError,
+                                            state.materialCodeError!!.text,
                                             color = Color.Red,
                                             fontSize = 10.sp,
                                             modifier = Modifier.padding(start = 4.dp, top = 4.dp)
@@ -223,9 +234,14 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
                             item {
                                 Section(label = stringResource(R.string.added_items), accent = accent) {
                                     state.addedItems.forEachIndexed { index, item ->
-                                        ReceivingRawMaterialsLineItem(item = item, onDelete = {
-                                            viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnRemoveItem(index))
-                                        })
+                                        ReceivingRawMaterialsLineItem(item = item,
+                                            onDelete = {
+                                                viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnRemoveItem(index))
+                                            },
+                                            onEdit = {
+                                                viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnEditItem(index))
+                                            }
+                                        )
                                     }
                                 }
                             }
@@ -245,7 +261,7 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
                             0f to Color.Transparent, 0.35f to colors.bg
                         )
                     )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(
                     stringResource(R.string.save_receiving) + " (${state.addedItems.size})", accent, {
@@ -268,14 +284,26 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
             }
         }
     }
+    if (state.isSaving) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.3f))
+                .clickable(enabled = false) { },
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = accent)
+        }
+    }
 
     if (showMatDlg) {
+        val dims = AppTheme.dims
         ReceivingBottomSheetDialog(title = stringResource(R.string.select_item), onClose = { showMatDlg = false }) {
             SearchBox(state.materialSearchText, { viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnMaterialSearchTextChanged(it)) }, stringResource(R.string.search_for_item),
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
+                    start = dims.padding, end = dims.padding, bottom = 20.dp,
                 )
             ) {
                 val list = if (state.materialSearchText.isEmpty()) state.purchaseOrder?.purchaseOrderItems ?: emptyList() else state.filteredMaterials
@@ -287,7 +315,8 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
                         orderedQty = m.orderedQuantity.toString(),
                         receivedQty = m.receivedQuantity.toString(),
                         doneLabel = stringResource(R.string.received_qty),
-                        accent = accent
+                        accent = accent,
+                        poNumber = m.poNumber
                     ) {
                         viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnMaterialSelected(m))
                         showMatDlg = false
@@ -308,6 +337,7 @@ fun SelectedRawMaterialToVendorMaterialCard(
     onTransportationVendorChanged: (TransportationType) -> Unit
 ) {
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -318,49 +348,75 @@ fun SelectedRawMaterialToVendorMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.materialCode ?: "", color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(mat.materialCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+                if (!mat.poNumber.isNullOrBlank()) {
+                    Spacer(Modifier.width(8.dp))
+                    Text("#${mat.poNumber}", color = colors.green, fontSize = dims.fontSizeButton, fontWeight = FontWeight.Bold)
+                }
+            }
+            Text("x", color = colors.muted, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnClearMaterial) }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.materialDescription ?: "", color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        Text(mat.materialDescription ?: "", color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
         Spacer(Modifier.height(8.dp))
         
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             listOf( stringResource(R.string.required) to mat.orderedQuantity.toString(), stringResource(R.string.received_qty) to mat.receivedQuantity.toString(), stringResource(R.string.unit) to (mat.uom ?: "")).forEach { (l, v) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(l, color = colors.muted, fontSize = 9.sp)
-                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(l, color = colors.muted, fontSize = dims.fontSizeCaption)
+                    Text(v, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.Bold)
                 }
             }
         }
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            transportationTypes.forEachIndexed { index, option ->
-                SegmentedButton(
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = transportationTypes.size
-                    ),
-                    selected = state.transportationVendor == option,
-                    onClick  = { onTransportationVendorChanged(option) },
-                    colors   = SegmentedButtonDefaults.colors(
-                        activeContainerColor   = GREEN.copy(alpha = 0.15f),
-                        activeContentColor     = GREEN,
-                        activeBorderColor      = GREEN.copy(alpha = 0.60f),
-                        inactiveContainerColor = colors.card,
-                        inactiveContentColor   = colors.muted,
-                        inactiveBorderColor    = colors.border2,
-                    ),
-                    icon = {},
-                    label = {
-                        Text(
-                            text = option.arName,
-                            fontSize = 13.sp,
-                            fontWeight = if (state.transportationVendor == option) FontWeight.Bold
-                            else FontWeight.Normal
-                        )
-                    }
+//        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+//            transportationTypes.forEachIndexed { index, option ->
+//                SegmentedButton(
+//                    shape = SegmentedButtonDefaults.itemShape(
+//                        index = index,
+//                        count = transportationTypes.size
+//                    ),
+//                    selected = state.transportationVendor == option,
+//                    onClick  = { onTransportationVendorChanged(option) },
+//                    colors   = SegmentedButtonDefaults.colors(
+//                        activeContainerColor   = GREEN.copy(alpha = 0.15f),
+//                        activeContentColor     = GREEN,
+//                        activeBorderColor      = GREEN.copy(alpha = 0.60f),
+//                        inactiveContainerColor = colors.card,
+//                        inactiveContentColor   = colors.muted,
+//                        inactiveBorderColor    = colors.border2,
+//                    ),
+//                    icon = {},
+//                    label = {
+//                        Text(
+//                            text = option.arName,
+//                            fontSize = dims.fontSizeButton,
+//                            fontWeight = if (state.transportationVendor == option) FontWeight.Bold
+//                            else FontWeight.Normal
+//                        )
+//                    }
+//                )
+//            }
+//        }
+        Spacer(Modifier.height(16.dp))
+        Box(
+            modifier = Modifier.fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .clip(shape=RoundedCornerShape(size = 10.dp))
+                .background(accent.copy(0.3f))
+                .border(1.dp, accent, RoundedCornerShape(10.dp))
+        ){
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    state.transportationVendor?.arName?:"",
+                    textAlign = TextAlign.Center,
+                    color = colors.text
                 )
             }
         }
@@ -372,16 +428,27 @@ fun SelectedRawMaterialToVendorMaterialCard(
             searchText = state.warehouseSearchText,
             onSearchTextChanged = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnWarehouseSearchTextChanged(it)) }
         )
-        if (state.warehouseError.isNotEmpty()) Text(state.warehouseError, color = Color.Red, fontSize = 10.sp)
+        if (state.warehouseError != null) Text(state.warehouseError!!.text, color = Color.Red, fontSize = 10.sp)
+        Spacer(Modifier.height(10.dp))
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(colors.bg.copy(alpha = 0.65f)).padding(10.dp),
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(colors.card2)
+                .padding(10.dp),
             contentAlignment = Alignment.Center
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(R.string.car_number),color = colors.muted)
-                Text(state.selectedMaterial?.carNo?:"", color = accent, fontWeight = FontWeight.Bold)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.car_number), color = colors.muted, fontSize = dims.fontSizeBody)
+                val carDisplay = if (mat.isFactoryCar == true && !mat.factoryCarDescription.isNullOrBlank()) {
+                    mat.factoryCarDescription
+                } else {
+                    mat.carNo ?: ""
+                }
+                if (carDisplay.isNotBlank()) {
+                    Text(carDisplay, color = accent, fontWeight = FontWeight.Bold, fontSize = dims.fontSizeButton)
+                }
             }
         }
 //        CarNumberSpinner(
@@ -393,7 +460,7 @@ fun SelectedRawMaterialToVendorMaterialCard(
 //        if (state.carNumberError.isNotEmpty()) Text(state.carNumberError, color = Color.Red, fontSize = 10.sp)
 
         Field(stringResource(R.string.unloading_point) + " *", stringResource(R.string.enter_unloading_point), state.unloadingPoint, { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnUnloadingPointChanged(it)) })
-        if (state.unloadingPointError.isNotEmpty()) Text(state.unloadingPointError, color = Color.Red, fontSize = 10.sp)
+        if (state.unloadingPointError != null) Text(state.unloadingPointError!!.text, color = Color.Red, fontSize = 10.sp)
 
         WorkersGroupsSpinner(
             items = state.workerGroups,
@@ -401,7 +468,7 @@ fun SelectedRawMaterialToVendorMaterialCard(
             searchText = state.workerGroupSearchText,
             onSearchTextChanged = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnWorkerGroupSearchTextChanged(it)) }
         )
-        if (state.workerGroupError.isNotEmpty()) Text(state.workerGroupError, color = Color.Red, fontSize = 10.sp)
+        if (state.workerGroupError != null) Text(state.workerGroupError!!.text, color = Color.Red, fontSize = 10.sp)
         if (state.transportationVendor==transportationTypes.first()) {
             NaolonDescriptionSpinner(
                 items = state.naolonDescriptions,
@@ -421,8 +488,8 @@ fun SelectedRawMaterialToVendorMaterialCard(
                     )
                 }
             )
-            if (state.naolonDescriptionError.isNotEmpty()) Text(
-                state.naolonDescriptionError,
+            if (state.naolonDescriptionError != null) Text(
+                state.naolonDescriptionError!!.text,
                 color = Color.Red,
                 fontSize = 10.sp
             )
@@ -433,7 +500,7 @@ fun SelectedRawMaterialToVendorMaterialCard(
             searchText = state.carTypeSearchText,
             onSearchTextChanged = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnCarTypeSearchTextChanged(it)) }
         )
-        if (state.carTypeError.isNotEmpty()) Text(state.carTypeError, color = Color.Red, fontSize = 10.sp)
+        if (state.carTypeError != null) Text(state.carTypeError!!.text, color = Color.Red, fontSize = 10.sp)
         if (state.transportationVendor==transportationTypes.first()) {
             Box(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
@@ -451,7 +518,7 @@ fun SelectedRawMaterialToVendorMaterialCard(
         }
 
         Field(stringResource(R.string.cont_no) + " *", stringResource(R.string.enter_cont_no), state.contNo, { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnContNoChanged(it)) })
-        if (state.contNoError.isNotEmpty()) Text(state.contNoError, color = Color.Red, fontSize = 10.sp)
+        if (state.contNoError != null) Text(state.contNoError!!.text, color = Color.Red, fontSize = 10.sp)
         if (state.transportationVendor==transportationTypes.first()){
             Spacer(Modifier.height(5.dp))
             Box(
@@ -484,8 +551,8 @@ fun SelectedRawMaterialToVendorMaterialCard(
                     )
                 }
             )
-            if (state.loadingVendorError.isNotEmpty()) Text(
-                state.loadingVendorError,
+            if (state.loadingVendorError != null) Text(
+                state.loadingVendorError!!.text,
                 color = Color.Red,
                 fontSize = 10.sp
             )
@@ -496,10 +563,10 @@ fun SelectedRawMaterialToVendorMaterialCard(
             searchText = state.packageTypeSearchText,
             onSearchTextChanged = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnPackageTypeSearchTextChanged(it)) }
         )
-        if (state.packageTypeError.isNotEmpty()) Text(state.packageTypeError, color = Color.Red, fontSize = 10.sp)
+        if (state.packageTypeError != null) Text(state.packageTypeError!!.text, color = Color.Red, fontSize = 10.sp)
 
         Field(stringResource(R.string.receiving_qty) + " *", "0.0", state.quantity, { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnQuantityChanged(it)) }, isNumber = true)
-        if (state.quantityError.isNotEmpty()) Text(state.quantityError, color = Color.Red, fontSize = 10.sp)
+        if (state.quantityError != null) Text(state.quantityError!!.text, color = Color.Red, fontSize = 10.sp)
 
         Spacer(Modifier.height(16.dp))
         
@@ -515,7 +582,7 @@ fun CarNumberSpinner(hint:String=stringResource(R.string.select_car_number), ite
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.carDescription} (${it.carNumber})" },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -531,7 +598,7 @@ fun NaolonDescriptionSpinner(hint:String=stringResource(R.string.select_naolon_d
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.naolonDescription}" },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -547,7 +614,7 @@ fun CarTypeSpinner(hint:String=stringResource(R.string.select_car_type), items :
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.description} (${it.vehicleTypeName})" },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -563,7 +630,7 @@ fun LoadingVendorSpinner(hint:String=stringResource(R.string.select_loading_vend
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.vendorName} (${it.vendorCode})" },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -579,7 +646,7 @@ fun PackageTypeSpinner(hint:String=stringResource(R.string.select_packing_type),
         SearchableSpinner(
             hint = hint,
             items = items,
-            itemLabel = { "${it.packTypeDescription} (${it.packTypeCode})" },
+            itemLabel = { it.spinnerLabel() },
             onItemSelected = onItemSelected,
             searchText = searchText,
             onSearchTextChanged = onSearchTextChanged
@@ -608,7 +675,7 @@ fun SpinnerLabel(label: String, accent: Color) {
 }
 
 @Composable
-fun ReceivingRawMaterialsLineItem(item: RawMaterialsLineDto, onDelete: () -> Unit) {
+fun ReceivingRawMaterialsLineItem(item: RawMaterialsLineDto, onDelete: () -> Unit, onEdit: () -> Unit) {
     val colors = AppTheme.colors
     val accent = AppTheme.colors.green
 
@@ -633,9 +700,11 @@ fun ReceivingRawMaterialsLineItem(item: RawMaterialsLineDto, onDelete: () -> Uni
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (item.purchaseOrder.isNotBlank()) ReceivingChip(text = stringResource(R.string.po_number) + ": " + item.purchaseOrder)
                 ReceivingChip(text = stringResource(R.string.plant_) + item.plantCode)
                 ReceivingChip(text = stringResource(R.string.warehouse_) + item.warehouseCode)
                 if (!item.carNo.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.car_number_) + item.carNo)
+                if (!item.carType.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.car_type) + item.carType)
                 if (!item.unloadingPoint.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.unloading_point_) + item.unloadingPoint)
                 if (item.naolon != null) ReceivingChip(text = stringResource(R.string.naolon_cost_) + item.naolon)
                 if (!item.naolonDescription.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.naolon_description_) + item.naolonDescription)
@@ -644,9 +713,14 @@ fun ReceivingRawMaterialsLineItem(item: RawMaterialsLineDto, onDelete: () -> Uni
                 if (!item.wrokerGroupCode.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.workers_group_) + item.wrokerGroupCode)
                 if (!item.packTypeCode.isNullOrEmpty()) ReceivingChip(text = stringResource(R.string.packing_type_) + item.packTypeCode)
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                IconButton(onClick = onDelete) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = colors.text)
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                    }
                 }
             }
         }

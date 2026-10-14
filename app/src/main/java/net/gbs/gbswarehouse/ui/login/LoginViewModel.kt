@@ -1,21 +1,17 @@
 package net.gbs.gbswarehouse.ui.login
 
-import android.app.Application
-import android.content.Context
-import android.service.autofill.UserData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.gbs.gbswarehouse.MyApplication
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.data.remote.dto.response.LoginResponse
 import net.gbs.gbswarehouse.data.remote.mapper.toUser
+import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.usecase.LoginUseCase
 import net.gbs.gbswarehouse.ui.login.LoginApiState.*
 import javax.inject.Inject
@@ -23,8 +19,6 @@ import javax.inject.Inject
 @HiltViewModel
 // ── ViewModel ─────────────────────────────────────────────────────────────────
 class LoginViewModel @Inject constructor(
-    @ApplicationContext
-    private val context: Context,
     private val loginUseCase: LoginUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -61,11 +55,11 @@ class LoginViewModel @Inject constructor(
         val username = _uiState.value.username
         val password = _uiState.value.password
         if (username.isBlank()){
-            _uiState.value = _uiState.value.copy(usernameError = context.getString(R.string.please_enter_username))
+            _uiState.value = _uiState.value.copy(usernameError = Message.Resource(R.string.please_enter_username))
             return
         }
         if (password.isBlank()){
-            _uiState.value = _uiState.value.copy(passwordError = context.getString(R.string.please_enter_password))
+            _uiState.value = _uiState.value.copy(passwordError = Message.Resource(R.string.please_enter_password))
             return
         }
         viewModelScope.launch {
@@ -77,13 +71,13 @@ class LoginViewModel @Inject constructor(
             when(result){
                 is NetworkResult.Success<*> -> {
                     val response = result.data as LoginResponse
-                    _uiState.value = _uiState.value.copy(loginApiState = Success(response.data.toUser(),response.responseStatus.statusMessage))
+                    _uiState.value = _uiState.value.copy(loginApiState = Success(response.data.toUser(),Message.real(response.responseStatus.statusMessage)))
                 }
 
-                is NetworkResult.BusinessError -> _uiState.value = _uiState.value.copy(loginApiState = Error(result.message))
-                is NetworkResult.HttpError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(result.message))
-                is NetworkResult.NetworkError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(result.message))
-                is NetworkResult.UnknownError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(result.message))
+                is NetworkResult.BusinessError -> _uiState.value = _uiState.value.copy(loginApiState = Error(Message.real(result.message)))
+                is NetworkResult.HttpError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(Message.real(result.message)))
+                is NetworkResult.NetworkError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(Message.real(result.message)))
+                is NetworkResult.UnknownError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(Message.real(result.message)))
                 NetworkResult.Loading -> {}
             }
 

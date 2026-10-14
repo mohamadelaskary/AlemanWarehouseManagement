@@ -74,6 +74,7 @@ fun ReceivingSparePartsFromProductionDetailsScreen(
 ){
     val viewModel: DetailsViewModel = viewModel()
     val colors = AppTheme.colors
+    val dims   = AppTheme.dims
     val accent = colors.green
     val doneLabel = "الكمية المستلمة"
     val order = ORDERS["MAINT"]?.find { it.id == orderId }!!
@@ -86,9 +87,9 @@ fun ReceivingSparePartsFromProductionDetailsScreen(
 
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
+                    start = dims.padding, end = dims.padding,
                     top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
+                    bottom = if (viewModel.showFixedSave) dims.bottomBarHeight else 20.dp
                 )
             ) {
 
@@ -208,7 +209,7 @@ fun ReceivingSparePartsFromProductionDetailsScreen(
                             0f to Color.Transparent, 0.35f to colors.bg
                         )
                     )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(
                     "حفظ الاستلام", accent, { viewModel.doSave("save") },
@@ -222,10 +223,10 @@ fun ReceivingSparePartsFromProductionDetailsScreen(
     if (viewModel.matDlg) {
         BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
             SearchBox(viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp, bottom = 20.dp,
+                    start = dims.padding, end = dims.padding, bottom = 20.dp,
                 )
             ) {
                 itemsIndexed(viewModel.filteredMaterials) { _, m ->
@@ -242,9 +243,9 @@ fun ReceivingSparePartsFromProductionDetailsScreen(
     if (viewModel.binDlg) {
         BottomSheetDialog(title = "اختيار موقع التسكين", onClose = { viewModel.binDlg = false }) {
             SearchBox(viewModel.binInput, { viewModel.binInput = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
             LazyColumn(contentPadding = PaddingValues(
-                start = 14.dp, end = 14.dp, bottom = 20.dp
+                start = dims.padding, end = dims.padding, bottom = 20.dp
             )) {
                 itemsIndexed(viewModel.filteredBins) { _, b ->
                     BinDialogItem(b, viewModel.accent) { viewModel.selectBin(b) }
@@ -261,6 +262,7 @@ fun InspectingSparePartsFromProductionDetailsScreen(
 ){
     val viewModel: DetailsViewModel = viewModel()
     val colors = AppTheme.colors
+    val dims   = AppTheme.dims
     val accent = colors.purple
     val order = ORDERS["MAINT"]?.find { it.id == orderId }!!
     val doneLabel = "الكمية المستلمة"
@@ -273,9 +275,9 @@ fun InspectingSparePartsFromProductionDetailsScreen(
 
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
+                    start = dims.padding, end = dims.padding,
                     top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) 90.dp else 20.dp
+                    bottom = if (viewModel.showFixedSave) dims.bottomBarHeight else 20.dp
                 )
             ) {
 
@@ -368,7 +370,7 @@ fun InspectingSparePartsFromProductionDetailsScreen(
                             0f to Color.Transparent, 0.35f to colors.bg
                         )
                     )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(viewModel.saveLabel, accent, { viewModel.doSave("save") },
                     saving = viewModel.saving)
@@ -421,6 +423,7 @@ fun SelectedMaterialCard(
 ) {
     val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
 
     Column(
         modifier = Modifier
@@ -432,12 +435,12 @@ fun SelectedMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
+            Text(mat.code, color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+            Text("✕", color = colors.muted, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        Text(mat.desc, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
         Spacer(Modifier.height(8.dp))
         // Stats row
@@ -445,9 +448,9 @@ fun SelectedMaterialCard(
             listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
                 "الوحدة" to mat.unit,).forEach { (l, v) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(l, color = colors.muted, fontSize = 9.sp,
+                    Text(l, color = colors.muted, fontSize = dims.fontSizeCaption,
                         modifier = Modifier.padding(bottom = 2.dp))
-                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(v, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -455,8 +458,8 @@ fun SelectedMaterialCard(
         // Progress bar
         Column {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("التنفيذ", color = colors.muted, fontSize = 9.sp)
-                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
+                Text("التنفيذ", color = colors.muted, fontSize = dims.fontSizeCaption)
+                Text("${(progress * 100).toInt()}%", color = accent, fontSize = dims.fontSizeCaption,
                     fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(3.dp))
@@ -506,6 +509,7 @@ fun PutAwaySparePartsFromProductionDetailsScreen(
 ){
     val vm: DetailsViewModel = viewModel()
     val colors = AppTheme.colors
+    val dims   = AppTheme.dims
     val ord = ORDERS["MAINT"]?.find { it.id == orderId }!!
     val accent = colors.yellow
     val doneLabel = "الكمية المستلمة"
@@ -520,9 +524,9 @@ fun PutAwaySparePartsFromProductionDetailsScreen(
 
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = 14.dp, end = 14.dp,
+                    start = dims.padding, end = dims.padding,
                     top = 10.dp,
-                    bottom = if (vm.showFixedSave) 90.dp else 20.dp
+                    bottom = if (vm.showFixedSave) dims.bottomBarHeight else 20.dp
                 )
             ) {
 
@@ -643,7 +647,7 @@ fun PutAwaySparePartsFromProductionDetailsScreen(
                             0f to Color.Transparent, 0.35f to colors.bg
                         )
                     )
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn("تأكيد التسكين", accent, { vm.doSave("save") },
                     saving = vm.saving)
@@ -702,6 +706,7 @@ fun PutAwaySelectedMaterialCard(
 ) {
     val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
     val colors = AppTheme.colors
+    val dims = AppTheme.dims
 
     Column(
         modifier = Modifier
@@ -713,12 +718,12 @@ fun PutAwaySelectedMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
+            Text(mat.code, color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+            Text("✕", color = colors.muted, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        Text(mat.desc, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.SemiBold,
             lineHeight = 18.sp)
         Spacer(Modifier.height(8.dp))
         // Stats row
@@ -726,9 +731,9 @@ fun PutAwaySelectedMaterialCard(
             listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
                 "الوحدة" to mat.unit,).forEach { (l, v) ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(l, color = colors.muted, fontSize = 9.sp,
+                    Text(l, color = colors.muted, fontSize = dims.fontSizeCaption,
                         modifier = Modifier.padding(bottom = 2.dp))
-                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(v, color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -736,8 +741,8 @@ fun PutAwaySelectedMaterialCard(
         // Progress bar
         Column {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("التنفيذ", color = colors.muted, fontSize = 9.sp)
-                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
+                Text("التنفيذ", color = colors.muted, fontSize = dims.fontSizeCaption)
+                Text("${(progress * 100).toInt()}%", color = accent, fontSize = dims.fontSizeCaption,
                     fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(3.dp))
@@ -973,46 +978,4 @@ fun BottomSheetDialog(title: String, onClose: () -> Unit, content: @Composable C
     }
 }
 
-// ── FullBtn overload with Modifier ────────────────────────────────────────────
-@Composable
-fun FullBtn(label: String, color: Color, onClick: () -> Unit,
-            saving: Boolean = false, enabled: Boolean = true, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    val bg     = if (!enabled) colors.dim.copy(0.22f) else color.copy(0.12f)
-    val border = if (!enabled) colors.dim else color.copy(0.35f)
-    val txtCol = if (!enabled) colors.dim else color
 
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(bg)
-            .border(1.dp, border, RoundedCornerShape(10.dp))
-            .clickable(enabled = enabled && !saving) { onClick() }
-            .padding(vertical = 13.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (saving) {
-            CircularProgressIndicator(
-                color = color, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-        } else {
-            Text(label, color = txtCol, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-        }
-    }
-}
-
-// ── InfoCell with Modifier ────────────────────────────────────────────────────
-@Composable
-fun InfoCell(label: String, value: String, color: Color = Color.Unspecified, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    val textColor = if (color == Color.Unspecified) colors.text else color
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(colors.dark)
-            .padding(all = 8.dp)
-    ) {
-        Text(label, color = colors.muted, fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 2.dp))
-        Text(value, color = textColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-    }
-}
