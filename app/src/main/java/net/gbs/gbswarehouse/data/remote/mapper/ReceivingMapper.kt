@@ -59,10 +59,6 @@ fun RawMaterialsPurchaseOrderDto.toDomain() = RawMaterialsPurchaseOrder(
 )
 
 fun PackagingMaterialsPurchaseOrderItemDto.toDomain() = PackagingMaterialsPurchaseOrderItem(
-    poNumber = poNumber,
-    vendorCode = vendorCode,
-    vendorName = vendorName,
-    companyCode = companyCode,
     poItemNumber = poItemNumber,
     materialCode = materialCode,
     materialDescription = materialDescription,
@@ -73,18 +69,67 @@ fun PackagingMaterialsPurchaseOrderItemDto.toDomain() = PackagingMaterialsPurcha
     plantCode = plantCode,
     carNo = carNo,
     isFactoryCar = isFactoryCar,
-    factoryCarDescription = factoryCarDescription
+    factoryCarDescription = factoryCarDescription,
+    poNumberField = poNumber
 )
 
 fun PackagingMaterialsPurchaseOrderDto.toDomain() = PackagingMaterialsPurchaseOrder(
-    purchaseOrderNumber = purchaseOrderNumber,
     vendorCode = vendorCode,
     vendorName = vendorName,
     carNo = carNo,
     isFactoryCar = isFactoryCar,
     factoryCarDescription = factoryCarDescription,
-    itemCount = itemCount,
     purchaseOrderItems = lines.map { it.toDomain() }
+)
+
+fun PackagingMaterialsPurchaseOrderDataDto.toDomain() = PackagingMaterialsPurchaseOrder(
+    vendorCode = vendorCode,
+    vendorName = vendorName,
+    companyCode = companyCode,
+    carNo = carNo,
+    isFactoryCar = isFactoryCar,
+    factoryCarDescription = factoryCarDescription,
+    purchaseOrderItems = lines.map { it.toDomain() }
+)
+
+fun PackagingMaterialsPurchaseOrderDataLineDto.toDomain() = PackagingMaterialsPurchaseOrderItem(
+    poItemNumber = poItemNumber,
+    materialCode = materialCode,
+    materialDescription = materialDescription,
+    orderedQuantity = orderedQuantity?.toInt(),
+    receivedQuantity = receivedQuantity?.toInt(),
+    remainingQuantity = remainingQuantity?.toInt(),
+    uom = uom,
+    plantCode = plantCode,
+    carNo = carNo,
+    isFactoryCar = isFactoryCar,
+    factoryCarDescription = factoryCarDescription,
+    poNumberField = poNumber
+)
+
+fun PackagingMaterialsDiffPoDto.toDomain() = PackagingMaterialsPurchaseOrder(
+    vendorCode = vendorCode,
+    vendorName = vendorName,
+    companyCode = companyCode,
+    carNo = carNo,
+    isFactoryCar = isFactoryCar,
+    factoryCarDescription = factoryCarDescription,
+    purchaseOrderItems = purchaseOrderItems.map { it.toDomain() }
+)
+
+fun PackagingMaterialsDiffPoItemDto.toDomain() = PackagingMaterialsPurchaseOrderItem(
+    poItemNumber = poItemNumber,
+    materialCode = materialCode,
+    materialDescription = materialDescription,
+    orderedQuantity = orderedQuantity?.toInt(),
+    receivedQuantity = receivedQuantity?.toInt(),
+    remainingQuantity = remainingQuantity?.toInt(),
+    uom = uom,
+    plantCode = plantCode,
+    carNo = carNo,
+    isFactoryCar = isFactoryCar,
+    factoryCarDescription = factoryCarDescription,
+    poNumberField = poNumber
 )
 
 fun PoultryMaterialsPurchaseOrderItemDto.toDomain() = PoultryMaterialsPurchaseOrderItem(
@@ -328,7 +373,7 @@ fun ReceivePackagingMaterialsResultDto.toDomain() = ReceivePackagingMaterialsRes
 )
 
 fun ReceiveVendorPoultryMaterialsResultDto.toDomain() = ReceiveVendorPoultryMaterialsResult(
-    receiptStatus = receiptStatus.toDomain(),
+    receiptStatus = receiptStatus?.toDomain(),
     purchaseOrder = purchaseOrder?.toDomain()
 )
 

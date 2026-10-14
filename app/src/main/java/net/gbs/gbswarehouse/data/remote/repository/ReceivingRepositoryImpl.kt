@@ -89,7 +89,9 @@ class ReceivingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPackagingMaterialsPurchaseOrderData(carNo: String): NetworkResult<PackagingMaterialsPurchaseOrder> {
-        return safeApiCall { api.getPackagingMaterialsPurchaseOrderData(GetPackagingMaterialsPurchaseOrderDataRequestDto(carNo)) }.map { it.data!!.toDomain() }
+        return safeApiCall { api.getPackagingMaterialsPurchaseOrderData(GetPackagingMaterialsPurchaseOrderDataRequestDto(carNo)) }.map { response ->
+            response.data!!.toDomain()
+        }
     }
 
     override suspend fun receivePackagingMaterials(request: ReceivePackagingMaterialsDto): NetworkResult<ReceivePackagingMaterialsResult> {
@@ -97,7 +99,23 @@ class ReceivingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun receivePackagingMaterialsFromDiffPOs(request: ReceivePackagingMaterialsFromDiffPOsDto): NetworkResult<ReceivePackagingMaterialsResult> {
-        return safeApiCall { api.receivePackagingMaterialsFromDiffPOs(request) }.map { it.data!!.toDomain() }
+        return safeApiCall { api.receivePackagingMaterialsFromDiffPOs(request) }.map { response ->
+            val dtoList = response.data ?: emptyList()
+            val firstDomain = dtoList.firstOrNull()?.toDomain()
+            ReceivePackagingMaterialsResult(
+                purchaseOrder = firstDomain?.let {
+                    PackagingMaterialsPurchaseOrder(
+                        vendorCode = it.vendorCode,
+                        vendorName = it.vendorName,
+                        companyCode = it.companyCode,
+                        carNo = it.carNo,
+                        isFactoryCar = it.isFactoryCar,
+                        factoryCarDescription = it.factoryCarDescription,
+                        purchaseOrderItems = dtoList.flatMap { po -> po.toDomain().purchaseOrderItems }
+                    )
+                }
+            )
+        }
     }
 
     // Poultry
@@ -110,7 +128,12 @@ class ReceivingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun receivePoultryMaterials(request: ReceiveVendorPoultryMaterialsDto): NetworkResult<ReceiveVendorPoultryMaterialsResult> {
-        return safeApiCall { api.receivePoultryMaterials(request) }.map { it.data!!.toDomain() }
+        return safeApiCall { api.receivePoultryMaterials(request) }.map { response ->
+            response.data?.toDomain() ?: ReceiveVendorPoultryMaterialsResult(
+                receiptStatus = null,
+                purchaseOrder = null
+            )
+        }
     }
 
     // Transit order

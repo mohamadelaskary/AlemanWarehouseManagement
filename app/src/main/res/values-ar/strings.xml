@@ -392,4 +392,6 @@
     <string name="select_quality_decision">اختر قرار الجودة</string>
     <string name="purchasing_officer_optional">مسئول المشتريات (اختياري)</string>
     <string name="enter_purchasing_officer_name">أدخل اسم مسئول المشتريات...</string>
+    <string name="finished_good_from_production_feed">منتج تام من الانتاج (علف)</string>
+    <string name="finished_good_from_production_plastic">منتج تام من الانتاج (بلاستيك)</string>
 </resources>

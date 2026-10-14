@@ -478,6 +478,7 @@ class DetailsViewModel @Inject constructor(
                     savingErrorStatusMessage = Message.Resource(R.string.please_add_all_car_items_to_save_receiving)
                 )
             }
+            return
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingLoading = true) }

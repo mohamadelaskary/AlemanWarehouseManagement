@@ -181,9 +181,10 @@ fun PackagingPurchaseOrderCard(
                         fontWeight = FontWeight.ExtraBold
                     )
                 }
-                if (!order.factoryCarDescription.isNullOrBlank()) {
+                val factoryCarDesc = order.factoryCarDescription
+                if (!factoryCarDesc.isNullOrBlank()) {
                     Text(
-                        text = order.factoryCarDescription,
+                        text = factoryCarDesc,
                         color = colors.muted,
                         fontSize = 10.sp
                     )

@@ -291,23 +291,38 @@ data class ReceivePackagingMaterialsResultDto(
 
 @Serializable
 data class PackagingMaterialsPurchaseOrderDto(
-    @SerializedName("purchaseOrderNumber") val purchaseOrderNumber: String = "",
-    @SerializedName("vendorCode") val vendorCode: String? = null,
-    @SerializedName("vendorName") val vendorName: String? = null,
-    @SerializedName("carNo") val carNo: String? = null,
-    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
-    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null,
+    @SerializedName("purchaseOrderNumber") var purchaseOrderNumber: String? = null,
+    @SerializedName("poNumber"              ) var poNumber              : String?                       = null,
+    @SerializedName("vendorCode"            ) var vendorCode            : String?                       = null,
+    @SerializedName("vendorName"            ) var vendorName            : String?                       = null,
+    @SerializedName("companyCode"           ) var companyCode           : String?                       = null,
+    @SerializedName("carNo"                 ) var carNo                 : String?                       = null,
+    @SerializedName("isFactoryCar"          ) var isFactoryCar          : Boolean?                      = null,
+    @SerializedName("factoryCarDescription" ) var factoryCarDescription : String?                       = null,
     @SerializedName("itemCount") val itemCount: Int? = null,
     @SerializedName("lines") val lines: List<PackagingMaterialsPurchaseOrderItemDto> = emptyList()
 )
 
 @Serializable
-data class PackagingMaterialsPurchaseOrderItemDto(
+data class PackagingMaterialsPurchaseOrderDataDto(
+    @SerializedName("purchaseOrderNumber") val purchaseOrderNumber: String? = null,
+    @SerializedName("vendorCode") val vendorCode: String? = null,
+    @SerializedName("vendorName") val vendorName: String? = null,
+    @SerializedName("companyCode") val companyCode: String? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
+    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null,
+    @SerializedName("itemCount") val itemCount: Int? = null,
+    @SerializedName("lines") val lines: List<PackagingMaterialsPurchaseOrderDataLineDto> = emptyList()
+)
+
+@Serializable
+data class PackagingMaterialsPurchaseOrderDataLineDto(
     @SerializedName("poNumber") val poNumber: String? = null,
     @SerializedName("vendorCode") val vendorCode: String? = null,
     @SerializedName("vendorName") val vendorName: String? = null,
     @SerializedName("companyCode") val companyCode: String? = null,
-    @SerializedName("poItemNumber") val poItemNumber: String = "",
+    @SerializedName("poItemNumber") val poItemNumber: String? = null,
     @SerializedName("materialCode") val materialCode: String? = null,
     @SerializedName("materialDescription") val materialDescription: String? = null,
     @SerializedName("orderedQuantity") val orderedQuantity: Double? = null,
@@ -318,6 +333,53 @@ data class PackagingMaterialsPurchaseOrderItemDto(
     @SerializedName("carNo") val carNo: String? = null,
     @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
     @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null
+)
+
+@Serializable
+data class PackagingMaterialsDiffPoDto(
+    @SerializedName("poNumber") val poNumber: String? = null,
+    @SerializedName("vendorCode") val vendorCode: String? = null,
+    @SerializedName("vendorName") val vendorName: String? = null,
+    @SerializedName("companyCode") val companyCode: String? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
+    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null,
+    @SerializedName("purchaseOrderItems") val purchaseOrderItems: List<PackagingMaterialsDiffPoItemDto> = emptyList()
+)
+
+@Serializable
+data class PackagingMaterialsDiffPoItemDto(
+    @SerializedName("poNumber") val poNumber: String? = null,
+    @SerializedName("vendorCode") val vendorCode: String? = null,
+    @SerializedName("vendorName") val vendorName: String? = null,
+    @SerializedName("companyCode") val companyCode: String? = null,
+    @SerializedName("poItemNumber") val poItemNumber: String? = null,
+    @SerializedName("materialCode") val materialCode: String? = null,
+    @SerializedName("materialDescription") val materialDescription: String? = null,
+    @SerializedName("orderedQuantity") val orderedQuantity: Double? = null,
+    @SerializedName("receivedQuantity") val receivedQuantity: Double? = null,
+    @SerializedName("remainingQuantity") val remainingQuantity: Double? = null,
+    @SerializedName("uom") val uom: String? = null,
+    @SerializedName("plantCode") val plantCode: String? = null,
+    @SerializedName("carNo") val carNo: String? = null,
+    @SerializedName("isFactoryCar") val isFactoryCar: Boolean? = null,
+    @SerializedName("factoryCarDescription") val factoryCarDescription: String? = null
+)
+
+@Serializable
+data class PackagingMaterialsPurchaseOrderItemDto(
+    @SerializedName("poItemNumber"          ) var poItemNumber          : String?  = null,
+    @SerializedName("materialCode"          ) var materialCode          : String?  = null,
+    @SerializedName("materialDescription"   ) var materialDescription   : String?  = null,
+    @SerializedName("orderedQuantity"       ) var orderedQuantity       : Int?     = null,
+    @SerializedName("receivedQuantity"      ) var receivedQuantity      : Int?     = null,
+    @SerializedName("remainingQuantity"     ) var remainingQuantity     : Int?     = null,
+    @SerializedName("uom"                   ) var uom                   : String?  = null,
+    @SerializedName("plantCode"             ) var plantCode             : String?  = null,
+    @SerializedName("carNo"                 ) var carNo                 : String?  = null,
+    @SerializedName("isFactoryCar"          ) var isFactoryCar          : Boolean? = null,
+    @SerializedName("factoryCarDescription" ) var factoryCarDescription : String?  = null,
+    @SerializedName("poNumber"              ) var poNumber              : String?  = null
 )
 
 // Spare parts result
@@ -353,7 +415,7 @@ data class SparePartsPurchaseOrderItemDto(
 // Poultry result
 @Serializable
 data class ReceiveVendorPoultryMaterialsResultDto(
-    val receiptStatus: GoodsReceiptStatusResult,
+    val receiptStatus: GoodsReceiptStatusResult? = null,
     val purchaseOrder: PoultryMaterialsPurchaseOrderDto? = null
 )
 

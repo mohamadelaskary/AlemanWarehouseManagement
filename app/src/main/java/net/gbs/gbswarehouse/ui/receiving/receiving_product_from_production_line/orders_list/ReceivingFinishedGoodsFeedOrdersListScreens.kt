@@ -66,7 +66,7 @@ fun ReceivingFinishedGoodFromProductionListScreen(
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         TopBar(
             title = stringResource(R.string.receiving),
-            subtitle = stringResource(R.string.finished_good_from_production),
+            subtitle = stringResource(R.string.finished_good_from_production_feed),
             accent = accent,
             onBack = { navController.popBackStack() }
         )

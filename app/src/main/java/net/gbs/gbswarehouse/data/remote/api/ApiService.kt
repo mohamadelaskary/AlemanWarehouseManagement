@@ -68,13 +68,13 @@ interface ApiService {
     suspend fun getAllPackagingMaterialsPurchaseOrdersByCarNumber(): Response<MobileResponse<List<PackagingMaterialsPurchaseOrderDto>>>
 
     @POST("api/ReceivingHH/GetPackagingMaterialsPurchaseOrderDataByCarNumber")
-    suspend fun getPackagingMaterialsPurchaseOrderData(@Body dto: GetPackagingMaterialsPurchaseOrderDataRequestDto): Response<MobileResponse<PackagingMaterialsPurchaseOrderDto>>
+    suspend fun getPackagingMaterialsPurchaseOrderData(@Body dto: GetPackagingMaterialsPurchaseOrderDataRequestDto): Response<MobileResponse<PackagingMaterialsPurchaseOrderDataDto>>
 
     @POST("api/ReceivingHH/ReceivePackagingMaterials")
     suspend fun receivePackagingMaterials(@Body dto: ReceivePackagingMaterialsDto): Response<MobileResponse<ReceivePackagingMaterialsResultDto>>
 
     @POST("api/ReceivingHH/ReceivePackagingMaterialsFromDiffPOs")
-    suspend fun receivePackagingMaterialsFromDiffPOs(@Body dto: ReceivePackagingMaterialsFromDiffPOsDto): Response<MobileResponse<ReceivePackagingMaterialsResultDto>>
+    suspend fun receivePackagingMaterialsFromDiffPOs(@Body dto: ReceivePackagingMaterialsFromDiffPOsDto): Response<MobileResponse<List<PackagingMaterialsDiffPoDto>>>
 
     // Poultry
     @POST("api/ReceivingHH/GetAllPoultryMaterialsPurchaseOrdersByCarNumber")

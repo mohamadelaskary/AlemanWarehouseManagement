@@ -75,35 +75,33 @@ data class RawMaterialsPurchaseOrderItem(
 )
 
 data class PackagingMaterialsPurchaseOrder(
-    val purchaseOrderNumber: String,
-    val vendorCode: String?,
-    val vendorName: String?,
-    val carNo: String?,
-    val isFactoryCar: Boolean?,
-    val factoryCarDescription: String?,
-    val itemCount: Int?,
+    @SerializedName("vendorCode"            ) var vendorCode            : String?                       = null,
+    @SerializedName("vendorName"            ) var vendorName            : String?                       = null,
+    @SerializedName("companyCode"           ) var companyCode           : String?                       = null,
+    @SerializedName("carNo"                 ) var carNo                 : String?                       = null,
+    @SerializedName("isFactoryCar"          ) var isFactoryCar          : Boolean?                      = null,
+    @SerializedName("factoryCarDescription" ) var factoryCarDescription : String?                       = null,
     val purchaseOrderItems: List<PackagingMaterialsPurchaseOrderItem>
 ) {
-    val poNumber: String get() = carNo ?: purchaseOrderNumber
+    val poNumber: String get() = carNo ?: ""
 }
 
 data class PackagingMaterialsPurchaseOrderItem(
-    val poNumber: String?,
-    val vendorCode: String?,
-    val vendorName: String?,
-    val companyCode: String?,
-    val poItemNumber: String,
-    val materialCode: String?,
-    val materialDescription: String?,
-    val orderedQuantity: Double?,
-    val receivedQuantity: Double?,
-    val remainingQuantity: Double?,
-    val uom: String?,
-    val plantCode: String?,
-    val carNo: String?,
-    val isFactoryCar: Boolean?,
-    val factoryCarDescription: String?
-)
+    @SerializedName("poItemNumber"          ) var poItemNumber          : String?  = null,
+    @SerializedName("materialCode"          ) var materialCode          : String?  = null,
+    @SerializedName("materialDescription"   ) var materialDescription   : String?  = null,
+    @SerializedName("orderedQuantity"       ) var orderedQuantity       : Int?     = null,
+    @SerializedName("receivedQuantity"      ) var receivedQuantity      : Int?     = null,
+    @SerializedName("remainingQuantity"     ) var remainingQuantity     : Int?     = null,
+    @SerializedName("uom"                   ) var uom                   : String?  = null,
+    @SerializedName("plantCode"             ) var plantCode             : String?  = null,
+    @SerializedName("carNo"                 ) var carNo                 : String?  = null,
+    @SerializedName("isFactoryCar"          ) var isFactoryCar          : Boolean? = null,
+    @SerializedName("factoryCarDescription" ) var factoryCarDescription : String?  = null,
+    @SerializedName("poNumber"              ) var poNumberField         : String?  = null
+) {
+    val poNumber: String? get() = poNumberField ?: carNo
+}
 
 data class PoultryMaterialsPurchaseOrder(
     val purchaseOrderNumber: String,
@@ -265,7 +263,7 @@ data class ReceivePackagingMaterialsResult(
 )
 
 data class ReceiveVendorPoultryMaterialsResult(
-    val receiptStatus: GoodsReceiptStatusResult,
+    val receiptStatus: GoodsReceiptStatusResult?,
     val purchaseOrder: PoultryMaterialsPurchaseOrder?
 )
 

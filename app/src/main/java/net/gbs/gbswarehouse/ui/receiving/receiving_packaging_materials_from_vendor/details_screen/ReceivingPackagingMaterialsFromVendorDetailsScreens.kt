@@ -289,7 +289,7 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
                         receivedQty = m.receivedQuantity.toString(),
                         doneLabel = doneLabel,
                         accent = accent,
-                        poNumber = m.poNumber
+                        poNumber = ""
                     ) {
                         viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.OnMaterialSelected(m.materialCode ?: ""))
                         viewModel.matDlg = false
@@ -350,7 +350,9 @@ fun SelectedPackagingMaterialCard(
     searchText: String = "",
     onSearchTextChanged: (String) -> Unit
 ) {
-    val progress = if ((mat.orderedQuantity ?: 0.0) > 0) (mat.receivedQuantity ?: 0.0) / mat.orderedQuantity!! else 0.0
+    val ordered = mat.orderedQuantity ?: 0
+    val received = mat.receivedQuantity ?: 0
+    val progress = if (ordered > 0) received.toDouble() / ordered.toDouble() else 0.0
     val colors = AppTheme.colors
 
     Column(

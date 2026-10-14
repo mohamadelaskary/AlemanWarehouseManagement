@@ -392,4 +392,6 @@
     <string name="select_quality_decision">Select quality decision</string>
     <string name="purchasing_officer_optional">Purchasing Officer (Optional)</string>
     <string name="enter_purchasing_officer_name">Enter purchasing officer name…</string>
+    <string name="finished_good_from_production_feed">Finished goods from production (feed)</string>
+    <string name="finished_good_from_production_plastic">Finished goods from production (plastic)</string>
 </resources>

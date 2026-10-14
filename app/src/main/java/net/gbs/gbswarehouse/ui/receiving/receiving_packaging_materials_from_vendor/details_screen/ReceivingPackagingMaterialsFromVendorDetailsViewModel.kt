@@ -200,9 +200,9 @@ import net.gbs.gbswarehouse.domain.model.Message
         val state = _uiState.value
         val material = state.materials.find { it.materialCode == materialCode }
         if (material != null) {
-            val alreadyAdded = state.addedItems.any { it.purchaseOrder == state.purchaseOrder?.poNumber && it.purchaseOrderItem == material.poItemNumber }
+            val alreadyAdded = state.addedItems.any { it.purchaseOrder == (material.poNumber?:state.purchaseOrder?.poNumber) && it.purchaseOrderItem == material.poItemNumber }
             if (alreadyAdded) {
-                    _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added)) }
+                    _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added), selectedMaterial = null) }
                 return
             }
             _uiState.update {
@@ -218,7 +218,7 @@ import net.gbs.gbswarehouse.domain.model.Message
             }
             loadWarehouses(material.plantCode ?: "")
         } else {
-            _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.wrong_material_code)) }
+            _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.wrong_material_code), selectedMaterial = null) }
         }
     }
 
@@ -247,7 +247,7 @@ import net.gbs.gbswarehouse.domain.model.Message
             _uiState.update { it.copy(quantityError = Message.Resource(R.string.please_enter_a_valid_quantity)) }
             return
         }
-        if (qty > (mat.remainingQuantity ?: 0.0)) {
+        if (qty > (mat.remainingQuantity ?: 0).toDouble()) {
             _uiState.update { it.copy(quantityError = Message.Resource(R.string.quantity_cannot_exceed_remaining_quantity, mat.remainingQuantity.toString())) }
             return
         }
@@ -261,7 +261,7 @@ import net.gbs.gbswarehouse.domain.model.Message
             return
         }
 
-        val alreadyAdded = state.addedItems.any { it.purchaseOrder == state.purchaseOrder?.poNumber && it.purchaseOrderItem == mat.poItemNumber }
+        val alreadyAdded = state.addedItems.any { it.purchaseOrder == (mat.poNumber?:state.purchaseOrder?.poNumber) && it.purchaseOrderItem == mat.poItemNumber }
         if (alreadyAdded) {
             _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added)) }
             return
@@ -277,7 +277,7 @@ import net.gbs.gbswarehouse.domain.model.Message
             plantCode = mat.plantCode ?: "",
             warehouseCode = wh.warehouseCode,
             purchaseOrder = mat.poNumber ?: state.purchaseOrder?.poNumber ?: "",
-            purchaseOrderItem = mat.poItemNumber,
+            purchaseOrderItem = mat.poItemNumber ?: "",
             uom = mat.uom ?: "",
             receivedQuantity = qty,
             carNo = state.carNo.ifBlank { null },
