@@ -7,6 +7,8 @@ import net.gbs.gbswarehouse.data.local.LoginManager
 import net.gbs.gbswarehouse.data.local.TokenManager
 import net.gbs.gbswarehouse.data.remote.api.AuthenticationApiService
 import net.gbs.gbswarehouse.data.remote.dto.response.LoginResponse
+import net.gbs.gbswarehouse.data.remote.mapper.toPermissions
+import net.gbs.gbswarehouse.domain.model.Permissions
 import net.gbs.gbswarehouse.domain.repository.AuthenticationRepository
 import javax.inject.Inject
 
@@ -35,7 +37,8 @@ class AuthenticationRepositoryImpl @Inject constructor(
             sessionManager.authenticated()
             loginManager.saveUserData(
                 userId = result.data.data.id ?: "",
-                userCompanies = result.data.data.companyCodes ?: emptyList()
+                userPlantCodes = result.data.data.plantCodes ?: result.data.data.companyCodes ?: emptyList(),
+                permissions = result.data.data.permissions?.toPermissions() ?: Permissions.default()
             )
         }
 

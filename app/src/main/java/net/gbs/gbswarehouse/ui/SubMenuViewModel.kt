@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.gbs.gbswarehouse.ReceivingScreenNames
 import net.gbs.gbswarehouse.core.network.NetworkResult
+import net.gbs.gbswarehouse.data.local.LoginManager
 import net.gbs.gbswarehouse.domain.repository.IssuingRepository
 import net.gbs.gbswarehouse.domain.repository.ReceivingRepository
 import javax.inject.Inject
@@ -17,13 +18,15 @@ import javax.inject.Inject
 data class SubMenuUiState(
     val isLoading: Boolean = false,
     val countsMap: Map<String, Int> = emptyMap(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val showNotAuthorizedDialog: Boolean = false
 )
 
 @HiltViewModel
 class SubMenuViewModel @Inject constructor(
     private val receivingRepository: ReceivingRepository,
-    private val issuingRepository: IssuingRepository
+    private val issuingRepository: IssuingRepository,
+    private val loginManager: LoginManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubMenuUiState())
@@ -132,5 +135,59 @@ class SubMenuViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun checkOperationAuthorization(opId: String, isPutAway: Boolean, isRecv: Boolean, onAuthorized: () -> Unit) {
+        val permissions = loginManager.getPermissions()
+        val isAuthorized = if (isPutAway) {
+            when (opId) {
+                ReceivingScreenNames.RawMaterialsFromVendor -> permissions.isPutAwayVendorRawMaterials
+                ReceivingScreenNames.SparePartsFromVendor -> permissions.isPutAwayVendorSpareParts
+                ReceivingScreenNames.PackagingMaterialsFromVendor -> permissions.isPutAwayVendorPackagingMaterials
+                ReceivingScreenNames.PoultryMaterialsFromVendor -> permissions.isPutAwayVendorPoultryMaterials
+                ReceivingScreenNames.FinishedGoodsFeedFromProductionOrder -> permissions.isPutAwayFinishedGoodsFeed
+                ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder -> permissions.isPutAwayFinishedGoodsPlastic
+                ReceivingScreenNames.SparePartsReturn -> permissions.isPutAwaySparePartsReturn
+                ReceivingScreenNames.TransitOrderMaterial -> permissions.isPutAwayTransitOrderMaterial
+                "issue-direct-transfer-putaway" -> permissions.isPutAwayDirectTransfer
+                else -> true
+            }
+        } else if (isRecv) {
+            when (opId) {
+                ReceivingScreenNames.RawMaterialsFromVendor -> permissions.isReceiveVendorRawMaterials
+                ReceivingScreenNames.SparePartsFromVendor -> permissions.isReceiveVendorSpareParts
+                ReceivingScreenNames.PackagingMaterialsFromVendor -> permissions.isReceiveVendorPackagingMaterials
+                ReceivingScreenNames.PoultryMaterialsFromVendor -> permissions.isReceiveVendorPoultryMaterials
+                "recv-blind" -> permissions.isBlindReceive
+                ReceivingScreenNames.FinishedGoodsFeedFromProductionOrder -> permissions.isReceiveFinishedGoodsFeed
+                ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder -> permissions.isReceiveFinishedGoodsPlastic
+                ReceivingScreenNames.SparePartsReturn -> permissions.isReceiveSparePartsReturn
+                ReceivingScreenNames.TransitOrderMaterial -> permissions.isReceiveTransitOrderMaterial
+                else -> true
+            }
+        } else {
+            when (opId) {
+                "issue-raw" -> permissions.isIssueTransferToProduction
+                "issue-spare" -> permissions.isIssueSparePartsToMaintenance
+                "issue-internal" -> permissions.isIssueToInternalOrder
+                "issue-sales" -> permissions.isIssueFinishedGoodsFeed
+                "issue-sales_plastic" -> permissions.isIssueFinishedGoodsPlastic
+                "issue-cost-center" -> permissions.isDirectIssueOnCostCenter
+                "issue-direct-transfer" -> permissions.isDirectTransfer
+                "issue-transfer-plants" -> permissions.isIssueTransferOrder
+                "issue-scrap" -> permissions.isScrapIssue
+                else -> true
+            }
+        }
+
+        if (isAuthorized) {
+            onAuthorized()
+        } else {
+            _uiState.update { it.copy(showNotAuthorizedDialog = true) }
+        }
+    }
+
+    fun dismissDialog() {
+        _uiState.update { it.copy(showNotAuthorizedDialog = false) }
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.BLUE
+import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.LogoutButton
 import net.gbs.gbswarehouse.ORANGE
@@ -50,6 +52,9 @@ import net.gbs.gbswarehouse.ui.theme.AppTheme
 @Composable
 fun HomeScreen(navController: NavController) {
     val colors = AppTheme.colors
+    val viewModel: HomeViewModel = hiltViewModel()
+    val uiState by viewModel.uiState.collectAsState()
+
     val cards = listOf(
         Triple("recv",    GREEN,  stringResource(R.string.receiving) to "↓"),
         Triple("putaway", YELLOW, stringResource(R.string.putaway)   to "⌘"),
@@ -58,7 +63,6 @@ fun HomeScreen(navController: NavController) {
         Triple("plc",     PURPLE, stringResource(R.string.plc_loading) to "")
     )
 
-    val viewModel: HomeViewModel = hiltViewModel()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -140,17 +144,27 @@ fun HomeScreen(navController: NavController) {
 
                 HomeCard(label = label, icon = icon, cnt = cnt, detail = detail, id = id,
                     accent = accent, onClick = {
-                        navController.navigate(
-                            when (id) {
-                                "audit" -> Screens.AuditOrders.createRoute()
-                                "plc" -> Screens.LoadingOrders.createRoute()
-                                else -> Screens.SubMenu.createRoute(id)
-                            }
-                        )
+                        viewModel.onCategoryClick(id) {
+                            navController.navigate(
+                                when (id) {
+                                    "audit" -> Screens.AuditOrders.createRoute()
+                                    "plc" -> Screens.LoadingOrders.createRoute()
+                                    else -> Screens.SubMenu.createRoute(id)
+                                }
+                            )
+                        }
                     })
                 Spacer(Modifier.height(12.dp))
             }
         }
+    }
+
+    if (uiState.showNotAuthorizedDialog) {
+        ErrorDialog(
+            accent = ORANGE,
+            message = stringResource(R.string.not_authorized),
+            onClose = { viewModel.dismissDialog() }
+        )
     }
 }
 

@@ -394,4 +394,5 @@
     <string name="enter_purchasing_officer_name">Enter purchasing officer name…</string>
     <string name="finished_good_from_production_feed">Finished goods from production (feed)</string>
     <string name="finished_good_from_production_plastic">Finished goods from production (plastic)</string>
+    <string name="not_authorized">You are not authorized to access this feature</string>
 </resources>

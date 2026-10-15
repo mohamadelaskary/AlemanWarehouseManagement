@@ -59,7 +59,7 @@ fun IssuingTransferPlantsScreen(
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         TopBar(
             title = stringResource(R.string.issuing),
-            subtitle = "Warehouse transfers between plants ( Outcoming )",
+            subtitle = stringResource(R.string.warehouse_transfers_between_plants_outcoming),
             accent = accent,
             onBack = { navController.popBackStack() }
         )

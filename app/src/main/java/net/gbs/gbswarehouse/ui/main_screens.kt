@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.BLUE
+import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.ISSUE_OPS
 import net.gbs.gbswarehouse.LanguageToggleButton
@@ -120,86 +121,88 @@ fun SubMenu(
                     accent = accent,
                     count  = count,
                     onClick = {
-                        if (isPutAway) {
-                            if (op.id == "issue-direct-transfer-putaway") {
-                                navController.navigate(Screens.DirectTransferPutAwayOrders.createRoute())
+                        viewModel.checkOperationAuthorization(op.id, isPutAway, isRecv) {
+                            if (isPutAway) {
+                                if (op.id == "issue-direct-transfer-putaway") {
+                                    navController.navigate(Screens.DirectTransferPutAwayOrders.createRoute())
+                                } else {
+                                    navController.navigate(Screens.PutAwayOrders.createRoute(op.id))
+                                }
+                            } else if (isRecv) {
+                                when (op.id) {
+                                    ReceivingScreenNames.RawMaterialsFromVendor -> navController.navigate(
+                                        Screens.ReceivingRawMaterialsFromVendor.createRoute()
+                                    )
+                                    ReceivingScreenNames.SparePartsFromVendor -> navController.navigate(
+                                        Screens.ReceivingSparePartsFromVendorPOsList.createRoute()
+                                    )
+                                    ReceivingScreenNames.PackagingMaterialsFromVendor -> navController.navigate(
+                                        Screens.ReceivingPackagingMaterialsFromVendor.createRoute()
+                                    )
+                                    ReceivingScreenNames.PoultryMaterialsFromVendor -> navController.navigate(
+                                        Screens.ReceivingPoultryFromVendorOrdersListScreen.createRoute()
+                                    )
+                                    "recv-blind" -> navController.navigate(
+                                        Screens.BlindReceiving.createRoute()
+                                    )
+                                    ReceivingScreenNames.FinishedGoodsFeedFromProductionOrder -> navController.navigate(
+                                        Screens.ReceivingFinishedGoodFromProduction.createRoute()
+                                    )
+                                    ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder -> navController.navigate(
+                                        Screens.ReceivingFinishedGoodFromProductionPlastic.createRoute()
+                                    )
+                                    ReceivingScreenNames.SparePartsReturn -> navController.navigate(
+                                        Screens.ReceivingSparePartsFromProduction.createRoute()
+                                    )
+                                    ReceivingScreenNames.TransitOrderMaterial -> navController.navigate(
+                                        Screens.ReceivingProductFromBranch.createRoute()
+                                    )
+                                    "recv-return" -> navController.navigate(
+                                        Screens.ReceivingReturnedProduct.createRoute()
+                                    )
+                                    else -> navController.navigate(
+                                        Screens.OpTypeScreen.createRoute(op.id)
+                                    )
+                                }
                             } else {
-                                navController.navigate(Screens.PutAwayOrders.createRoute(op.id))
-                            }
-                        } else if (isRecv) {
-                            when (op.id) {
-                                ReceivingScreenNames.RawMaterialsFromVendor -> navController.navigate(
-                                    Screens.ReceivingRawMaterialsFromVendor.createRoute()
-                                )
-                                ReceivingScreenNames.SparePartsFromVendor -> navController.navigate(
-                                    Screens.ReceivingSparePartsFromVendorPOsList.createRoute()
-                                )
-                                ReceivingScreenNames.PackagingMaterialsFromVendor -> navController.navigate(
-                                    Screens.ReceivingPackagingMaterialsFromVendor.createRoute()
-                                )
-                                ReceivingScreenNames.PoultryMaterialsFromVendor -> navController.navigate(
-                                    Screens.ReceivingPoultryFromVendorOrdersListScreen.createRoute()
-                                )
-                                "recv-blind" -> navController.navigate(
-                                    Screens.BlindReceiving.createRoute()
-                                )
-                                ReceivingScreenNames.FinishedGoodsFeedFromProductionOrder -> navController.navigate(
-                                    Screens.ReceivingFinishedGoodFromProduction.createRoute()
-                                )
-                                ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder -> navController.navigate(
-                                    Screens.ReceivingFinishedGoodFromProductionPlastic.createRoute()
-                                )
-                                ReceivingScreenNames.SparePartsReturn -> navController.navigate(
-                                    Screens.ReceivingSparePartsFromProduction.createRoute()
-                                )
-                                ReceivingScreenNames.TransitOrderMaterial -> navController.navigate(
-                                    Screens.ReceivingProductFromBranch.createRoute()
-                                )
-                                "recv-return" -> navController.navigate(
-                                    Screens.ReceivingReturnedProduct.createRoute()
-                                )
-                                else -> navController.navigate(
-                                    Screens.OpTypeScreen.createRoute(op.id)
-                                )
-                            }
-                        } else {
-                            when(op.id) {
-                                "issue-sub" -> navController.navigate(
-                                    Screens.IssuingToVendor.createRoute()
-                                )
-                                "issue-package" -> navController.navigate(
-                                    Screens.IssuingPackagingMaterialsToProductionLineScreen.createRoute()
-                                )
-                                "issue-raw" -> navController.navigate(
-                                    Screens.IssuingRawMaterialsToProduction.createRoute()
-                                )
-                                "issue-spare" -> navController.navigate(
-                                    Screens.IssuingSparePartsForMaintenance.createRoute()
-                                )
-                                "issue-internal" -> navController.navigate(
-                                    Screens.IssuingInternalOrders.createRoute()
-                                )
-                                "issue-sales" -> navController.navigate(
-                                    Screens.IssuingSalesOrders.createRoute()
-                                )
-                                "issue-sales_plastic" -> navController.navigate(
-                                    Screens.IssuingSalesOrdersPlastic.createRoute()
-                                )
-                                "issue-scrap" -> navController.navigate(
-                                    Screens.IssueScrapScreen.createRoute()
-                                )
-                                "issue-cost-center" -> navController.navigate(
-                                    Screens.IssuingCostCenterOrders.createRoute()
-                                )
-                                "issue-direct-transfer" ->navController.navigate(
-                                    Screens.IssuingDirectTransferScreen.createRoute()
-                                )
-                                "issue-transfer-plants" -> navController.navigate(
-                                    Screens.IssuingTransferPlants.createRoute()
-                                )
-                                "issue-direct-transfer-putaway" -> navController.navigate(
-                                    Screens.DirectTransferPutAwayOrders.createRoute()
-                                )
+                                when(op.id) {
+                                    "issue-sub" -> navController.navigate(
+                                        Screens.IssuingToVendor.createRoute()
+                                    )
+                                    "issue-package" -> navController.navigate(
+                                        Screens.IssuingPackagingMaterialsToProductionLineScreen.createRoute()
+                                    )
+                                    "issue-raw" -> navController.navigate(
+                                        Screens.IssuingRawMaterialsToProduction.createRoute()
+                                    )
+                                    "issue-spare" -> navController.navigate(
+                                        Screens.IssuingSparePartsForMaintenance.createRoute()
+                                    )
+                                    "issue-internal" -> navController.navigate(
+                                        Screens.IssuingInternalOrders.createRoute()
+                                    )
+                                    "issue-sales" -> navController.navigate(
+                                        Screens.IssuingSalesOrders.createRoute()
+                                    )
+                                    "issue-sales_plastic" -> navController.navigate(
+                                        Screens.IssuingSalesOrdersPlastic.createRoute()
+                                    )
+                                    "issue-scrap" -> navController.navigate(
+                                        Screens.IssueScrapScreen.createRoute()
+                                    )
+                                    "issue-cost-center" -> navController.navigate(
+                                        Screens.IssuingCostCenterOrders.createRoute()
+                                    )
+                                    "issue-direct-transfer" ->navController.navigate(
+                                        Screens.IssuingDirectTransferScreen.createRoute()
+                                    )
+                                    "issue-transfer-plants" -> navController.navigate(
+                                        Screens.IssuingTransferPlants.createRoute()
+                                    )
+                                    "issue-direct-transfer-putaway" -> navController.navigate(
+                                        Screens.DirectTransferPutAwayOrders.createRoute()
+                                    )
+                                }
                             }
                         }
                     }
@@ -207,6 +210,14 @@ fun SubMenu(
                 Spacer(Modifier.height(8.dp))
             }
         }
+    }
+
+    if (uiState.showNotAuthorizedDialog) {
+        ErrorDialog(
+            accent = accent,
+            message = stringResource(R.string.not_authorized),
+            onClose = { viewModel.dismissDialog() }
+        )
     }
 }
 
