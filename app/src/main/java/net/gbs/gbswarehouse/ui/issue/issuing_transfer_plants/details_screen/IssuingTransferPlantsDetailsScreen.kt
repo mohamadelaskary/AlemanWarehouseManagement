@@ -43,6 +43,7 @@ import net.gbs.gbswarehouse.domain.model.StorageBinLocation
 import net.gbs.gbswarehouse.domain.model.TransferOrderItem
 import net.gbs.gbswarehouse.domain.model.WorkersGroup
 import net.gbs.gbswarehouse.ui.issue.OnHandStockSection
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 import net.gbs.gbswarehouse.ui.issue.issuing_transfer_plants.details_screen.IssuingTransferPlantsDetailsEvent.*
 import net.gbs.gbswarehouse.ui.receiving.ReceivingInfoCell
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.BinCodeInput
@@ -362,11 +363,16 @@ fun IssuingSelectedTransferItemCard(
             .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
             .padding(12.dp)
     ) {
-        Row(
-            Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(item.materialCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            val matCode = item.materialCode
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(matCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (!matCode.isNullOrEmpty()) {
+                    MaterialImageButton(materialCode = matCode, accent = accent)
+                }
+            }
             Text("✕", color = colors.text, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }

@@ -85,6 +85,7 @@ import net.gbs.gbswarehouse.ui.receiving.receiving_poultry_from_vendor.details_s
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.transportationTypes
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 import net.gbs.gbswarehouse.ui.receiving.receiving_raw_materials_from_vendor.details_screen.ReceivingRawMaterialsFromVendorDetailsEvent
 import net.gbs.gbswarehouse.ui.theme.DANGER
 import net.gbs.honeywellscanner.ScannerEffect
@@ -410,8 +411,15 @@ fun SelectedTransitMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.materialCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = dims.fontSizeBody,
+            val matCode = mat.materialCode
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(matCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (!matCode.isNullOrEmpty()) {
+                    MaterialImageButton(materialCode = matCode, accent = accent)
+                }
+            }
+            Text("✕", color = colors.text, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))

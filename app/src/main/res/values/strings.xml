@@ -395,4 +395,8 @@
     <string name="finished_good_from_production_feed">Finished goods from production (feed)</string>
     <string name="finished_good_from_production_plastic">Finished goods from production (plastic)</string>
     <string name="not_authorized">You are not authorized to access this feature</string>
+    <string name="material_image">Material Image: %1$s</string>
+    <string name="image_unavailable">Image not found</string>
+    <string name="add_image">Add image</string>
+    <string name="change_image">Change image</string>
 </resources>

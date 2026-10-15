@@ -66,6 +66,7 @@ import net.gbs.gbswarehouse.domain.model.PackagingMaterialsLine
 import net.gbs.gbswarehouse.domain.model.PackagingMaterialsPurchaseOrder
 import net.gbs.gbswarehouse.domain.model.PackagingMaterialsPurchaseOrderItem
 import net.gbs.gbswarehouse.domain.model.Warehouse
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 import net.gbs.gbswarehouse.ui.receiving.receiving_packaging_materials_from_vendor.orders_list.PackagingPurchaseOrderCard
 import net.gbs.gbswarehouse.ui.receiving.ReceivingAddLineButton
 import net.gbs.gbswarehouse.ui.receiving.ReceivingBottomSheetDialog
@@ -360,16 +361,22 @@ fun SelectedPackagingMaterialCard(
             .background(accent.copy(0.06f)).border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
             .padding(12.dp)
     ) {
+
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
+            val matCode = mat.materialCode
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(mat.materialCode ?: "", color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Text(matCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (!matCode.isNullOrEmpty()) {
+                    MaterialImageButton(materialCode = matCode, accent = accent)
+                }
                 if (!mat.poNumber.isNullOrBlank()) {
                     Spacer(Modifier.width(8.dp))
                     Text("#${mat.poNumber}", color = colors.green, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
-            Text("✕", color = colors.muted, fontSize = 12.sp,
+            Text("✕", color = colors.text, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))

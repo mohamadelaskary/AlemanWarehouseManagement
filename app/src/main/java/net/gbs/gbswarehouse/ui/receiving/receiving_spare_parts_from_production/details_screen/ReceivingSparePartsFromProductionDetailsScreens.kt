@@ -71,10 +71,12 @@ import net.gbs.gbswarehouse.domain.model.SparePartsReturnLine
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationOrder
 import net.gbs.gbswarehouse.domain.model.ValuationType
 import net.gbs.gbswarehouse.domain.model.Warehouse
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 import net.gbs.gbswarehouse.ui.receiving.ReceivingBottomSheetDialog
 import net.gbs.gbswarehouse.ui.receiving.ReceivingMatCodeInput
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.ReceivingSparePartsFromVendorLineItem
 import net.gbs.gbswarehouse.ui.theme.AppTheme
+import net.gbs.gbswarehouse.ui.theme.AppTheme.dims
 import net.gbs.gbswarehouse.ui.theme.DANGER
 import net.gbs.honeywellscanner.ScannerEffect
 
@@ -698,8 +700,15 @@ fun SelectedMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.materialCode, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
+            val matCode = mat.materialCode
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(matCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (!matCode.isNullOrEmpty()) {
+                    MaterialImageButton(materialCode = matCode, accent = accent)
+                }
+            }
+            Text("✕", color = colors.text, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))

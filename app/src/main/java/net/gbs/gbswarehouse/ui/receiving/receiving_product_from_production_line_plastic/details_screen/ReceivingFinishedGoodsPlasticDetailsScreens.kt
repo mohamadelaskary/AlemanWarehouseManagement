@@ -64,8 +64,10 @@ import net.gbs.gbswarehouse.domain.model.FinishedGoodsPlasticProductionOrderItem
 import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.Warehouse
 import net.gbs.gbswarehouse.domain.model.WorkersGroup
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 import net.gbs.gbswarehouse.ui.receiving.receiving_product_from_production_line_plastic.orders_list.FinishedGoodsPlasticProductionOrderCard
 import net.gbs.gbswarehouse.ui.theme.AppTheme
+import net.gbs.gbswarehouse.ui.theme.AppTheme.dims
 import net.gbs.gbswarehouse.ui.theme.DANGER
 import net.gbs.honeywellscanner.ScannerEffect
 
@@ -341,12 +343,19 @@ fun SelectedFinishedGoodsPlasticMaterialCard(
             .background(accent.copy(0.06f)).border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
             .padding(12.dp)
     ) {
-//        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-//            verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.materialCode ?: "", color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-//            Text("✕", color = colors.muted, fontSize = 12.sp,
-//                modifier = Modifier.clickable { onClear() }.padding(4.dp))
-//        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            val matCode = mat.materialCode
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(matCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (!matCode.isNullOrEmpty()) {
+                    MaterialImageButton(materialCode = matCode, accent = accent)
+                }
+            }
+            Text("✕", color = colors.text, fontSize = dims.fontSizeBody,
+                modifier = Modifier.clickable { onClear() }.padding(4.dp))
+        }
         Spacer(Modifier.height(4.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             listOf(

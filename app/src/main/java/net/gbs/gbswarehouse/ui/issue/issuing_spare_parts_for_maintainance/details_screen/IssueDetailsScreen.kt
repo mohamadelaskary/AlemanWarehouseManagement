@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -69,6 +70,7 @@ import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
 import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.StorageBinLocation
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationLine
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 import net.gbs.gbswarehouse.ui.issue.OnHandStockSection
 import net.gbs.gbswarehouse.ui.issue.issuing_spare_parts_for_maintainance.details_screen.IssueDetailsEvent.*
 import net.gbs.gbswarehouse.ui.receiving.receiving_spare_parts_from_vendor.details_screen.BinCodeInput
@@ -359,7 +361,14 @@ fun IssuingSelectedMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(line.materialCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+            val matCode = line.materialCode
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(matCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (!matCode.isNullOrEmpty()) {
+                    MaterialImageButton(materialCode = matCode, accent = accent)
+                }
+            }
             Text("✕", color = colors.text, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }

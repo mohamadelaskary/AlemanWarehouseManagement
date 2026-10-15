@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -320,7 +322,13 @@ fun PutAwaySelectedMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (mat.code.isNotEmpty()) {
+                    MaterialImageButton(materialCode = mat.code, accent = accent)
+                }
+            }
             Text("✕", color = colors.muted, fontSize = 12.sp,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }

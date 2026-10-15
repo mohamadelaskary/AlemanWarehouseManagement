@@ -83,6 +83,7 @@ import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.gbswarehouse.ui.theme.DANGER
 import net.gbs.honeywellscanner.ScannerEffect
 import net.gbs.gbswarehouse.spinnerLabel
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 
 @Composable
 fun ReceivingPoultryFromVendorDetailsScreen(
@@ -425,16 +426,24 @@ fun SelectedPoultryMaterialCard(
 ) {
     val progress = if ((mat.orderedQuantity ?: 0.0) > 0) (mat.receivedQuantity ?: 0.0) / mat.orderedQuantity!! else 0.0
     val colors = AppTheme.colors
-
+    val dims = AppTheme.dims
     Column(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
             .background(accent.copy(0.06f)).border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
             .padding(12.dp)
     ) {
+
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.materialCode ?: "", color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-            Text("×", color = colors.muted, fontSize = 12.sp,
+            val matCode = mat.materialCode
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(matCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (!matCode.isNullOrEmpty()) {
+                    MaterialImageButton(materialCode = matCode, accent = accent)
+                }
+            }
+            Text("✕", color = colors.text, fontSize = dims.fontSizeBody,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))

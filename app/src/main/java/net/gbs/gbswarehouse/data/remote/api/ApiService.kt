@@ -276,6 +276,19 @@ interface ApiService {
     @POST("api/IssuingHH/ConfirmDirectTransferPutAway")
     suspend fun confirmDirectTransferPutAway(@Body dto: ConfirmDirectTransferPutAwayRequestDto): Response<MobileResponse<List<DirectTransferPutAwayLineDto>>>
 
+    // Material Image API
+    @GET("api/ReceivingHH/GetMaterialImage")
+    suspend fun getMaterialImage(
+        @Query("materialCode") materialCode: String
+    ): Response<okhttp3.ResponseBody>
+
+    @Multipart
+    @POST("api/ReceivingHH/UploadMaterialImage")
+    suspend fun uploadMaterialImage(
+        @Part("MaterialCode") materialCode: okhttp3.RequestBody,
+        @Part image: okhttp3.MultipartBody.Part
+    ): Response<okhttp3.ResponseBody>
+
     // PLC loading orders and conveyors API
     @GET("api/Conveyors/GetConveyors")
     suspend fun getConveyors(): Response<MobileResponse<List<ConveyorStatusDto>>>

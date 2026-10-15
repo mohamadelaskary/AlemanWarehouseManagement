@@ -97,6 +97,7 @@ import net.gbs.gbswarehouse.ui.receiving.ReceivingMaterialDialogItem
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.honeywellscanner.ScannerEffect
 import net.gbs.gbswarehouse.spinnerLabel
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 
 @Composable
 fun ReceivingRawMaterialsFromVendorDetailsScreen(
@@ -224,7 +225,8 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
                                         accent = accent,
                                         onTransportationVendorChanged = {
                                             viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnTransportationVendorChanged(it))
-                                        }
+                                        },
+                                        onClear = {viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnClearMaterial)}
                                     )
                                 }
                             }
@@ -334,7 +336,8 @@ fun SelectedRawMaterialToVendorMaterialCard(
     state: ReceivingRawMaterialsFromVendorDetailsState,
     onEvent: (ReceivingRawMaterialsFromVendorDetailsEvent) -> Unit,
     accent: Color,
-    onTransportationVendorChanged: (TransportationType) -> Unit
+    onTransportationVendorChanged: (TransportationType) -> Unit,
+    onClear: () -> Unit = {}
 ) {
     val colors = AppTheme.colors
     val dims = AppTheme.dims
@@ -348,15 +351,20 @@ fun SelectedRawMaterialToVendorMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
+            val matCode = mat.materialCode
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(mat.materialCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+                Text(matCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (!matCode.isNullOrEmpty()) {
+                    MaterialImageButton(materialCode = matCode, accent = accent)
+                }
                 if (!mat.poNumber.isNullOrBlank()) {
                     Spacer(Modifier.width(8.dp))
-                    Text("#${mat.poNumber}", color = colors.green, fontSize = dims.fontSizeButton, fontWeight = FontWeight.Bold)
+                    Text("#${mat.poNumber}", color = colors.green, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
-            Text("x", color = colors.muted, fontSize = dims.fontSizeBody,
-                modifier = Modifier.clickable { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnClearMaterial) }.padding(4.dp))
+            Text("✕", color = colors.text, fontSize = dims.fontSizeBody,
+                modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Spacer(Modifier.height(4.dp))
         Text(mat.materialDescription ?: "", color = colors.text, fontSize = dims.fontSizeButton, fontWeight = FontWeight.SemiBold,

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -62,6 +63,7 @@ import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedLine
 import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
 import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.WorkersGroup
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 import net.gbs.gbswarehouse.ui.issue.OnHandStockSection
 import net.gbs.gbswarehouse.ui.issue.issuing_cost_center.details_screen.IssuingSelectedBinCard
 import net.gbs.gbswarehouse.ui.issue.issuing_cost_center.details_screen.MatCodeInput
@@ -366,6 +368,7 @@ fun SelectedIssueMaterialCard(
 ) {
     val colors = AppTheme.colors
     val item = state.selectedMaterial ?: return
+    val dims = AppTheme.dims
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -374,9 +377,18 @@ fun SelectedIssueMaterialCard(
             .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
             .padding(12.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(item.materialCode ?: "", color = accent, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp, modifier = Modifier.clickable { onClear() }.padding(4.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically) {
+            val matCode = item.materialCode
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(matCode ?: "", color = accent, fontSize = dims.fontSizeHeader, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (!matCode.isNullOrEmpty()) {
+                    MaterialImageButton(materialCode = matCode, accent = accent)
+                }
+            }
+            Text("✕", color = colors.text, fontSize = dims.fontSizeBody,
+                modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }
         Text(item.materialDescription ?: "", color = colors.text, fontSize = 11.sp)
         Spacer(Modifier.height(8.dp))

@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -712,7 +713,13 @@ fun InspectionSelectedMaterialCard(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
-            Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (mat.code.isNotEmpty()) {
+                    MaterialImageButton(materialCode = mat.code, accent = accent)
+                }
+            }
             Text("✕", color = colors.muted, fontSize = 12.sp,
                 modifier = Modifier.clickable { onClear() }.padding(4.dp))
         }

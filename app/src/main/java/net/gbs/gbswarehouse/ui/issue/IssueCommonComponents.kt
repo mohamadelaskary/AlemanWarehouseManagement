@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.SearchableSpinner
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 import net.gbs.gbswarehouse.domain.model.FinishedGoodsFeedItem
 import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
 import net.gbs.gbswarehouse.domain.model.Message
@@ -292,14 +293,21 @@ fun ReservationLineItemInfoCard(line: SparePartsReturnReservationLine) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = line.materialCode ?: "",
-                    color = AppTheme.colors.text,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                val matCode = line.materialCode
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = matCode ?: "",
+                        color = AppTheme.colors.text,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    if (!matCode.isNullOrEmpty()) {
+                        MaterialImageButton(materialCode = matCode)
+                    }
+                }
                 val qtyVal = line.remainingQuantity ?: line.quantity
                 if (qtyVal != null) {
                     Text(
@@ -339,14 +347,21 @@ fun TransferOrderItemInfoCard(item: TransferOrderItem) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = item.materialCode ?: "",
-                    color = AppTheme.colors.text,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                val itemCode = item.materialCode
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = itemCode ?: "",
+                        color = AppTheme.colors.text,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    if (!itemCode.isNullOrEmpty()) {
+                        MaterialImageButton(materialCode = itemCode)
+                    }
+                }
                 Text(
                     text = "#${item.poNumber ?: ""}",
                     color = AppTheme.colors.orange,

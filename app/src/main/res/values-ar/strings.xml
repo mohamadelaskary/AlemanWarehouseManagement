@@ -395,4 +395,8 @@
     <string name="finished_good_from_production_feed">منتج تام من الانتاج (علف)</string>
     <string name="finished_good_from_production_plastic">منتج تام من الانتاج (بلاستيك)</string>
     <string name="not_authorized">عذراً، أنت غير مرخص للوصول إلى هذه الشاشة</string>
+    <string name="material_image">صورة الصنف: %1$s</string>
+    <string name="image_unavailable">الصورة غير متوفرة</string>
+    <string name="add_image">إضافة صورة</string>
+    <string name="change_image">تغيير الصورة</string>
 </resources>
