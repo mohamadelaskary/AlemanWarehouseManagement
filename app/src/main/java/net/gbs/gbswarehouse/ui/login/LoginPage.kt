@@ -5,6 +5,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.ui.theme.AppTheme
+import net.gbs.gbswarehouse.rememberTwoTapKeyboardState
+import net.gbs.gbswarehouse.twoTap
 
 
 import androidx.compose.animation.*
@@ -309,10 +311,12 @@ fun LoginField(
             verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            val twoTapState = rememberTwoTapKeyboardState()
             BasicTextField(
                 value           = value,
-                onValueChange   = onValueChange,
+                onValueChange   = { if (!twoTapState.isReadOnly) onValueChange(it) },
                 singleLine      = true,
+                readOnly        = twoTapState.isReadOnly,
                 visualTransformation = if (isPassword && !passwordVisible)
                     PasswordVisualTransformation() else VisualTransformation.None,
                 keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
@@ -323,7 +327,9 @@ fun LoginField(
                     textDirection = TextDirection.Ltr
                 ),
                 cursorBrush = SolidColor(colors.green),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .twoTap(twoTapState),
                 decorationBox = { inner ->
                     if (value.isEmpty()) {
                         Text(hint, color = colors.muted, fontSize = 13.sp)

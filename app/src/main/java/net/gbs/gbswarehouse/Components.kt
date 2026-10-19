@@ -24,6 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
@@ -301,6 +304,67 @@ fun Pill(label: String, color: Color, modifier: Modifier?=Modifier) {
     }
 }
 
+class TwoTapKeyboardState(private val keyboardController: SoftwareKeyboardController?) {
+    var isFocused by mutableStateOf(false)
+    var isKeyboardEnabled by mutableStateOf(false)
+
+    val isReadOnly: Boolean
+        get() = isFocused && !isKeyboardEnabled
+
+    fun onTap() {
+        if (!isFocused) {
+            isFocused = true
+            isKeyboardEnabled = false
+            keyboardController?.hide()
+        } else if (!isKeyboardEnabled) {
+            isKeyboardEnabled = true
+            keyboardController?.show()
+        } else {
+            keyboardController?.show()
+        }
+    }
+
+    fun onFocusChanged(focused: Boolean) {
+        isFocused = focused
+        if (!focused) {
+            isKeyboardEnabled = false
+            keyboardController?.hide()
+        }
+    }
+}
+
+@Composable
+fun rememberTwoTapKeyboardState(): TwoTapKeyboardState {
+    val keyboardController = LocalSoftwareKeyboardController.current
+    return remember { TwoTapKeyboardState(keyboardController) }
+}
+
+@Composable
+fun Modifier.twoTap(
+    state: TwoTapKeyboardState,
+    enabled: Boolean = true,
+    focusRequester: FocusRequester = remember { FocusRequester() }
+): Modifier {
+    return this
+        .focusRequester(focusRequester)
+        .onFocusChanged { state.onFocusChanged(it.isFocused) }
+        .then(
+            if (enabled) {
+                Modifier.clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) {
+                    if (!state.isFocused) {
+                        focusRequester.requestFocus()
+                    }
+                    state.onTap()
+                }
+            } else {
+                Modifier
+            }
+        )
+}
+
 // ── Field ─────────────────────────────────────────────────────────────────────
 @Composable
 fun Field(
@@ -316,6 +380,7 @@ fun Field(
     modifier: Modifier = Modifier
 ) {
     val colors = AppTheme.colors
+    val twoTapState = rememberTwoTapKeyboardState()
 
     Column(modifier = modifier) {
         if (withLabel)
@@ -323,9 +388,10 @@ fun Field(
                 modifier = Modifier.padding(bottom = 5.dp))
         BasicTextField(
             value = value,
-            onValueChange = { if (enabled) onValueChange(it) },
+            onValueChange = { if (enabled && !twoTapState.isReadOnly) onValueChange(it) },
             enabled = enabled,
             singleLine = true,
+            readOnly = twoTapState.isReadOnly,
             keyboardOptions = if (isNumber) KeyboardOptions(keyboardType = KeyboardType.Number)
             else KeyboardOptions.Default,
             textStyle = TextStyle(
@@ -338,6 +404,7 @@ fun Field(
             cursorBrush = SolidColor(GREEN),
             modifier = Modifier
                 .fillMaxWidth()
+                .twoTap(twoTapState, enabled)
                 .clip(RoundedCornerShape(8.dp))
                 .background(if (enabled) colors.dark else colors.dark.copy(alpha = 0.5f))
                 .border(1.dp, if (enabled) colors.border2 else colors.dim, RoundedCornerShape(8.dp))
@@ -359,6 +426,7 @@ fun Field(
 fun SearchBox(value: String, onValueChange: (String) -> Unit, placeholder: String,
               modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
+    val twoTapState = rememberTwoTapKeyboardState()
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -372,11 +440,15 @@ fun SearchBox(value: String, onValueChange: (String) -> Unit, placeholder: Strin
         Spacer(Modifier.width(8.dp))
         BasicTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { if (!twoTapState.isReadOnly) onValueChange(it) },
             singleLine = true,
+            readOnly = twoTapState.isReadOnly,
             textStyle = TextStyle(color = colors.text, fontSize = 12.sp, textDirection = if (LocalLanguage.current == "ar") TextDirection.Rtl else TextDirection.Ltr),
             cursorBrush = SolidColor(GREEN),
-            modifier = Modifier.weight(1f).padding(vertical = 9.dp),
+            modifier = Modifier
+                .weight(1f)
+                .twoTap(twoTapState)
+                .padding(vertical = 9.dp),
             decorationBox = { inner ->
                 if (value.isEmpty()) Text(placeholder, color = colors.muted, fontSize = 12.sp)
                 inner()
@@ -393,6 +465,7 @@ fun SearchBox(value: String, onValueChange: (String) -> Unit, placeholder: Strin
 fun OrderNumberSearchBox(value: String, onValueChange: (String) -> Unit,onSearchButtonClicked: (String) -> Unit, placeholder: String,
               modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
+    val twoTapState = rememberTwoTapKeyboardState()
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -404,11 +477,15 @@ fun OrderNumberSearchBox(value: String, onValueChange: (String) -> Unit,onSearch
     ) {
         BasicTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { if (!twoTapState.isReadOnly) onValueChange(it) },
             singleLine = true,
+            readOnly = twoTapState.isReadOnly,
             textStyle = TextStyle(color = colors.text, fontSize = 12.sp, textDirection = if (LocalLanguage.current == "ar") TextDirection.Rtl else TextDirection.Ltr),
             cursorBrush = SolidColor(GREEN),
-            modifier = Modifier.weight(1f).padding(vertical = 9.dp),
+            modifier = Modifier
+                .weight(1f)
+                .twoTap(twoTapState)
+                .padding(vertical = 9.dp),
             decorationBox = { inner ->
                 if (value.isEmpty()) Text(placeholder, color = colors.muted, fontSize = 12.sp)
                 inner()
@@ -1347,8 +1424,9 @@ fun <T> SearchableSpinner(
 ) {
     val colors = AppTheme.colors
     var expanded by remember { mutableStateOf(false) }
-//    var searchText by remember { mutableStateOf("") }
+    val twoTapState = rememberTwoTapKeyboardState()
     val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val filteredItems = remember(searchText, items) {
         when {
@@ -1361,24 +1439,31 @@ fun <T> SearchableSpinner(
         }
     }
 
-    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
-
     Column(modifier = modifier.fillMaxWidth()) {
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { 
-                if (!it) expanded = false
+                expanded = it
+                if (!it) {
+                    keyboardController?.hide()
+                }
             }
         ) {
             OutlinedTextField(
                 value = searchText,
                 onValueChange = {
-                    onSearchTextChanged(it)
-                    if (!expanded) expanded = true
+                    if (!twoTapState.isReadOnly) {
+                        onSearchTextChanged(it)
+                        if (!expanded) expanded = true
+                    }
                 },
+                readOnly = twoTapState.isReadOnly,
                 placeholder = { Text(text = hint, color = colors.text.copy(alpha = 0.5f)) },
                 trailingIcon = {
-                    IconButton(onClick = { expanded = !expanded }) {
+                    IconButton(onClick = { 
+                        expanded = !expanded
+                        keyboardController?.hide()
+                    }) {
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
                             contentDescription = null,
@@ -1399,7 +1484,7 @@ fun <T> SearchableSpinner(
                 modifier = Modifier
                     .menuAnchor()
                     .fillMaxWidth()
-                    .focusRequester(focusRequester)
+                    .twoTap(twoTapState, focusRequester = focusRequester)
             )
 
             ExposedDropdownMenu(
@@ -1420,6 +1505,7 @@ fun <T> SearchableSpinner(
                                 onSearchTextChanged(itemLabel(item))
                                 onItemSelected(item)
                                 expanded = false
+                                keyboardController?.hide()
                             }
                         )
                     }
@@ -2114,6 +2200,7 @@ hint: String, items: List<TransportingVendor>, onItemSelected: (TransportingVend
 fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     val dims = AppTheme.dims
+    val twoTapState = rememberTwoTapKeyboardState()
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
@@ -2123,13 +2210,19 @@ fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
         verticalAlignment = Alignment.CenterVertically
     ) {
         BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = true,
+            value = value,
+            onValueChange = { if (!twoTapState.isReadOnly) onValueChange(it) },
+            singleLine = true,
+            readOnly = twoTapState.isReadOnly,
             textStyle = TextStyle(
                 color = colors.text, fontSize = dims.fontSizeButton,
                 textDirection = TextDirection.Ltr
             ),
             cursorBrush = SolidColor(GREEN),
-            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            modifier = Modifier
+                .weight(1f)
+                .twoTap(twoTapState)
+                .padding(vertical = 10.dp),
             decorationBox = { inner ->
                 if (value.isEmpty()) Text("كود المادة...", color = colors.muted, fontSize = dims.fontSizeButton)
                 inner()
@@ -2142,6 +2235,7 @@ fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
 fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     val dims = AppTheme.dims
+    val twoTapState = rememberTwoTapKeyboardState()
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
@@ -2151,13 +2245,19 @@ fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
         verticalAlignment = Alignment.CenterVertically
     ) {
         BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = true,
+            value = value,
+            onValueChange = { if (!twoTapState.isReadOnly) onValueChange(it) },
+            singleLine = true,
+            readOnly = twoTapState.isReadOnly,
             textStyle = TextStyle(
                 color = colors.text, fontSize = dims.fontSizeButton,
                 textDirection = TextDirection.Ltr
             ),
             cursorBrush = SolidColor(YELLOW),
-            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            modifier = Modifier
+                .weight(1f)
+                .twoTap(twoTapState)
+                .padding(vertical = 10.dp),
             decorationBox = { inner ->
                 if (value.isEmpty()) Text("كود البن (Bin Code)...", color = colors.muted, fontSize = dims.fontSizeButton)
                 inner()

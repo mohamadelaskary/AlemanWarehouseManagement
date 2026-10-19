@@ -14,12 +14,14 @@ import net.gbs.gbswarehouse.data.remote.dto.response.PostScrapIssueDto
 import net.gbs.gbswarehouse.data.remote.mapper.toDto
 import net.gbs.gbswarehouse.domain.model.Company
 import net.gbs.gbswarehouse.domain.model.CostCenter
+import net.gbs.gbswarehouse.domain.model.MaterialBinLocation
 import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
 import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.SAPMaterialBatchValuationStock
 import net.gbs.gbswarehouse.domain.model.ScrapIssueLine
 import net.gbs.gbswarehouse.domain.usecase.issuing.GetCompaniesUseCase
 import net.gbs.gbswarehouse.domain.usecase.issuing.GetCostCentersUseCase
+import net.gbs.gbswarehouse.domain.usecase.issuing.GetMaterialBinLocationsUseCase
 import net.gbs.gbswarehouse.domain.usecase.issuing.GetMaterialOnHandStockUseCase
 import net.gbs.gbswarehouse.domain.usecase.issuing.GetScrapEligibleStockUseCase
 import net.gbs.gbswarehouse.domain.usecase.issuing.GetStorageBinLocationIssuingUseCase
@@ -36,6 +38,7 @@ class IssueScrapViewModel @Inject constructor(
     private val getCostCentersUseCase: GetCostCentersUseCase,
     private val getStorageBinLocationIssuingUseCase: GetStorageBinLocationIssuingUseCase,
     private val getMaterialOnHandStockUseCase: GetMaterialOnHandStockUseCase,
+    private val getMaterialBinLocationsUseCase: GetMaterialBinLocationsUseCase,
     private val scrapIssueUseCase: ScrapIssueUseCase,
 ) : ViewModel() {
 
@@ -92,6 +95,29 @@ class IssueScrapViewModel @Inject constructor(
         }
     }
 
+    private fun loadMaterialBinLocations(stock: SAPMaterialBatchValuationStock) {
+        val plantCode = stock.plantCode ?: return
+        val warehouseCode = stock.storageLocationCode ?: return
+        val materialCode = stock.materialCode ?: return
+        val valuationType = "SCRAP"
+        viewModelScope.launch {
+            _state.update { it.copy(isBinLocationsLoading = true) }
+            when (val result = getMaterialBinLocationsUseCase(plantCode, warehouseCode, materialCode, valuationType)) {
+                is NetworkResult.Success -> {
+                    _state.update { it.copy(binLocations = result.data) }
+                    if (result.data.size == 1) {
+                        val bin = result.data.first()
+                        onEvent(IssueScrapEvent.OnBinLocationSelected(bin))
+                    }
+                }
+                else -> {
+                    _state.update { it.copy(binLocations = emptyList()) }
+                }
+            }
+            _state.update { it.copy(isBinLocationsLoading = false) }
+        }
+    }
+
     fun onBarcodeScanned(barcode: String) {
         onEvent(IssueScrapEvent.OnBarcodeScanned(barcode))
     }
@@ -130,6 +156,20 @@ class IssueScrapViewModel @Inject constructor(
             is IssueScrapEvent.OnBinInputChanged -> _state.update { it.copy(binInput = event.text, binCodeError = null) }
             is IssueScrapEvent.OnScanBin -> scanBin(event.binCode)
             IssueScrapEvent.OnClearBin -> clearBin()
+            is IssueScrapEvent.OnBinLocationSelected -> {
+                _state.update {
+                    it.copy(
+                        selectedBinLocation = event.binLocation,
+                        binInput = event.binLocation.storageBinCode ?: "",
+                        binSearchText = event.binLocation.spinnerLabel(),
+                        binCodeError = null
+                    )
+                }
+                scanBin(event.binLocation.storageBinCode ?: "")
+            }
+            is IssueScrapEvent.OnBinSearchTextChanged -> {
+                _state.update { it.copy(binSearchText = event.text, binInput = event.text, binCodeError = null) }
+            }
 
             is IssueScrapEvent.OnStockSearchTextChanged -> _state.update { it.copy(stockSearch = event.text) }
             is IssueScrapEvent.OnOnHandStockSelected -> onOnHandStockSelected(event.stock)
@@ -182,6 +222,7 @@ class IssueScrapViewModel @Inject constructor(
         _state.update {
             it.copy(
                 binInput = line.storageBinCode,
+                binSearchText = line.storageBinCode,
                 quantity = formatQty(line.quantity),
                 notes = line.itemText,
                 selectedCostCenter = costCenter,
@@ -222,9 +263,13 @@ class IssueScrapViewModel @Inject constructor(
                 selectedOnHandStock = null,
                 availableStock = 0.0,
                 maxQty = 0.0,
-                quantity = ""
+                quantity = "",
+                binLocations = emptyList(),
+                selectedBinLocation = null,
+                binSearchText = ""
             )
         }
+        loadMaterialBinLocations(stock)
     }
 
     private fun clearMaterial() {
@@ -241,7 +286,10 @@ class IssueScrapViewModel @Inject constructor(
                 availableStock = 0.0,
                 maxQty = 0.0,
                 quantity = "",
-                quantityError = null
+                quantityError = null,
+                binLocations = emptyList(),
+                selectedBinLocation = null,
+                binSearchText = ""
             )
         }
     }
@@ -257,7 +305,9 @@ class IssueScrapViewModel @Inject constructor(
                 availableStock = 0.0,
                 maxQty = 0.0,
                 quantity = "",
-                quantityError = null
+                quantityError = null,
+                selectedBinLocation = null,
+                binSearchText = ""
             )
         }
     }
@@ -274,26 +324,29 @@ class IssueScrapViewModel @Inject constructor(
             when (val result = getStorageBinLocationIssuingUseCase(binCode)) {
                 is NetworkResult.Success -> {
                     val binData = result.data
+                    val matchingBinLoc = _state.value.binLocations.find { it.storageBinCode.equals(binData.storageBinCode, true) }
                     _state.update {
                         it.copy(
                             selBinData = binData,
                             binInput = binData.storageBinCode,
+                            selectedBinLocation = matchingBinLoc ?: it.selectedBinLocation,
+                            binSearchText = matchingBinLoc?.spinnerLabel() ?: binData.storageBinCode,
                             binCodeError = null
                         )
                     }
                     loadStock(matStock, binData.storageBinCode)
                 }
                 is NetworkResult.BusinessError -> _state.update {
-                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null, selectedBinLocation = null, binSearchText = "")
                 }
                 is NetworkResult.HttpError -> _state.update {
-                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null, selectedBinLocation = null, binSearchText = "")
                 }
                 is NetworkResult.NetworkError -> _state.update {
-                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null, selectedBinLocation = null, binSearchText = "")
                 }
                 is NetworkResult.UnknownError -> _state.update {
-                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null)
+                    it.copy(binCodeError = Message.Real(result.message), binInput = "", selBinData = null, selectedBinLocation = null, binSearchText = "")
                 }
                 else -> {}
             }
@@ -433,17 +486,16 @@ class IssueScrapViewModel @Inject constructor(
             matErrorMessage = null,
             companySearchText = "",
             costCenterSearchText = "",
-            matSearchText = ""
+            matSearchText = "",
+            binLocations = emptyList(),
+            selectedBinLocation = null,
+            binSearchText = ""
         ) }
     }
 
     private fun issueAll() {
         val st = _state.value
         if (st.addedLines.isEmpty() || st.isSaving) return
-//        if (st.documentHeaderText.isBlank()) {
-//            _state.update { it.copy(documentHeaderError = Message.Resource(R.string.enter_maintenance_order_number_error)) }
-//            return
-//        }
 
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true) }

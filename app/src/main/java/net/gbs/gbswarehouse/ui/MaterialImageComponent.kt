@@ -5,14 +5,21 @@ import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -33,20 +40,70 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 
+data class MaterialImageUiModel(
+    val materialImageId: Int,
+    val bitmap: Bitmap?,
+    val createdAt: String?,
+    val imagePath: String?
+)
+
 @Composable
 fun MaterialImageButton(materialCode: String, accent: Color = ORANGE) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var showDialog by remember { mutableStateOf(false) }
-    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var hasImage by remember { mutableStateOf<Boolean?>(null) }
+    var imageItems by remember { mutableStateOf<List<MaterialImageUiModel>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
+    var materialDescription by remember { mutableStateOf<String?>("") }
 
     val apiService = remember {
         EntryPointAccessors.fromApplication(
             context.applicationContext,
             MaterialApiEntryPoint::class.java
         ).apiService()
+    }
+
+    val fetchImages: () -> Unit = {
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                isLoading = true
+                val response = apiService.getMaterialImages(materialCode)
+                if (response.isSuccessful && response.body() != null) {
+                    val bodyData = response.body()!!.data
+                    if (bodyData != null) {
+                        materialDescription = bodyData.materialDescription
+                        val fetchedItems = mutableListOf<MaterialImageUiModel>()
+                        for (imgDto in bodyData.images) {
+                            var bmp: Bitmap? = null
+                            try {
+                                val fileResp = apiService.getMaterialImageFile(imgDto.materialImageId)
+                                if (fileResp.isSuccessful && fileResp.body() != null) {
+                                    val bytes = fileResp.body()!!.bytes()
+                                    bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                }
+                            } catch (_: Exception) {}
+                            fetchedItems.add(
+                                MaterialImageUiModel(
+                                    materialImageId = imgDto.materialImageId,
+                                    bitmap = bmp,
+                                    createdAt = imgDto.createdAt,
+                                    imagePath = imgDto.imagePath
+                                )
+                            )
+                        }
+                        imageItems = fetchedItems
+                    } else {
+                        imageItems = emptyList()
+                    }
+                } else {
+                    imageItems = emptyList()
+                }
+            } catch (_: Exception) {
+                imageItems = emptyList()
+            } finally {
+                isLoading = false
+            }
+        }
     }
 
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -65,8 +122,7 @@ fun MaterialImageButton(materialCode: String, accent: Color = ORANGE) {
 
                     val response = apiService.uploadMaterialImage(codeBody, imagePart)
                     if (response.isSuccessful) {
-                        bitmap = capturedBitmap
-                        hasImage = true
+                        fetchImages()
                     }
                 } catch (_: Exception) {
                 } finally {
@@ -78,28 +134,7 @@ fun MaterialImageButton(materialCode: String, accent: Color = ORANGE) {
 
     IconButton(onClick = {
         showDialog = true
-        coroutineScope.launch(Dispatchers.IO) {
-            try {
-                isLoading = true
-                val response = apiService.getMaterialImage(materialCode)
-                if (response.isSuccessful && response.body() != null) {
-                    val bytes = response.body()!!.bytes()
-                    val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    if (bmp != null) {
-                        bitmap = bmp
-                        hasImage = true
-                    } else {
-                        hasImage = false
-                    }
-                } else {
-                    hasImage = false
-                }
-            } catch (_: Exception) {
-                hasImage = false
-            } finally {
-                isLoading = false
-            }
-        }
+        fetchImages()
     }) {
         Icon(
             imageVector = Icons.Default.Image,
@@ -116,25 +151,91 @@ fun MaterialImageButton(materialCode: String, accent: Color = ORANGE) {
                     Text("×", color = accent)
                 }
             },
-
-
-            title = { Text(stringResource(R.string.material_image, materialCode), fontSize = 14.sp) },
+            title = {
+                Column {
+                    Text(stringResource(R.string.material_image, materialCode), fontSize = 14.sp)
+                    if (!materialDescription.isNullOrBlank()) {
+                        Text(materialDescription!!, fontSize = 12.sp, color = Color.Gray)
+                    }
+                }
+            },
             text = {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(250.dp),
+                        .height(300.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(color = accent)
-                    } else if (hasImage == true && bitmap != null) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Image(
-                                bitmap = bitmap!!.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxWidth().weight(1f)
-                            )
+                    } else if (imageItems.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            LazyRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                items(imageItems, key = { it.materialImageId }) { item ->
+                                    Card(
+                                        modifier = Modifier
+                                            .width(200.dp)
+                                            .fillMaxHeight(),
+                                        shape = RoundedCornerShape(8.dp),
+                                        elevation = CardDefaults.cardElevation(4.dp)
+                                    ) {
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                            if (item.bitmap != null) {
+                                                Image(
+                                                    bitmap = item.bitmap.asImageBitmap(),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            } else {
+                                                Box(
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(stringResource(R.string.image_unavailable), fontSize = 12.sp, color = Color.Gray)
+                                                }
+                                            }
+                                            // Delete icon button overlay
+                                            IconButton(
+                                                onClick = {
+                                                    coroutineScope.launch(Dispatchers.IO) {
+                                                        try {
+                                                            isLoading = true
+                                                            val delResp = apiService.deleteMaterialImage(item.materialImageId)
+                                                            if (delResp.isSuccessful) {
+                                                                fetchImages()
+                                                            }
+                                                        } catch (_: Exception) {
+                                                        } finally {
+                                                            isLoading = false
+                                                        }
+                                                    }
+                                                },
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .padding(4.dp)
+                                                    .size(36.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color.Black.copy(alpha = 0.5f))
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = "Delete Image",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             Spacer(Modifier.height(10.dp))
                             Button(
                                 onClick = { cameraLauncher.launch(null) },
@@ -142,7 +243,7 @@ fun MaterialImageButton(materialCode: String, accent: Color = ORANGE) {
                             ) {
                                 Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = Color.White)
                                 Spacer(Modifier.width(6.dp))
-                                Text(stringResource(R.string.change_image), color = Color.White)
+                                Text(stringResource(R.string.add_another_image), color = Color.White)
                             }
                         }
                     } else {

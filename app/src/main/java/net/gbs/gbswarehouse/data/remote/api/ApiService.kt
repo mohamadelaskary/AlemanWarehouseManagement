@@ -185,8 +185,17 @@ interface ApiService {
     @GET("api/IssuingHH/GetScrapEligibleStock")
     suspend fun getScrapEligibleStock(): Response<MobileResponse<List<SAPMaterialBatchValuationStockDto>>>
 
+    @GET("api/IssuingHH/GetMaterialBinLocations")
+    suspend fun getMaterialBinLocations(
+        @Query("plantCode") plantCode: String,
+        @Query("warehouseCode") warehouseCode: String,
+        @Query("materialCode") materialCode: String,
+        @Query("valuationType") valuationType: String
+    ): Response<MobileResponse<List<MaterialBinLocationDto>>>
+
     @GET("api/IssuingHH/GetStorageBinLocation")
     suspend fun getStorageBinLocationIssuing(@Query("storageBinCode") storageBinCode: String): Response<MobileResponse<StorageBinLocationDto>>
+
 
     @GET("api/IssuingHH/GetMaterialOnHandStock")
     suspend fun getMaterialOnHandStock(
@@ -281,6 +290,21 @@ interface ApiService {
     suspend fun getMaterialImage(
         @Query("materialCode") materialCode: String
     ): Response<okhttp3.ResponseBody>
+
+    @GET("api/ReceivingHH/GetMaterialImages")
+    suspend fun getMaterialImages(
+        @Query("materialCode") materialCode: String
+    ): Response<MobileResponse<MaterialImagesResponseDto>>
+
+    @GET("api/ReceivingHH/GetMaterialImageFile")
+    suspend fun getMaterialImageFile(
+        @Query("materialImageId") materialImageId: Int
+    ): Response<okhttp3.ResponseBody>
+
+    @DELETE("api/ReceivingHH/DeleteMaterialImage")
+    suspend fun deleteMaterialImage(
+        @Query("materialImageId") materialImageId: Int
+    ): Response<MobileResponse<MaterialImageItemDto>>
 
     @Multipart
     @POST("api/ReceivingHH/UploadMaterialImage")

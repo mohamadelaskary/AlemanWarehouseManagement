@@ -49,6 +49,17 @@ class IssuingRepositoryImpl @Inject constructor(
             .map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
     }
 
+    override suspend fun getMaterialBinLocations(
+        plantCode: String,
+        warehouseCode: String,
+        materialCode: String,
+        valuationType: String
+    ): NetworkResult<List<MaterialBinLocation>> {
+        return safeApiCall { api.getMaterialBinLocations(plantCode, warehouseCode, materialCode, valuationType) }
+            .map { response -> response.data?.map { it.toDomain() } ?: emptyList() }
+    }
+
+
     override suspend fun getStorageBinLocation(storageBinCode: String): NetworkResult<StorageBinLocation> {
         return safeApiCall { api.getStorageBinLocationIssuing(storageBinCode) }
             .map { response ->

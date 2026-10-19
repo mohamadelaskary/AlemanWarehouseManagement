@@ -326,3 +326,21 @@ fun IssuingOpenOrderCountsDto.toDomain() = IssuingOpenOrderCounts(
     transferOrder = transferOrder,
     total = total
 )
+
+fun MaterialBinLocationDto.toDomain() = MaterialBinLocation(
+    storageBinName = storageBinName,
+    onHandQty = onHandQty,
+    reservedQty = reservedQty,
+    plantCode = plantCode,
+    warehouseCode = warehouseCode,
+    storageBinCode = storageBinCode,
+    materialCode = materialCode,
+    materialDescription = materialDescription,
+    uom = uom,
+    batch = batch,
+    batchDate = batchDate,
+    valuationType = valuationType,
+    isBatchManaged = isBatchManaged,
+    availableQty = availableQty
+)
+

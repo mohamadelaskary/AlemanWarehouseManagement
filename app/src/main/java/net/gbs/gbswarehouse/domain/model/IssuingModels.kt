@@ -163,3 +163,21 @@ data class IssuingOpenOrderCounts(
     val transferOrder: Int = 0,
     val total: Int = 0
 )
+
+data class MaterialBinLocation(
+    val storageBinName: String?,
+    val onHandQty: Double?,
+    val reservedQty: Double?,
+    val plantCode: String?,
+    val warehouseCode: String?,
+    val storageBinCode: String?,
+    val materialCode: String?,
+    val materialDescription: String?,
+    val uom: String?,
+    val batch: String?,
+    val batchDate: String?,
+    val valuationType: String?,
+    val isBatchManaged: Boolean?,
+    val availableQty: Double?
+)
+

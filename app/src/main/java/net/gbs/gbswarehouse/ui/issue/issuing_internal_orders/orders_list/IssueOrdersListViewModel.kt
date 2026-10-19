@@ -65,7 +65,8 @@ class IssueOrdersListViewModel @Inject constructor(
 
     val filteredOrders: List<SparePartsReturnReservationOrder> get() {
         return if (orderSearch.isBlank()) orders
-        else orders.filter { 
+        else orders.filter {
+            it.orderNumber?.contains(orderSearch) == true ||
             it.reservationNumber?.contains(orderSearch) == true || 
             it.orderDescription?.contains(orderSearch, ignoreCase = true) == true 
         }

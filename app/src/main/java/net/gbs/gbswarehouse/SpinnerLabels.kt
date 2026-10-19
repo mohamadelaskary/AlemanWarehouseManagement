@@ -5,6 +5,7 @@ import net.gbs.gbswarehouse.domain.model.CarType
 import net.gbs.gbswarehouse.domain.model.Company
 import net.gbs.gbswarehouse.domain.model.CostCenter
 import net.gbs.gbswarehouse.domain.model.LoadingVendor
+import net.gbs.gbswarehouse.domain.model.MaterialBinLocation
 import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
 import net.gbs.gbswarehouse.domain.model.NaolonDescription
 import net.gbs.gbswarehouse.domain.model.PackageType
@@ -69,3 +70,6 @@ fun formatQty(quantity: Float): String =
 /** Back to the spinner so a pre-filled selection can be replaced by another one. */
 fun clearSpinnerText(current: String, selectedLabel: String): String =
     if (current == selectedLabel) "" else current
+
+fun MaterialBinLocation.spinnerLabel(): String =
+    "${storageBinCode} - ${storageBinName ?: ""} (Qty: ${availableQty ?: 0.0})"

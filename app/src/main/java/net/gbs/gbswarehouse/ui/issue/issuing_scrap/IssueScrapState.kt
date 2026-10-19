@@ -3,6 +3,7 @@ package net.gbs.gbswarehouse.ui.issue.issuing_scrap
 import net.gbs.gbswarehouse.data.remote.dto.response.ScrapIssueLineDto
 import net.gbs.gbswarehouse.domain.model.Company
 import net.gbs.gbswarehouse.domain.model.CostCenter
+import net.gbs.gbswarehouse.domain.model.MaterialBinLocation
 import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
 import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.SAPMaterialBatchValuationStock
@@ -16,6 +17,7 @@ data class IssueScrapState(
     val isStockLoading: Boolean = false,
     val isSaving: Boolean = false,
     val isBinLoading: Boolean = false,
+    val isBinLocationsLoading: Boolean = false,
 
     val documentHeaderText: String = "",
     val documentHeaderError: Message? = null,
@@ -30,6 +32,9 @@ data class IssueScrapState(
     val binInput: String = "",
     val selBinData: StorageBinLocation? = null,
     val binCodeError: Message? = null,
+    val binLocations: List<MaterialBinLocation> = emptyList(),
+    val selectedBinLocation: MaterialBinLocation? = null,
+    val binSearchText: String = "",
 
     val stockOnHandList: List<MaterialOnHandStock> = emptyList(),
     val selectedOnHandStock: MaterialOnHandStock? = null,

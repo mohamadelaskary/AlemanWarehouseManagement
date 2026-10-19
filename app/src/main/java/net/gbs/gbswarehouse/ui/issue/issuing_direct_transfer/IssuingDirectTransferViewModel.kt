@@ -387,14 +387,14 @@ class IssuingDirectTransferViewModel @Inject constructor(
     private fun issueAll() {
         val st = _state.value
         if (st.addedLines.isEmpty() || st.isSaving) return
-        if (st.addedLines.size!=st.groupedMaterials.size){
-            _state.update {
-                it.copy(
-                    savingSuccessMessage = Message.Resource(R.string.please_add_all_car_items_to_save_receiving)
-                )
-            }
-            return
-        }
+//        if (st.addedLines.size!=st.groupedMaterials.size){
+//            _state.update {
+//                it.copy(
+//                    savingSuccessMessage = Message.Resource(R.string.please_add_all_car_items_to_save_receiving)
+//                )
+//            }
+//            return
+//        }
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true) }
             val request = PostDirectTransferDto(lines = st.addedLines)

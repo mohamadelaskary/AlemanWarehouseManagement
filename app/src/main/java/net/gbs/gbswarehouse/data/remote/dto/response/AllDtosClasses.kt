@@ -1022,4 +1022,39 @@ data class CreateBlindReceiveResultDto(
     @SerializedName("status") val status: String?
 )
 
+@Serializable
+data class MaterialBinLocationDto(
+    @SerializedName("storageBinName") val storageBinName: String?,
+    @SerializedName("onHandQty") val onHandQty: Double?,
+    @SerializedName("reservedQty") val reservedQty: Double?,
+    @SerializedName("plantCode") val plantCode: String?,
+    @SerializedName("warehouseCode") val warehouseCode: String?,
+    @SerializedName("storageBinCode") val storageBinCode: String?,
+    @SerializedName("materialCode") val materialCode: String?,
+    @SerializedName("materialDescription") val materialDescription: String?,
+    @SerializedName("uom") val uom: String?,
+    @SerializedName("batch") val batch: String?,
+    @SerializedName("batchDate") val batchDate: String?,
+    @SerializedName("valuationType") val valuationType: String?,
+    @SerializedName("isBatchManaged") val isBatchManaged: Boolean?,
+    @SerializedName("availableQty") val availableQty: Double?
+)
+
+@Serializable
+data class MaterialImagesResponseDto(
+    @SerializedName("materialCode") val materialCode: String?,
+    @SerializedName("materialDescription") val materialDescription: String?,
+    @SerializedName("imageCount") val imageCount: Int,
+    @SerializedName("images") val images: List<MaterialImageItemDto>
+)
+
+@Serializable
+data class MaterialImageItemDto(
+    @SerializedName("materialImageId") val materialImageId: Int,
+    @SerializedName("imagePath") val imagePath: String?,
+    @SerializedName("createdAt") val createdAt: String?
+)
+
+
+
 

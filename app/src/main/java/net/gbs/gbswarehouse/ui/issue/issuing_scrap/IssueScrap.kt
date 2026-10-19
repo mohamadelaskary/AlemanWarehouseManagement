@@ -71,6 +71,7 @@ import net.gbs.gbswarehouse.ui.issue.OnHandStockSection
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.honeywellscanner.ScannerEffect
 import net.gbs.gbswarehouse.SearchableSpinner
+import net.gbs.gbswarehouse.spinnerLabel
 import net.gbs.gbswarehouse.ui.issue.issuing_direct_transfer.IssuingSelectedBinCard
 import net.gbs.gbswarehouse.ui.theme.AppColors
 
@@ -300,27 +301,31 @@ fun BottomSheetDialog(title: String, colors: AppColors, onClose: () -> Unit, con
 }
 
 @Composable
-fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier, colors: AppColors) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(colors.dark)
-            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = true,
-            textStyle = TextStyle(
-                color = colors.text, fontSize = 13.sp,
-                textDirection = TextDirection.Ltr
-            ),
-            cursorBrush = SolidColor(YELLOW),
-            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
-            decorationBox = { inner ->
-                if (value.isEmpty()) Text("كود البن (Bin Code)...", color = colors.muted, fontSize = 13.sp)
-                inner()
+fun BinLocationSearchableSpinner(
+    items: List<net.gbs.gbswarehouse.domain.model.MaterialBinLocation>,
+    onItemSelected: (net.gbs.gbswarehouse.domain.model.MaterialBinLocation) -> Unit,
+    accent: Color,
+    searchText: String,
+    onSearchTextChanged: (String) -> Unit,
+    isLoading: Boolean
+) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(Modifier.width(3.dp).height(12.dp).background(accent, RoundedCornerShape(2.dp)))
+            Text(stringResource(R.string.bin), color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            if (isLoading) {
+                Spacer(Modifier.width(8.dp))
+                CircularProgressIndicator(color = accent, modifier = Modifier.height(14.dp).width(14.dp), strokeWidth = 2.dp)
             }
+        }
+        Spacer(Modifier.height(8.dp))
+        SearchableSpinner(
+            hint = stringResource(R.string.select_bin),
+            items = items,
+            itemLabel = { it.spinnerLabel() },
+            onItemSelected = onItemSelected,
+            searchText = searchText,
+            onSearchTextChanged = onSearchTextChanged
         )
     }
 }
@@ -354,14 +359,13 @@ fun IssueScrapSelectedMaterialCard(
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.issued_from_warehouse_location_data), color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(4.dp))
-        BinCodeInput(
-            value = state.binInput,
-            onValueChange = {
-                viewModel.onEvent(IssueScrapEvent.OnBinInputChanged(it))
-                if (it.length >= 4) viewModel.onEvent(IssueScrapEvent.OnScanBin(it))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = colors
+        BinLocationSearchableSpinner(
+            items = state.binLocations,
+            onItemSelected = { viewModel.onEvent(IssueScrapEvent.OnBinLocationSelected(it)) },
+            accent = accent,
+            searchText = state.binSearchText,
+            onSearchTextChanged = { viewModel.onEvent(IssueScrapEvent.OnBinSearchTextChanged(it)) },
+            isLoading = state.isBinLocationsLoading
         )
         if (state.binCodeError != null){
             Text(state.binCodeError!!.text, color = colors.danger, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))

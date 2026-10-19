@@ -399,4 +399,7 @@
     <string name="image_unavailable">الصورة غير متوفرة</string>
     <string name="add_image">إضافة صورة</string>
     <string name="change_image">تغيير الصورة</string>
+    <string name="add_another_image">إضافة صورة أخرى</string>
+    <string name="loading_group">مجموعة التحميل</string>
+    <string name="enter_loading_group">اختر مجموعة التحميل</string>
 </resources>

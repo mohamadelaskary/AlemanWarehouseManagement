@@ -23,7 +23,15 @@ interface IssuingRepository {
     
     suspend fun getScrapEligibleStock(): NetworkResult<List<SAPMaterialBatchValuationStock>>
     
+    suspend fun getMaterialBinLocations(
+        plantCode: String,
+        warehouseCode: String,
+        materialCode: String,
+        valuationType: String
+    ): NetworkResult<List<MaterialBinLocation>>
+    
     suspend fun getStorageBinLocation(storageBinCode: String): NetworkResult<StorageBinLocation>
+
     
     // Transfer to Production
     suspend fun getTransferToProductionReservations(): NetworkResult<List<SparePartsReturnReservationOrder>>

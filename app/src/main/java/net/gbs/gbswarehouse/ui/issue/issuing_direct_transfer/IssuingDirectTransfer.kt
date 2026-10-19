@@ -228,8 +228,9 @@ fun IssuingDirectTransferScreen(navController: NavController) {
                         item {
                             Spacer(Modifier.height(10.dp))
                             WorkersGroupsSpinner(
-                                label = stringResource(R.string.workers_group),
-                                hint = stringResource(R.string.select_workers_group),
+
+                                label = stringResource(R.string.loading_group),
+                                hint = stringResource(R.string.enter_loading_group),
                                 items = state.workersGroupsList,
                                 onItemSelected = { viewModel.onEvent(IssuingDirectTransferEvent.OnWorkersGroupSelected(it)) },
                                 accent = accent,

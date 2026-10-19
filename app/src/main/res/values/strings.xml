@@ -399,4 +399,7 @@
     <string name="image_unavailable">Image not found</string>
     <string name="add_image">Add image</string>
     <string name="change_image">Change image</string>
+    <string name="add_another_image">Add another image</string>
+    <string name="loading_group">مجموعة التحميل</string>
+    <string name="enter_loading_group">Enter loading group</string>
 </resources>

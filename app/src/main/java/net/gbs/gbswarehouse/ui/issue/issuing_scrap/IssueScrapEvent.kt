@@ -2,6 +2,7 @@ package net.gbs.gbswarehouse.ui.issue.issuing_scrap
 
 import net.gbs.gbswarehouse.domain.model.Company
 import net.gbs.gbswarehouse.domain.model.CostCenter
+import net.gbs.gbswarehouse.domain.model.MaterialBinLocation
 import net.gbs.gbswarehouse.domain.model.MaterialOnHandStock
 import net.gbs.gbswarehouse.domain.model.SAPMaterialBatchValuationStock
 
@@ -18,6 +19,8 @@ sealed class IssueScrapEvent {
     data class OnBinInputChanged(val text: String) : IssueScrapEvent()
     data class OnScanBin(val binCode: String) : IssueScrapEvent()
     object OnClearBin : IssueScrapEvent()
+    data class OnBinLocationSelected(val binLocation: MaterialBinLocation) : IssueScrapEvent()
+    data class OnBinSearchTextChanged(val text: String) : IssueScrapEvent()
 
     data class OnStockSearchTextChanged(val text: String) : IssueScrapEvent()
     data class OnOnHandStockSelected(val stock: MaterialOnHandStock) : IssueScrapEvent()
