@@ -14,6 +14,7 @@ import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.data.remote.dto.response.RawMaterialsLineDto
 import net.gbs.gbswarehouse.data.remote.dto.response.ReceiveRawMaterialsDto
 import net.gbs.gbswarehouse.domain.model.Message
+import net.gbs.gbswarehouse.domain.model.Message.*
 import net.gbs.gbswarehouse.domain.model.RawMaterialsPurchaseOrderItem
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllCarNumbersUseCase
 import net.gbs.gbswarehouse.domain.usecase.receiving.GetAllCarTypesUseCase
@@ -81,7 +82,7 @@ class DetailsViewModel @Inject constructor(
                 if (material != null) {
                     selectMaterial(material)
                 } else {
-                    _state.update { it.copy(materialCodeError = Message.Resource(R.string.material_not_found)) }
+                    _state.update { it.copy(materialCodeError = Resource(R.string.material_not_found)) }
                 }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnClearMaterial -> {
@@ -106,7 +107,7 @@ class DetailsViewModel @Inject constructor(
                 _state.update { it.copy(workerGroupSearchText = event.text) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnWorkerGroupSelected -> {
-                _state.update { it.copy(selectedWorkerGroup = event.workerGroup, workerGroupError = null) }
+                _state.update { it.copy(selectedWorkerGroup = event.workerGroup, workerGroupError = null, workerGroupSearchText = event.workerGroup.workerGroupCode) }
             }
             is ReceivingRawMaterialsFromVendorDetailsEvent.OnNaolonDescriptionSearchTextChanged -> {
                 _state.update { it.copy(naolonDescriptionSearchText = event.text) }
@@ -167,6 +168,10 @@ class DetailsViewModel @Inject constructor(
                     )
                 }
                 d(TAG, "onEvent: ${_state.value.selectedLoadingVendor}")
+            }
+
+            is ReceivingRawMaterialsFromVendorDetailsEvent.OnNotesTextChanged -> {
+                _state.update { it.copy(notes = event.text) }
             }
         }
     }
@@ -325,7 +330,7 @@ class DetailsViewModel @Inject constructor(
             _state.update { it.copy(warehouseError = Message.Resource(R.string.required_field)) }
             hasError = true
         }
-        if (st.selectedCarNumber == null) {
+        if (st.selectedCarNumber == null&& st.transportationVendor==transportationTypes.first()) {
             _state.update { it.copy(carNumberError = Message.Resource(R.string.required_field)) }
             hasError = true
         }
@@ -341,22 +346,22 @@ class DetailsViewModel @Inject constructor(
 //            _state.update { it.copy(naolonDescriptionError = context.getString(R.string.required_field)) }
 //            hasError = true
 //        }
-        if (st.selectedCarType == null) {
+        if (st.selectedCarType == null && st.transportationVendor==transportationTypes.first()) {
             _state.update { it.copy(carTypeError = Message.Resource(R.string.required_field)) }
             hasError = true
         }
-//        if (st.contNo.isEmpty()) {
-//            _state.update { it.copy(contNoError = context.getString(R.string.required_field)) }
+        if (st.contNo.isEmpty()&&st.transportationVendor==transportationTypes.first()) {
+            _state.update { it.copy(contNoError = Message.Resource(R.string.required_field)) }
+            hasError = true
+        }
+//        if (st.selectedLoadingVendor == null) {
+//            _state.update { it.copy(loadingVendorError = Message.Resource(R.string.required_field)) }
 //            hasError = true
 //        }
-        if (st.selectedLoadingVendor == null) {
-            _state.update { it.copy(loadingVendorError = Message.Resource(R.string.required_field)) }
-            hasError = true
-        }
-        if (st.selectedPackageType == null) {
-            _state.update { it.copy(packageTypeError = Message.Resource(R.string.required_field)) }
-            hasError = true
-        }
+//        if (st.selectedPackageType == null) {
+//            _state.update { it.copy(packageTypeError = Message.Resource(R.string.required_field)) }
+//            hasError = true
+//        }
         if (st.quantity.isEmpty() || (st.quantity.toDoubleOrNull() ?: 0.0) <= 0.0) {
             _state.update { it.copy(quantityError = Message.Resource(R.string.please_enter_a_valid_quantity)) }
             hasError = true
@@ -404,6 +409,7 @@ class DetailsViewModel @Inject constructor(
             _state.update { it.copy(isSaving = true) }
             val request = ReceiveRawMaterialsDto(
                 poNumber = st.purchaseOrder.poNumber,
+                notes = st.notes,
                 lines = st.addedItems
             )
             when (val result = receiveRawMaterialsUseCase(request)) {

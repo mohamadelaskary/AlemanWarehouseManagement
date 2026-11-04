@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">GBS Warehouse</string>
-    <string name="main_warehouse">Main Warehouse</string>
+    <string name="main_warehouse">GBS Warehouse management system</string>
     <string name="warehouse_ops_system">Warehouse Operations System</string>
     <string name="login">Login</string>
     <string name="username">Username</string>
@@ -155,6 +155,8 @@
     <string name="enter_cont_no">Enter contract number</string>
     <string name="select_loading_vendor">Select loading vendor</string>
     <string name="loading_vendor">Loading vendor</string>
+    <string name="loading_vendor_optional">Loading vendor(Optional)</string>
+
     <string name="select_packing_type">Select packing type</string>
     <string name="packing_type">Packing type</string>
     <string name="enter_expiry_date">Enter expiry date</string>
@@ -402,4 +404,5 @@
     <string name="add_another_image">Add another image</string>
     <string name="loading_group">مجموعة التحميل</string>
     <string name="enter_loading_group">Enter loading group</string>
+    <string name="cont_no_optional">Contract Number (Optional)</string>
 </resources>

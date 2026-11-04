@@ -88,7 +88,7 @@ class ReceivingFinishedGoodsFeedDetailsViewModel @Inject constructor(
             }
             is ReceivingFinishedGoodsFeedEvent.OnWorkersGroupSelected -> {
                 _uiState.update { 
-                    val newState = it.copy(selectedWorkersGroup = event.workersGroup, workersGroupError = null, workersGroupSearchText = event.workersGroup.workerGroupDescription)
+                    val newState = it.copy(selectedWorkersGroup = event.workersGroup, workersGroupError = null, workersGroupSearchText = event.workersGroup.workerGroupCode)
                     newState.copy(isReadyToReceive = newState.selectedMaterial != null && newState.selectedWarehouse != null && newState.selectedWorkersGroup != null && newState.quantity.isNotEmpty())
                 }
             }

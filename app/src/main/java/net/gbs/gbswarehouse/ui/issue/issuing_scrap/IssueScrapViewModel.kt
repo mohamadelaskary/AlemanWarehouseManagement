@@ -28,6 +28,7 @@ import net.gbs.gbswarehouse.domain.usecase.issuing.GetStorageBinLocationIssuingU
 import net.gbs.gbswarehouse.domain.usecase.issuing.ScrapIssueUseCase
 import javax.inject.Inject
 import net.gbs.gbswarehouse.StockSelectionRestore
+import net.gbs.gbswarehouse.resolveScrapStockSelection
 import net.gbs.gbswarehouse.resolveStockSelection
 import net.gbs.gbswarehouse.spinnerLabel
 
@@ -372,7 +373,7 @@ class IssueScrapViewModel @Inject constructor(
                             )
                         }
                     } else {
-                        val resolved = resolveStockSelection(stockList, Double.MAX_VALUE, pendingStockRestore)
+                        val resolved = resolveScrapStockSelection(stockList, Double.MAX_VALUE, pendingStockRestore)
                         pendingStockRestore = null
                         _state.update {
                             it.copy(

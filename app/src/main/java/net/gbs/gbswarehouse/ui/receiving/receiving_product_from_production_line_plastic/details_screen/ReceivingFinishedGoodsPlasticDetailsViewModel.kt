@@ -107,7 +107,7 @@ class ReceivingFinishedGoodsPlasticDetailsViewModel @Inject constructor(
                     it.copy(
                         selectedWorkersGroup = event.workersGroup,
                         workersGroupError = null,
-//                        workersGroupSearchText = event.workersGroup.workerGroupDescription
+                        workersGroupSearchText = event.workersGroup
                     )
 
                 }

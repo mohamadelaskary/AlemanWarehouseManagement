@@ -74,6 +74,8 @@ import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.SearchableSpinner
 import net.gbs.gbswarehouse.Section
+import net.gbs.gbswarehouse.ReceivingScreenNames
+import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SuccessDialog
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.TransportationType
@@ -121,6 +123,11 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
         SuccessDialog(
             accent = accent,
             message = state.saveSuccessMessage!!.text,
+            loadingButtonText = stringResource(R.string.putaway),
+            onLoadingClick = {
+                viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnDismissDialogs)
+                navController.navigate(Screens.PutAwayOrders.createRoute(ReceivingScreenNames.RawMaterialsFromVendor))
+            },
             onClose = {
                 viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnDismissDialogs)
             }
@@ -187,7 +194,10 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
                                 }
                             }
                         }
-
+                        item {
+                            Spacer(Modifier.height(4.dp))
+                            Field(stringResource(R.string.notes), stringResource(R.string.notes), state.notes?:"", { viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnNotesTextChanged(it)) })
+                        }
                         item {
                             Section(label = stringResource(R.string.item_data), accent = accent) {
                                 Column {
@@ -502,14 +512,15 @@ fun SelectedRawMaterialToVendorMaterialCard(
                 fontSize = 10.sp
             )
         }
-        CarTypeSpinner(
-            items = state.carTypes,
-            onItemSelected = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnCarTypeSelected(it)) },
-            searchText = state.carTypeSearchText,
-            onSearchTextChanged = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnCarTypeSearchTextChanged(it)) }
-        )
-        if (state.carTypeError != null) Text(state.carTypeError!!.text, color = Color.Red, fontSize = 10.sp)
+
         if (state.transportationVendor==transportationTypes.first()) {
+            CarTypeSpinner(
+                items = state.carTypes,
+                onItemSelected = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnCarTypeSelected(it)) },
+                searchText = state.carTypeSearchText,
+                onSearchTextChanged = { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnCarTypeSearchTextChanged(it)) }
+            )
+            if (state.carTypeError != null) Text(state.carTypeError.text, color = Color.Red, fontSize = 10.sp)
             Box(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                     .clip(RoundedCornerShape(8.dp)).background(colors.dark).padding(12.dp)
@@ -525,9 +536,10 @@ fun SelectedRawMaterialToVendorMaterialCard(
             }
         }
 
-        Field(stringResource(R.string.cont_no) + " *", stringResource(R.string.enter_cont_no), state.contNo, { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnContNoChanged(it)) })
-        if (state.contNoError != null) Text(state.contNoError!!.text, color = Color.Red, fontSize = 10.sp)
+
         if (state.transportationVendor==transportationTypes.first()){
+            Field(stringResource(R.string.cont_no) , stringResource(R.string.enter_cont_no), state.contNo, { onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.OnContNoChanged(it)) })
+            if (state.contNoError != null) Text(state.contNoError.text, color = Color.Red, fontSize = 10.sp)
             Spacer(Modifier.height(5.dp))
             Box(
                 modifier = Modifier
@@ -536,7 +548,9 @@ fun SelectedRawMaterialToVendorMaterialCard(
                 contentAlignment = Alignment.Center
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(stringResource(R.string.loading_vendor),color = colors.muted)
+                    Text(
+                        stringResource(R.string.loading_vendor)
+                        ,color = colors.muted)
                     Text(state.selectedLoadingVendor?.vendorName?:"", color = accent, fontWeight = FontWeight.Bold)
                 }
             }

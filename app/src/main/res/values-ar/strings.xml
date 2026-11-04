@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">جي بي إس للمخازن</string>
-    <string name="main_warehouse">المخزن الرئيسي</string>
+    <string name="main_warehouse">جي بي اس لإدارة المخازن</string>
     <string name="warehouse_ops_system">نظام العمليات المخزنية</string>
     <string name="login">تسجيل الدخول</string>
     <string name="username">اسم المستخدم</string>
@@ -402,4 +402,7 @@
     <string name="add_another_image">إضافة صورة أخرى</string>
     <string name="loading_group">مجموعة التحميل</string>
     <string name="enter_loading_group">اختر مجموعة التحميل</string>
+    <string name="cont_no_optional">رقم العقد (اختياري)</string>
+    <string name="loading_vendor_optional">مورد النقل</string>
+
 </resources>

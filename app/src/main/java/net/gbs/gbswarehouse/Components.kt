@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -427,9 +428,11 @@ fun SearchBox(value: String, onValueChange: (String) -> Unit, placeholder: Strin
               modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     val twoTapState = rememberTwoTapKeyboardState()
+    val focusRequester = remember { FocusRequester() }
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .twoTap(twoTapState, focusRequester = focusRequester)
             .clip(RoundedCornerShape(8.dp))
             .background(colors.dark)
             .border(1.dp, colors.border2, RoundedCornerShape(8.dp))
@@ -447,7 +450,7 @@ fun SearchBox(value: String, onValueChange: (String) -> Unit, placeholder: Strin
             cursorBrush = SolidColor(GREEN),
             modifier = Modifier
                 .weight(1f)
-                .twoTap(twoTapState)
+                .focusRequester(focusRequester)
                 .padding(vertical = 9.dp),
             decorationBox = { inner ->
                 if (value.isEmpty()) Text(placeholder, color = colors.muted, fontSize = 12.sp)
@@ -466,9 +469,11 @@ fun OrderNumberSearchBox(value: String, onValueChange: (String) -> Unit,onSearch
               modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     val twoTapState = rememberTwoTapKeyboardState()
+    val focusRequester = remember { FocusRequester() }
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .twoTap(twoTapState, focusRequester = focusRequester)
             .clip(RoundedCornerShape(8.dp))
             .background(colors.dark)
             .border(1.dp, colors.border2, RoundedCornerShape(8.dp))
@@ -484,7 +489,7 @@ fun OrderNumberSearchBox(value: String, onValueChange: (String) -> Unit,onSearch
             cursorBrush = SolidColor(GREEN),
             modifier = Modifier
                 .weight(1f)
-                .twoTap(twoTapState)
+                .focusRequester(focusRequester)
                 .padding(vertical = 9.dp),
             decorationBox = { inner ->
                 if (value.isEmpty()) Text(placeholder, color = colors.muted, fontSize = 12.sp)
@@ -693,6 +698,36 @@ fun ErrorDialogCard(label: String,message: String, accent: Color) {
     }
 }
 @Composable
+fun MultiChoiceDialogCard(label: String,message: String, accent: Color) {
+    val colors = AppTheme.colors
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(colors.bg)
+            .border(1.dp, accent.copy(0.28f), RoundedCornerShape(12.dp))
+            .padding(24.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .clip(CircleShape)
+                .background(colors.bg)
+                .border(2.dp, accent, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            //Text("✕", color = accent, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Icon(Icons.Default.Warning, modifier = Modifier.size(24.dp), contentDescription = null, tint = accent)
+        }
+        Spacer(Modifier.height(12.dp))
+        Text(label, color = accent, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+        Spacer(Modifier.height(4.dp))
+        Text(message, color = colors.muted, fontSize = 11.sp)
+    }
+}
+@Composable
 fun SuccessDialog(
     accent: Color,
     message: String,
@@ -715,6 +750,44 @@ fun SuccessDialog(
                 onClose()
             }, modifier = Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 10.dp),){
                 Icon(imageVector = Icons.Default.Close, contentDescription = null, tint = colors.muted)
+            }
+        }
+    }
+}
+@Composable
+fun MutiChoiceDialog(
+    accent: Color,
+    message: String,
+    onOkClicked:()->Unit,
+    onCancelClicked:()->Unit,
+    onClose: () -> Unit
+){
+    val colors = AppTheme.colors
+    Dialog(onDismissRequest = onClose) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Box(modifier = Modifier.wrapContentSize()) {
+                MultiChoiceDialogCard(
+                    label = stringResource(R.string.success),
+                    message = message,
+                    accent = accent,
+                )
+                IconButton(onClick = {
+                    onClose()
+                }, modifier = Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 10.dp),){
+                    Icon(imageVector = Icons.Default.Close, contentDescription = null, tint = colors.muted)
+                }
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(10.dp),){
+               Button(modifier = Modifier.weight(1f), onClick = {
+                   onOkClicked()
+               }){
+                   Text("Ok")
+               }
+               Button(modifier = Modifier.weight(1f),onClick = {
+                   onCancelClicked()
+               }){
+                   Text("Cancel")
+               }
             }
         }
     }
@@ -1420,13 +1493,23 @@ fun <T> SearchableSpinner(
     onItemSelected: (T) -> Unit,
     modifier: Modifier = Modifier,
     searchText: String = "",
-    onSearchTextChanged: (String) -> Unit = {}
+    onSearchTextChanged: (String) -> Unit = {},
+    isEnabled : Boolean = true,
 ) {
     val colors = AppTheme.colors
     var expanded by remember { mutableStateOf(false) }
-    val twoTapState = rememberTwoTapKeyboardState()
+    var isKeyboardEnabled by remember { mutableStateOf(false) }
+    var isFocused by remember { mutableStateOf(false) }
+
+    val readOnly = isFocused && !isKeyboardEnabled
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(isFocused, isKeyboardEnabled) {
+        if (isFocused && !isKeyboardEnabled) {
+            keyboardController?.hide()
+        }
+    }
 
     val filteredItems = remember(searchText, items) {
         when {
@@ -1452,23 +1535,37 @@ fun <T> SearchableSpinner(
             OutlinedTextField(
                 value = searchText,
                 onValueChange = {
-                    if (!twoTapState.isReadOnly) {
+                    if (!readOnly) {
                         onSearchTextChanged(it)
                         if (!expanded) expanded = true
                     }
                 },
-                readOnly = twoTapState.isReadOnly,
+                readOnly = readOnly,
                 placeholder = { Text(text = hint, color = colors.text.copy(alpha = 0.5f)) },
                 trailingIcon = {
-                    IconButton(onClick = { 
-                        expanded = !expanded
-                        keyboardController?.hide()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = null,
-                            tint = colors.text
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        if (searchText.isNotEmpty()) {
+                            IconButton(onClick = {
+                                onSearchTextChanged("")
+                                isKeyboardEnabled = false
+                                keyboardController?.hide()
+                            }) {
+                                Text("✕", color = colors.muted, fontSize = 14.sp)
+                            }
+                        }
+                        IconButton(onClick = {
+                            expanded = !expanded
+                            keyboardController?.hide()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = colors.text
+                            )
+                        }
                     }
                 },
                 singleLine = true,
@@ -1484,7 +1581,31 @@ fun <T> SearchableSpinner(
                 modifier = Modifier
                     .menuAnchor()
                     .fillMaxWidth()
-                    .twoTap(twoTapState, focusRequester = focusRequester)
+                    .focusRequester(focusRequester)
+                    .onFocusChanged {
+                        isFocused = it.isFocused
+                        if (!it.isFocused) {
+                            isKeyboardEnabled = false
+                            keyboardController?.hide()
+                        }
+                    }
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        if (!isFocused) {
+                            focusRequester.requestFocus()
+                            isFocused = true
+                            isKeyboardEnabled = false
+                            expanded = true
+                            keyboardController?.hide()
+                        } else if (!isKeyboardEnabled) {
+                            isKeyboardEnabled = true
+                            keyboardController?.show()
+                        } else {
+                            keyboardController?.show()
+                        }
+                    }
             )
 
             ExposedDropdownMenu(
@@ -1505,6 +1626,7 @@ fun <T> SearchableSpinner(
                                 onSearchTextChanged(itemLabel(item))
                                 onItemSelected(item)
                                 expanded = false
+                                isKeyboardEnabled = false
                                 keyboardController?.hide()
                             }
                         )

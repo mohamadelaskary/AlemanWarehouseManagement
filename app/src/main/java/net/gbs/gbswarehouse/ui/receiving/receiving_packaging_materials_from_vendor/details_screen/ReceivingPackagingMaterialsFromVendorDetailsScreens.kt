@@ -58,6 +58,8 @@ import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.Section
+import net.gbs.gbswarehouse.ReceivingScreenNames
+import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SuccessDialog
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.WarehousesSpinner
@@ -255,9 +257,18 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
         }
 
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage?.text.orEmpty()) {
-                viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.HideSuccessDialog)
-            }
+            SuccessDialog(
+                accent = colors.succ,
+                message = state.savingSuccessStatusMessage?.text.orEmpty(),
+                loadingButtonText = stringResource(R.string.putaway),
+                onLoadingClick = {
+                    viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.HideSuccessDialog)
+                    navController.navigate(Screens.PutAwayOrders.createRoute(ReceivingScreenNames.PackagingMaterialsFromVendor))
+                },
+                onClose = {
+                    viewModel.onEvent(ReceivingPackagingMaterialsFromVendorEvent.HideSuccessDialog)
+                }
+            )
         }
         if (state.showErrorDialog) {
             ErrorDialog(DANGER, state.savingErrorStatusMessage?.text.orEmpty()) {

@@ -116,7 +116,9 @@ class ConveyorStreamClient @Inject constructor(
 
     /** Same scheme/host/port rewriting the normal [BaseUrlInterceptor] applies. */
     private fun httpUrl(path: String, query: List<Pair<String, String>> = emptyList()): HttpUrl {
-        val settings = settingsPrefs.getBaseUrl().toHttpUrl()
+        val settings = runCatching {
+            settingsPrefs.getBaseUrl().toHttpUrl()
+        }.getOrNull() ?: Constants.BASE_URL.toHttpUrl()
         val base = Constants.BASE_URL.toHttpUrl().newBuilder()
             .scheme(settings.scheme)
             .host(settings.host)

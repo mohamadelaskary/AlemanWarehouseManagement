@@ -58,6 +58,8 @@ import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.Section
+import net.gbs.gbswarehouse.ReceivingScreenNames
+import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SuccessDialog
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.WarehousesSpinner
@@ -306,9 +308,18 @@ fun ReceivingProductFromBranchDetailsScreen(
         }
 
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage!!.text) {
-                viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
-            }
+            SuccessDialog(
+                accent = colors.succ,
+                message = state.savingSuccessStatusMessage!!.text,
+                loadingButtonText = stringResource(R.string.putaway),
+                onLoadingClick = {
+                    viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
+                    navController.navigate(Screens.PutAwayOrders.createRoute(ReceivingScreenNames.TransitOrderMaterial))
+                },
+                onClose = {
+                    viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
+                }
+            )
 //            navController.popBackStack()
         }
         if (state.showErrorDialog) {
@@ -912,9 +923,18 @@ fun InspectingProductFromBranchDetailsScreen(
         }
 
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage!!.text) {
-                viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
-            }
+            SuccessDialog(
+                accent = colors.succ,
+                message = state.savingSuccessStatusMessage!!.text,
+                loadingButtonText = stringResource(R.string.putaway),
+                onLoadingClick = {
+                    viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
+                    navController.navigate(Screens.PutAwayOrders.createRoute(ReceivingScreenNames.TransitOrderMaterial))
+                },
+                onClose = {
+                    viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
+                }
+            )
 //            navController.popBackStack()
         }
         if (state.showErrorDialog) {
@@ -1158,9 +1178,18 @@ fun PutAwayProductFromBranchDetailsScreen(
         }
 
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage!!.text) {
-                viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
-            }
+            SuccessDialog(
+                accent = colors.succ,
+                message = state.savingSuccessStatusMessage!!.text,
+                loadingButtonText = stringResource(R.string.putaway),
+                onLoadingClick = {
+                    viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
+                    navController.navigate(Screens.PutAwayOrders.createRoute(ReceivingScreenNames.TransitOrderMaterial))
+                },
+                onClose = {
+                    viewModel.onEvent(ReceivingProductFromBranchEvent.HideSuccessDialog)
+                }
+            )
 //            navController.popBackStack()
         }
         if (state.showErrorDialog) {

@@ -1,5 +1,6 @@
 package net.gbs.gbswarehouse.core.network
 
+import net.gbs.gbswarehouse.core.constants.Constants
 import net.gbs.gbswarehouse.core.preferences.SettingsPrefs
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -17,9 +18,9 @@ class BaseUrlInterceptor @Inject constructor(
 
         val currentUrl = request.url
 
-        val baseUrl = settingsPrefs
-            .getBaseUrl()
-            .toHttpUrl()
+        val baseUrl = runCatching {
+            settingsPrefs.getBaseUrl().toHttpUrl()
+        }.getOrNull() ?: Constants.BASE_URL.toHttpUrl()
 
         val newUrl = currentUrl.newBuilder()
             .scheme(baseUrl.scheme)

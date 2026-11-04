@@ -60,6 +60,8 @@ import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.SearchableSpinner
 import net.gbs.gbswarehouse.Section
+import net.gbs.gbswarehouse.ReceivingScreenNames
+import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SuccessDialog
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.WarehousesSpinner
@@ -298,9 +300,18 @@ fun ReceivingPoultryFromVendorDetailsScreen(
         }
         
         if (state.showSuccessDialog) {
-            SuccessDialog(colors.succ, state.savingSuccessStatusMessage!!.text) {
-                viewModel.onEvent(ReceivingPoultryFromVendorEvent.HideSuccessDialog)
-            }
+            SuccessDialog(
+                accent = colors.succ,
+                message = state.savingSuccessStatusMessage!!.text,
+                loadingButtonText = stringResource(R.string.putaway),
+                onLoadingClick = {
+                    viewModel.onEvent(ReceivingPoultryFromVendorEvent.HideSuccessDialog)
+                    navController.navigate(Screens.PutAwayOrders.createRoute(ReceivingScreenNames.PoultryMaterialsFromVendor))
+                },
+                onClose = {
+                    viewModel.onEvent(ReceivingPoultryFromVendorEvent.HideSuccessDialog)
+                }
+            )
         }
 //        LaunchedEffect(state.showSuccessDialog) {
 //            if (state.showSuccessDialog) {
@@ -571,7 +582,7 @@ fun SelectedPoultryMaterialCard(
         if (workersGroupError != null) Text(workersGroupError!!.text, color = DANGER, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(10.dp))
         Field(
-            label = stringResource(R.string.cont_no),
+            label = stringResource(R.string.cont_no_optional),
             hint = stringResource(R.string.enter_cont_no),
             value = contractNumber,
             onValueChange = onContractNumberEntered,

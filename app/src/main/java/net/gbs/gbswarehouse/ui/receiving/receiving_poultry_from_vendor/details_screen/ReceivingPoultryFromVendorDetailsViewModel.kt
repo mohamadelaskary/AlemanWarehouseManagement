@@ -239,7 +239,7 @@ class ReceivingPoultryFromVendorDetailsViewModel @Inject constructor(
             is ReceivingPoultryFromVendorEvent.OnUnloadingPointEntered ->
                 _uiState.update { it.copy(unloadingPoint = event.unloadingPoint, unloadingPointError = null) }
             is ReceivingPoultryFromVendorEvent.OnWorkerGroupSelected ->
-                _uiState.update { it.copy(selectedWorkerGroup = event.workerGroup, workerGroupError = null) }
+                _uiState.update { it.copy(selectedWorkerGroup = event.workerGroup, workerGroupError = null, workerGroupSearchText = event.workerGroup.workerGroupCode) }
             is ReceivingPoultryFromVendorEvent.OnWorkerGroupTextSearchChange ->
                 _uiState.update { it.copy(workerGroupSearchText = event.searchText, workerGroupError = null) }
             is ReceivingPoultryFromVendorEvent.OnPackingTypeSelected ->
@@ -505,11 +505,11 @@ class ReceivingPoultryFromVendorDetailsViewModel @Inject constructor(
             Log.d("ReceivingPoultryFromVendorDetailsViewModel", "unloading point null")
         }
 
-        if (contNo.isBlank()) {
-            _uiState.update { it.copy(contNoError = Message.Resource(R.string.enter_cont_no)) }
-            hasError = true
-            Log.d("ReceivingPoultryFromVendorDetailsViewModel", "cont no null")
-        }
+//        if (contNo.isBlank()) {
+//            _uiState.update { it.copy(contNoError = Message.Resource(R.string.enter_cont_no)) }
+//            hasError = true
+//            Log.d("ReceivingPoultryFromVendorDetailsViewModel", "cont no null")
+//        }
 
         if (expiryDate.isBlank()) {
             _uiState.update { it.copy(expiryDateError = Message.Resource(R.string.please_select_expiry_date)) }

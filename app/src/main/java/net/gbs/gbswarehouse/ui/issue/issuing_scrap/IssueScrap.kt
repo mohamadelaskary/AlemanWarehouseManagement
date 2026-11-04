@@ -392,7 +392,8 @@ fun IssueScrapSelectedMaterialCard(
                 onSearchTextChanged = { viewModel.onEvent(IssueScrapEvent.OnStockSearchTextChanged(it)) },
                 onStockSelected = { viewModel.onEvent(IssueScrapEvent.OnOnHandStockSelected(it)) },
                 accent = accent,
-                colors = colors
+                colors = colors,
+                isEnabled = false
             )
         }
         

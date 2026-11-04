@@ -295,7 +295,14 @@ class IssueDetailsViewModel @Inject constructor(
                     } else {
                         val isBatchManaged = stockList.any { it.isBatchManaged == true }
                         val hasValuationType = !isBatchManaged && stockList.any { !it.valuationType.isNullOrEmpty() }
-
+//                        if(hasValuationType){
+//                            val selectedValuationType = stockList.find { it.valuationType == line.batch } }
+//                            _state.update {
+//                                it.copy(
+//                                    selectedOnHandStock = selectedValuationType,
+//                                )
+//                            }
+//                        }
                         val resolved = resolveStockSelection(
                             stockList = stockList,
                             remainingQty = line.remainingQuantity ?: 0.0,

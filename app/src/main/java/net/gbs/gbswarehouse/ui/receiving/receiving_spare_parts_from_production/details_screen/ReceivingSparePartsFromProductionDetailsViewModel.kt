@@ -22,6 +22,7 @@ import net.gbs.gbswarehouse.domain.usecase.receiving.PostSparePartsReturnUseCase
 import javax.inject.Inject
 import net.gbs.gbswarehouse.formatQty
 import net.gbs.gbswarehouse.spinnerLabel
+import net.gbs.gbswarehouse.valuationTypes
 
 @HiltViewModel
 class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
@@ -172,6 +173,16 @@ class ReceivingSparePartsFromProductionDetailsViewModel @Inject constructor(
             if (alreadyAdded) {
                 _uiState.update { it.copy(materialCodeError = Message.Resource(R.string.material_already_added)) }
                 return
+            }
+            if(material.valuationTypes.isNotEmpty() && material.batch?.isNotBlank() == true) {
+                val selectedValuationType = material.valuationTypes.find { it.type == material.batch }
+                _uiState.update {
+                    it.copy(
+                        selectedValuationType = selectedValuationType,
+                        valuationTypeError = null,
+                        valuationSearchText = selectedValuationType?.spinnerLabel().orEmpty()
+                        )
+                }
             }
             _uiState.update { it.copy(selectedMaterial = material, materialCodeInput = materialCode, materialCodeError = null, quantity = (material.remainingQuantity ?: 0.0).toString()) }
             loadWarehouses(material.plantCode?:"")

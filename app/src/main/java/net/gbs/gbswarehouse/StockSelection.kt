@@ -69,3 +69,54 @@ fun resolveStockSelection(
         searchText = ""
     )
 }
+
+/**
+ * Works out the stock selection for Scrap issuing after a stock list is loaded.
+ * Defaults to selecting the item with valuationType "SCRAP" when [pending] is null.
+ */
+fun resolveScrapStockSelection(
+    stockList: List<MaterialOnHandStock>,
+    remainingQty: Double,
+    pending: StockSelectionRestore?
+): ResolvedStockSelection {
+    if (stockList.isEmpty()) {
+        return ResolvedStockSelection(null, 0.0, 0.0, "0", "")
+    }
+
+    val isBatchManaged = stockList.any { it.isBatchManaged == true }
+    val hasValuationType = !isBatchManaged && stockList.any { !it.valuationType.isNullOrEmpty() }
+
+    if (isBatchManaged || hasValuationType) {
+        val matched = if (pending != null) {
+            stockList.find {
+                if (isBatchManaged) it.batch == pending.batch else it.valuationType == pending.valuationType
+            }
+        } else {
+            stockList.find { it.valuationType.equals("SCRAP", true) }
+        }
+
+        if (matched == null) {
+            return ResolvedStockSelection(null, 0.0, 0.0, "0", "")
+        }
+        val availQty = matched.availableQty ?: 0.0
+        val maxQty = minOf(remainingQty, availQty)
+        val qty = pending?.qty ?: if (maxQty > 0) formatQty(maxQty) else "0"
+        return ResolvedStockSelection(
+            selected = matched,
+            availableQty = availQty,
+            maxQty = maxQty,
+            qty = qty,
+            searchText = matched.stockSpinnerLabel()
+        )
+    }
+
+    val availQty = stockList.sumOf { it.availableQty ?: 0.0 }
+    val maxQty = minOf(remainingQty, availQty)
+    return ResolvedStockSelection(
+        selected = stockList.firstOrNull(),
+        availableQty = availQty,
+        maxQty = maxQty,
+        qty = pending?.qty ?: if (maxQty > 0) formatQty(maxQty) else "0",
+        searchText = ""
+    )
+}

@@ -100,6 +100,7 @@ fun IssueSparePartsForMaintenanceDetailsScreen(
         Column(Modifier.fillMaxSize()) {
             TopBar(title = stringResource(R.string.issuing), subtitle = stringResource(R.string.spare_parts_for_maintenance),
                 accent = accent, onBack = {
+
                     navController.popBackStack()
                 })
 

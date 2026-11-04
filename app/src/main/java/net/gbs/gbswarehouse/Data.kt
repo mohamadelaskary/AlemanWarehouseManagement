@@ -89,6 +89,8 @@ data class Operation(
     val enName: String,
     val arName: String,
     val refType: String?,
+    val enShortName:String,
+    val arShortName:String,
     val blind: Boolean = false
 )
 
@@ -385,40 +387,43 @@ val AlEmanLoadingVendor = LoadingVendor(
     vendorName = "نور الايمان للنقل"
 )
 val RECV_OPS = listOf(
-    Operation(ReceivingScreenNames.RawMaterialsFromVendor, enName = "Raw materials from vendor",        "مواد خام من مورد",                  "PO"),
-    Operation(ReceivingScreenNames.SparePartsFromVendor,enName = "Spare parts from vendor",      "قطع غيار من مورد",                  "PO"),
-    Operation(ReceivingScreenNames.PackagingMaterialsFromVendor,  enName = "Packaging materials from vendor",      "مواد تعبئة وتغليف من مورد",         "PO"),
-    Operation(ReceivingScreenNames.PoultryMaterialsFromVendor, enName = "Poultry materials from vendor",   "إضافات أعلاف من مورد",              "PROD"),
-    Operation("recv-blind", enName = "Receiving without purchase order",     "استلام بدون أمر شراء",                       null, blind = true),
-    Operation(FinishedGoodsFeedFromProductionOrder,enName = "Finished goods (Feed)",    "منتج تام من الإنتاج(علف)",              "PROD"),
-    Operation(ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder, enName = "Finished goods (Plastic)",   "منتج تام من الإنتاج(بلاستيك)",              "PROD"),
-    Operation(ReceivingScreenNames.SparePartsReturn, enName = "Return spare parts to warehouse","ارتجاع قطع غيار للمخزن",      "PROD"),
-    Operation(ReceivingScreenNames.TransitOrderMaterial,  enName = "Warehouse transfers between Locations(Incoming)",   "تحويلات مخزنية بين المواقع(وارد)",              "TRANSFER"),
+    Operation(ReceivingScreenNames.RawMaterialsFromVendor, enName = "Raw materials from vendor",        "مواد خام من مورد", enShortName = "Raw materials", arShortName = "مواد خام",refType = "PO"),
+    Operation(ReceivingScreenNames.SparePartsFromVendor,enName = "Spare parts from vendor",      "قطع غيار من مورد", enShortName = "Spare parts vendor", arShortName = "قطع غيار مورد" ,                refType = "PO"),
+    Operation(ReceivingScreenNames.PackagingMaterialsFromVendor,  enName = "Packaging materials from vendor",      "مواد تعبئة وتغليف من مورد", enShortName = "Packaging", arShortName = "تعبئة وتغليف" ,refType = "PO"),
+    Operation(ReceivingScreenNames.PoultryMaterialsFromVendor, enName = "Poultry materials from vendor",   "إضافات أعلاف من مورد", enShortName = "Poultry", arShortName = "إضافات أعلاف" , refType =            "PROD"),
+    Operation("recv-blind", enName = "Receiving without purchase order",     "استلام بدون أمر شراء",  enShortName = "No order", arShortName = "بدون أمر"  , refType =                    null, blind = true),
+    Operation(FinishedGoodsFeedFromProductionOrder,enName = "Finished goods (Feed)",    "منتج تام من الإنتاج(علف)",  enShortName = "Finished goods feed" , arShortName = "منتج تام علف"   , refType =         "PROD"),
+    Operation(ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder, enName = "Finished goods (Plastic)",   "منتج تام من الإنتاج(بلاستيك)", enShortName = "Finished goods plastic", arShortName = "منتج تام بلاستيك"  , refType =            "PROD"),
+    Operation(ReceivingScreenNames.SparePartsReturn, enName = "Return spare parts to warehouse","ارتجاع قطع غيار للمخزن", enShortName = "Return spare parts", arShortName = "ارتجاع قطع غيار" , refType =     "PROD"),
+    Operation(ReceivingScreenNames.TransitOrderMaterial,  enName = "Warehouse transfers between Locations(Incoming)",   "تحويلات مخزنية بين المواقع(وارد)",  enShortName = "Transfers", arShortName = "تحويلات" , refType =            "TRANSFER"),
 //    Operation("recv-return",  enName = "Returns from customers",   "استلام منتج تام مرتجع من العميل",  "SO"),
 )
 
 val ISSUE_OPS = listOf(
-    Operation("issue-raw",enName = "Transfers to production warehouses",      "تحويلات إلى مخازن الانتاج",             "PROD"),
-    Operation("issue-spare",   enName = "Spare parts fo maintenance(Z61)", "قطع غيار للصيانة(Z61)",                 "MAINT"),
-    Operation("issue-internal",enName = "Internal order", "أمر داخلي",                         "INTERNAL"),
-    Operation("issue-sales",  enName = "Finished goods for sales or shipping (Feed)",  "منتج تام للبيع أو الشحن (علف)",          "SO"),
-    Operation("issue-sales_plastic",enName = "Finished goods for sales or shipping (Plastic)", "منتج تام للبيع أو الشحن (بلاستيك)",          "SO"),
-    Operation("issue-cost-center", enName = "Direct issuing on cost center",   "صرف مباشر علي مركز تكلفة",          "RESERVATION"),
-    Operation("issue-direct-transfer",enName = "Direct transfers (311)",    "تحويلات مباشرة(311)",          "SO"),
-    Operation("issue-transfer-plants", enName = "Warehouse transfers between plants ( Outcoming )", "تحويلات مخزنية بين الفروع (صادر)", "TRANSFER"),
+    Operation("issue-raw",enName = "Transfers to production warehouses",      "تحويلات إلى مخازن الانتاج",  enShortName = "Transfers", arShortName = "تحويلات"  , refType =          "PROD"),
+    Operation("issue-spare",   enName = "Spare parts fo maintenance(Z61)", "قطع غيار للصيانة(Z61)",  enShortName = "Spare parts maintenance" , arShortName = "قطع غيار صيانة" , refType =              "MAINT"),
+    Operation("issue-internal",enName = "Internal order", "أمر داخلي", enShortName = "Internal order", arShortName = "امر داخلي"      , refType =                   "INTERNAL"),
+    Operation("issue-sales",  enName = "Finished goods for sales or shipping (Feed)",  "منتج تام للبيع أو الشحن (علف)",  enShortName = "Finished goods feed" , arShortName = "منتج تام علف"  , refType = "SO"
+    ),
+    Operation("issue-sales_plastic",enName = "Finished goods for sales or shipping (Plastic)", "منتج تام للبيع أو الشحن (بلاستيك)",         enShortName = "Finished goods plastic", arShortName = "منتج تام بلاستيك"  , refType = "SO"),
+    Operation("issue-cost-center", enName = "Direct issuing on cost center",   "صرف مباشر علي مركز تكلفة", enShortName = "Cost center", arShortName = "مركز تكلفة"   , refType =       "RESERVATION"),
+    Operation("issue-direct-transfer",enName = "Direct transfers (311)",    "تحويلات مباشرة(311)",   enShortName = "Direct", arShortName = "مباشر" , refType =      "SO"),
+    Operation("issue-transfer-plants", enName = "Warehouse transfers between plants ( Outcoming )", "تحويلات مخزنية بين الفروع (صادر)",enShortName = "Transfers", arShortName = "تحويلات" , refType = "TRANSFER"),
 //    Operation("issue-sub", enName = "For vendors (subcontracting)",     "للمورد (تصنيع لدى الغير)",         "PO"),
-    Operation("issue-scrap",   enName = "Scrap", "هالك أو إعدام أو خردة",            "SCRAP"),
+    Operation("issue-scrap",   enName = "Scrap", "هالك أو إعدام أو خردة",  enShortName = "Scrap", arShortName = "هالك"  , refType =         "SCRAP"),
 )
 
 val PUT_AWAY_OPS = listOf(
-    Operation(RawMaterialsFromVendor, enName = "Raw materials from vendor",        "مواد خام من مورد",                  "PO"),
-    Operation(SparePartsFromVendor,  enName = "Spare parts from vendor",      "قطع غيار من مورد",                  "PO"),
-    Operation(PackagingMaterialsFromVendor,  enName = "Packaging materials from vendor",      "مواد تعبئة وتغليف من مورد",         "PO"),
-    Operation(FinishedGoodsFeedFromProductionOrder, enName = "Finished goods (Feed)",    "منتج تام من الإنتاج(علف)",              "PROD"),
-    Operation(FinishedGoodsPlasticFromProductionOrder, enName = "Finished goods (Plastic)",   "منتج تام من الإنتاج(بلاستيك)",              "PROD"),
-    Operation(SparePartsReturn, enName = "Return spare parts to warehouse","ارتجاع قطع غيار للمخزن",      "PROD"),
-    Operation(TransitOrderMaterial,  enName = "Warehouse transfers between Locations(Incoming)",   "تحويلات مخزنية بين المواقع(وارد)",              "TRANSFER"),
-    Operation("issue-direct-transfer-putaway", enName = "Stock transfers put away", "تسكين التحويلات المخزنية", "TRANSFER"),
+    Operation(RawMaterialsFromVendor, enName = "Raw materials from vendor",        "مواد خام من مورد",  enShortName = "Raw materials", arShortName = "مواد خام",refType =                "PO"),
+    Operation(SparePartsFromVendor,  enName = "Spare parts from vendor",      "قطع غيار من مورد",      enShortName = "Spare parts vendor", arShortName = "قطع غيار مورد" ,                refType =             "PO"),
+    Operation(PackagingMaterialsFromVendor,  enName = "Packaging materials from vendor",      "مواد تعبئة وتغليف من مورد", enShortName = "Packaging", arShortName = "تعبئة وتغليف" ,refType =        "PO"),
+    Operation(PoultryMaterialsFromVendor,  enName = "Poultry materials from vendor",      "إضافات أعلاف من مورد", enShortName = "Poultry", arShortName = "إضافات أعلاف" ,refType =        "PO"),
+
+    Operation(FinishedGoodsFeedFromProductionOrder, enName = "Finished goods (Feed)",    "منتج تام من الإنتاج(علف)",    enShortName = "Packaging", arShortName = "تعبئة وتغليف" ,refType =          "PROD"),
+    Operation(FinishedGoodsPlasticFromProductionOrder, enName = "Finished goods (Plastic)",   "منتج تام من الإنتاج(بلاستيك)",  enShortName = "Finished goods plastic", arShortName = "منتج تام بلاستيك"  , refType =            "PROD"),
+    Operation(SparePartsReturn, enName = "Return spare parts to warehouse","ارتجاع قطع غيار للمخزن",  enShortName = "Return spare parts", arShortName = "ارتجاع قطع غيار" , refType =     "PROD"),
+//    Operation(TransitOrderMaterial,  enName = "Warehouse transfers between Locations(Incoming)",   "تحويلات مخزنية بين المواقع(وارد)",   enShortName = "Transfers", arShortName = "تحويلات" , refType =           "TRANSFER"),
+    Operation("issue-direct-transfer-putaway", enName = "Stock transfers put away", "تسكين التحويلات المخزنية", enShortName = "Transfers", arShortName = "تحويلات" , refType ="TRANSFER"),
 )
 
 val OP_TYPES = listOf(

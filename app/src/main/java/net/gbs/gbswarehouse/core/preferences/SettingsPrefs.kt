@@ -6,6 +6,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import androidx.core.content.edit
+import net.gbs.gbswarehouse.core.constants.Constants
 
 @Singleton
 class SettingsPrefs @Inject constructor(
@@ -56,10 +57,13 @@ class SettingsPrefs @Inject constructor(
         prefs.getBoolean(PrefKeys.KEY_IS_DARK, false)
 
     fun getBaseUrl(): String {
-
-        val protocol = getProtocol()
+        val protocol = getProtocol().takeIf { it.isNotBlank() } ?: "http"
         val ip = getIp()
         val port = getPort()
+
+        if (ip.isBlank()) {
+            return Constants.BASE_URL
+        }
 
         return buildString {
             append(protocol)

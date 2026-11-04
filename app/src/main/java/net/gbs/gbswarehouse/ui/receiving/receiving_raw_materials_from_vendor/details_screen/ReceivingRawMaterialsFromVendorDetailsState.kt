@@ -81,6 +81,7 @@ data class ReceivingRawMaterialsFromVendorDetailsState(
     val showSuccessDialog: Boolean = false,
     val showErrorDialog: Boolean = false,
     val transportationVendor: TransportationType? = null,
+    val notes: String? = null,
 )
 
 sealed class RawMaterialsPurchaseOrderGetDataStatus {

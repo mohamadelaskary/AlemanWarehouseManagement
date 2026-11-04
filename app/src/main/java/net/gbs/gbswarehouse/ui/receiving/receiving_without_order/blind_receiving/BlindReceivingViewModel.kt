@@ -191,7 +191,7 @@ class BlindReceivingViewModel @Inject constructor(
 
     fun selectWorkersGroup(group: WorkersGroup) {
         selectedWorkersGroup = group
-        workerGroupSearchText = group.spinnerLabel()
+        workerGroupSearchText = group.workerGroupCode
     }
 
     fun onWorkersGroupSearchTextChanged(text: String) {

@@ -32,21 +32,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.BLUE
 import net.gbs.gbswarehouse.ErrorDialog
 import net.gbs.gbswarehouse.GREEN
 import net.gbs.gbswarehouse.LogoutButton
 import net.gbs.gbswarehouse.ORANGE
+import net.gbs.gbswarehouse.Operation
 import net.gbs.gbswarehouse.PURPLE
 import net.gbs.gbswarehouse.YELLOW
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.Screens
+import net.gbs.gbswarehouse.core.preferences.SettingsPrefs
+import net.gbs.gbswarehouse.ui.SubMenuViewModel
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 
 @Composable
@@ -54,7 +59,7 @@ fun HomeScreen(navController: NavController) {
     val colors = AppTheme.colors
     val viewModel: HomeViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
-
+    val sViewModel: SubMenuViewModel = hiltViewModel()
     val cards = listOf(
         Triple("recv",    GREEN,  stringResource(R.string.receiving) to "↓"),
         Triple("putaway", YELLOW, stringResource(R.string.putaway)   to "⌘"),
@@ -130,19 +135,14 @@ fun HomeScreen(navController: NavController) {
                 val (id, accent, pair) = triple
                 val (label, icon) = pair
                 val cnt = when (id) {
-                    "recv" -> "8 ${stringResource(R.string.operations)}"
-                    "putaway" -> "8 ${stringResource(R.string.operations)}"
-                    "issue" -> "9 ${stringResource(R.string.operations)}"
+                    "recv" -> "${sViewModel.filtererReceivingOps().size} ${stringResource(R.string.operations)}"
+                    "putaway" -> "${sViewModel.filteredPutAwayOps().size} ${stringResource(R.string.operations)}"
+                    "issue" -> "${sViewModel.filteredIssuingOps().size} ${stringResource(R.string.operations)}"
                     else -> ""
                 }
-                val detail = when (id) {
-                    "recv" -> "${stringResource(R.string.raw_materials)} · ${stringResource(R.string.spare_parts)} · ${stringResource(R.string.packaging)} · ${stringResource(R.string.finished_good)} · ${stringResource(R.string.returns)}"
-                    "putaway" -> "${stringResource(R.string.raw_materials)} · ${stringResource(R.string.spare_parts)} · ${stringResource(R.string.packaging)} · ${stringResource(R.string.finished_good)} · ${stringResource(R.string.transfers)}"
-                    "issue" -> "${stringResource(R.string.production)} · ${stringResource(R.string.maintenance)} · ${stringResource(R.string.sales)} · ${stringResource(R.string.internal_order)} · ${stringResource(R.string.scrap)}"
-                    else -> "${stringResource(R.string.plc_loading_orders)} · ${stringResource(R.string.plc_conveyors)}"
-                }
+                val details = opsDetails(id,sViewModel)
 
-                HomeCard(label = label, icon = icon, cnt = cnt, detail = detail, id = id,
+                HomeCard(label = label, icon = icon, cnt = cnt, detail = details, id = id,
                     accent = accent, onClick = {
                         viewModel.onCategoryClick(id) {
                             navController.navigate(
@@ -166,6 +166,26 @@ fun HomeScreen(navController: NavController) {
             onClose = { viewModel.dismissDialog() }
         )
     }
+}
+
+@Composable
+fun opsDetails(id:String, sViewModel: SubMenuViewModel):String{
+    val lang = SettingsPrefs(context = LocalContext.current).getLanguage()
+    var details = ""
+    val opList = when(id){
+        "recv" -> sViewModel.filtererReceivingOps()
+        "putaway" -> sViewModel.filteredPutAwayOps()
+        "issue" -> sViewModel.filteredIssuingOps()
+        else -> listOf()
+    }
+    opList.forEachIndexed { index, operation ->
+        val shortName = if (lang == "ar") operation.arShortName else operation.enShortName
+        details += if (index != 0)
+            " · $shortName"
+        else
+            shortName
+    }
+    return details
 }
 
 @Composable

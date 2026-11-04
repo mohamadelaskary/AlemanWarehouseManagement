@@ -140,7 +140,8 @@ fun OnHandStockSection(
     onSearchTextChanged: (String) -> Unit,
     onStockSelected: (MaterialOnHandStock) -> Unit,
     accent: Color = ORANGE,
-    colors: AppColors = AppTheme.colors
+    colors: AppColors = AppTheme.colors,
+    isEnabled: Boolean = true
 ) {
     val dims = AppTheme.dims
     if (isStockLoading) {
@@ -180,7 +181,7 @@ fun OnHandStockSection(
                         itemLabel = { it.batchSpinnerLabel() },
                         onItemSelected = onStockSelected,
                         searchText = stockSearchText,
-                        onSearchTextChanged = onSearchTextChanged
+                        onSearchTextChanged = onSearchTextChanged,
                     )
                 }
             } else if (hasValuationType) {

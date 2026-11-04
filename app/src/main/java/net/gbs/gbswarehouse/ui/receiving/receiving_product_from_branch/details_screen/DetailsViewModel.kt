@@ -152,9 +152,9 @@ class DetailsViewModel @Inject constructor(
             is ReceivingProductFromBranchEvent.OnUnloadingPointEntered ->
                 _uiState.update { it.copy(unloadingPoint = event.unloadingPoint, unloadingPointError = null) }
             is ReceivingProductFromBranchEvent.OnWorkerGroupSelected ->
-                _uiState.update { it.copy(selectedWorkerGroup = event.workerGroup, workerGroupError = null) }
+                _uiState.update { it.copy(selectedWorkerGroup = event.workerGroup, workerGroupError = null, workerGroupSearchText = event.workerGroup.workerGroupCode) }
             is ReceivingProductFromBranchEvent.OnWorkerGroupTextSearchChange ->
-                _uiState.update { it.copy(workerGroupSearchText = event.searchText, workerGroupError = null) }
+                _uiState.update { it.copy(workerGroupSearchText = event.searchText, workerGroupError = null,) }
             is ReceivingProductFromBranchEvent.OnPackingTypeSelected ->
                 _uiState.update {
                     it.copy(selectedPackingType = event.packingType, packingTypeError = null)

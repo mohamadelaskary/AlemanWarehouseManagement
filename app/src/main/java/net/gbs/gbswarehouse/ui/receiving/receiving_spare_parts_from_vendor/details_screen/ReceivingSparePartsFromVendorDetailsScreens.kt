@@ -64,6 +64,8 @@ import net.gbs.gbswarehouse.OutlineBtn
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.Section
+import net.gbs.gbswarehouse.ReceivingScreenNames
+import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SuccessDialog
 import net.gbs.gbswarehouse.TopBar
 import net.gbs.gbswarehouse.ValuationTypeSpinner
@@ -331,6 +333,11 @@ fun ReceivingSparePartsFromVendorDetailsScreen(
                                     SuccessDialog(
                                         net.gbs.gbswarehouse.ui.theme.GREEN,
                                         state.savingSuccessStatusMessage?.text.orEmpty(),
+                                        loadingButtonText = stringResource(R.string.putaway),
+                                        onLoadingClick = {
+                                            viewModel.onEvent(ReceivingSparePartsFromVendorEvent.HideSuccessDialog)
+                                            navController.navigate(Screens.PutAwayOrders.createRoute(ReceivingScreenNames.SparePartsFromVendor))
+                                        },
                                         onClose = {
                                             viewModel.onEvent(
                                                 ReceivingSparePartsFromVendorEvent.HideSuccessDialog

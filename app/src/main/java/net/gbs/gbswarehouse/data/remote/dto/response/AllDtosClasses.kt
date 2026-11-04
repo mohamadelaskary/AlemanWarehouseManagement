@@ -24,6 +24,7 @@ data class GetPurchaseOrderReqDto(
 @Serializable
 data class ReceiveRawMaterialsDto(
     val poNumber: String = "",
+    val notes:String?=null,
     val lines: List<RawMaterialsLineDto> = emptyList()
 )
 

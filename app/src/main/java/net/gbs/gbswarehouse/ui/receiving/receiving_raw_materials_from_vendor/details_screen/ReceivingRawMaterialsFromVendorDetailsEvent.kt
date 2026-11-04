@@ -15,6 +15,8 @@ sealed class ReceivingRawMaterialsFromVendorDetailsEvent {
     
     data class OnMaterialSearchTextChanged(val text: String) : ReceivingRawMaterialsFromVendorDetailsEvent()
     data class OnMaterialSelected(val material: RawMaterialsPurchaseOrderItem) : ReceivingRawMaterialsFromVendorDetailsEvent()
+    data class OnNotesTextChanged(val text: String) : ReceivingRawMaterialsFromVendorDetailsEvent()
+
     data class OnMaterialCodeScanned(val barcode: String) : ReceivingRawMaterialsFromVendorDetailsEvent()
     data object OnClearMaterial : ReceivingRawMaterialsFromVendorDetailsEvent()
 

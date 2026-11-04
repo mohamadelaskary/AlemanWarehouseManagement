@@ -8,7 +8,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.gbs.gbswarehouse.ISSUE_OPS
+import net.gbs.gbswarehouse.Operation
+import net.gbs.gbswarehouse.PUT_AWAY_OPS
+import net.gbs.gbswarehouse.RECV_OPS
 import net.gbs.gbswarehouse.ReceivingScreenNames
+import net.gbs.gbswarehouse.ReceivingScreenNames.FinishedGoodsFeedFromProductionOrder
+import net.gbs.gbswarehouse.ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder
+import net.gbs.gbswarehouse.ReceivingScreenNames.PackagingMaterialsFromVendor
+import net.gbs.gbswarehouse.ReceivingScreenNames.RawMaterialsFromVendor
+import net.gbs.gbswarehouse.ReceivingScreenNames.SparePartsFromVendor
+import net.gbs.gbswarehouse.ReceivingScreenNames.SparePartsReturn
+import net.gbs.gbswarehouse.ReceivingScreenNames.TransitOrderMaterial
 import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.data.local.LoginManager
 import net.gbs.gbswarehouse.domain.repository.IssuingRepository
@@ -29,6 +40,56 @@ class SubMenuViewModel @Inject constructor(
     private val loginManager: LoginManager
 ) : ViewModel() {
 
+    fun filtererReceivingOps(): List<Operation>{
+        val opsList = mutableListOf<Operation>()
+        RECV_OPS.forEach {
+            if (it.id == ReceivingScreenNames.SparePartsFromVendor&&loginManager.getPermissions().isReceiveVendorSpareParts
+                ||it.id == ReceivingScreenNames.RawMaterialsFromVendor&&loginManager.getPermissions().isReceiveVendorRawMaterials
+                ||it.id == ReceivingScreenNames.PackagingMaterialsFromVendor&&loginManager.getPermissions().isReceiveVendorPackagingMaterials
+                ||it.id == ReceivingScreenNames.PoultryMaterialsFromVendor&&loginManager.getPermissions().isReceiveVendorPoultryMaterials
+                ||it.id == ReceivingScreenNames.FinishedGoodsFeedFromProductionOrder&&loginManager.getPermissions().isReceiveFinishedGoodsFeed
+                ||it.id == ReceivingScreenNames.FinishedGoodsPlasticFromProductionOrder&&loginManager.getPermissions().isReceiveFinishedGoodsPlastic
+                ||it.id == ReceivingScreenNames.TransitOrderMaterial&&loginManager.getPermissions().isReceiveTransitOrderMaterial
+                ||it.id == ReceivingScreenNames.SparePartsReturn&&loginManager.getPermissions().isReceiveSparePartsReturn
+                ||it.id == "recv-blind"&&loginManager.getPermissions().isBlindReceive
+            )
+                opsList.add(it)
+        }
+        return opsList
+    }
+    fun filteredIssuingOps(): List<Operation>{
+        val opsList = mutableListOf<Operation>()
+        ISSUE_OPS.forEach {
+            if (it.id == "issue-raw"&&loginManager.getPermissions().isIssueTransferToProduction
+                ||it.id == "issue-spare"&&loginManager.getPermissions().isIssueSparePartsToMaintenance
+                ||it.id == "issue-internal"&&loginManager.getPermissions().isIssueToInternalOrder
+                ||it.id == "issue-sales"&&loginManager.getPermissions().isIssueFinishedGoodsFeed
+                ||it.id == "issue-sales_plastic"&&loginManager.getPermissions().isIssueFinishedGoodsPlastic
+                ||it.id == "issue-cost-center"&&loginManager.getPermissions().isDirectIssueOnCostCenter
+                ||it.id == "issue-transfer-plants"&&loginManager.getPermissions().isIssueTransferOrder
+                ||it.id == "issue-direct-transfer"&&loginManager.getPermissions().isDirectTransfer
+                ||it.id == "issue-scrap"&&loginManager.getPermissions().isScrapIssue
+            )
+            opsList.add(it)
+        }
+        return opsList
+    }
+    fun filteredPutAwayOps(): List<Operation>{
+        val opsList = mutableListOf<Operation>()
+        PUT_AWAY_OPS.forEach {
+            if(it.id == RawMaterialsFromVendor && loginManager.getPermissions().isPutAwayVendorRawMaterials
+                ||it.id == SparePartsFromVendor && loginManager.getPermissions().isPutAwayVendorSpareParts
+                ||it.id == PackagingMaterialsFromVendor && loginManager.getPermissions().isPutAwayVendorPackagingMaterials
+                ||it.id == FinishedGoodsFeedFromProductionOrder && loginManager.getPermissions().isPutAwayFinishedGoodsFeed
+                ||it.id == FinishedGoodsPlasticFromProductionOrder && loginManager.getPermissions().isPutAwayFinishedGoodsPlastic
+                ||it.id == SparePartsReturn && loginManager.getPermissions().isPutAwaySparePartsReturn
+                ||it.id == TransitOrderMaterial && loginManager.getPermissions().isPutAwayTransitOrderMaterial
+                ||it.id == "issue-direct-transfer-putaway" && loginManager.getPermissions().isPutAwayDirectTransfer
+                )
+                opsList.add(it)
+        }
+        return opsList
+    }
     private val _uiState = MutableStateFlow(SubMenuUiState())
     val uiState: StateFlow<SubMenuUiState> = _uiState.asStateFlow()
 

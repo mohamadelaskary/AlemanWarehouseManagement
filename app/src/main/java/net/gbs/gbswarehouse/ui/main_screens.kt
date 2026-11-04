@@ -80,9 +80,9 @@ fun SubMenu(
     val isRecv = category == "recv"
     val isPutAway = category == "putaway"
     val ops = when (category) {
-        "recv" -> RECV_OPS
-        "putaway" -> PUT_AWAY_OPS
-        else -> ISSUE_OPS
+        "recv" -> viewModel.filtererReceivingOps()
+        "putaway" -> viewModel.filteredPutAwayOps()
+        else -> viewModel.filteredIssuingOps()
     }
     val accent = when (category) {
         "recv" -> GREEN
@@ -110,6 +110,7 @@ fun SubMenu(
                 color = accent
             )
         }
+
         LazyColumn(
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
         ) {
