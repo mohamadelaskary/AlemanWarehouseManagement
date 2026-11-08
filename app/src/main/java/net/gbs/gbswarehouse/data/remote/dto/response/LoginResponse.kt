@@ -3,6 +3,7 @@ package net.gbs.gbswarehouse.data.remote.dto.response
 data class LoginResponse (
     override val responseStatus: ResponseStatus,
     val data: UserDto,
+    val appVersion: AppVersionDto? = null
 ) : BaseResponse
 
 data class UserDto(

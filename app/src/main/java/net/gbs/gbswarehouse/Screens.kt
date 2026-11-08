@@ -500,4 +500,11 @@ sealed class Screens(val route: String) {
         fun createRoute(operationId: String) = "loading_operation/$operationId"
     }
 
+    object SplashScreen : Screens("splash") {
+        fun createRoute() = "splash"
+    }
+    object UpdateScreen : Screens("update") {
+        fun createRoute() = "update"
+    }
+
 }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.core.network.NetworkResult
+import net.gbs.gbswarehouse.core.update.AppUpdateManager
 import net.gbs.gbswarehouse.data.remote.dto.response.LoginResponse
 import net.gbs.gbswarehouse.data.remote.mapper.toUser
 import net.gbs.gbswarehouse.domain.model.Message
@@ -19,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 // ── ViewModel ─────────────────────────────────────────────────────────────────
 class LoginViewModel @Inject constructor(
-    private val loginUseCase: LoginUseCase
+    private val loginUseCase: LoginUseCase,
+    val appUpdateManager: AppUpdateManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState = _uiState.asStateFlow()
@@ -71,6 +73,9 @@ class LoginViewModel @Inject constructor(
             when(result){
                 is NetworkResult.Success<*> -> {
                     val response = result.data as LoginResponse
+                    try {
+                        appUpdateManager.processVersionDto(response.appVersion)
+                    } catch (_: Exception) {}
                     _uiState.value = _uiState.value.copy(loginApiState = Success(response.data.toUser(),Message.real(response.responseStatus.statusMessage)))
                 }
 

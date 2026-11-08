@@ -32,6 +32,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -109,13 +112,38 @@ fun ReceivingPackagingMaterialsFromVendorDetailsScreen(
 
     ScannerEffect(onScan = viewModel::onBarcodeScanned)
 
+    var showExitDialog by remember { mutableStateOf(false) }
+    val onBackPressed = {
+        if (state.addedItems.isNotEmpty()) {
+            showExitDialog = true
+        } else {
+            navController.popBackStack()
+            Unit
+        }
+    }
+    androidx.activity.compose.BackHandler {
+        onBackPressed()
+    }
+
+    if (showExitDialog) {
+        net.gbs.gbswarehouse.ExitConfirmationDialog(
+            accent = accent,
+            onExit = {
+                showExitDialog = false
+                navController.popBackStack()
+            },
+            onContinueAdding = { showExitDialog = false },
+            onClose = { showExitDialog = false }
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
             TopBar(
                 title = stringResource(R.string.receiving),
                 subtitle = stringResource(R.string.packaging_materials_from_vendor),
                 accent = accent,
-                onBack = { navController.popBackStack() }
+                onBack = onBackPressed
             )
 
             when (state.purchaseOrderGetDataStatus) {

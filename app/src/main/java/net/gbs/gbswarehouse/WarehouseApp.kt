@@ -53,6 +53,8 @@ import net.gbs.gbswarehouse.ui.issue.issuing_transfer_plants.orders_list.Issuing
 import net.gbs.gbswarehouse.ui.issue.issuing_to_vendor.details_screen.IssueToVendorDetailsScreen
 import net.gbs.gbswarehouse.ui.issue.issuing_to_vendor.orders_list.IssuingToVendorScreen
 import net.gbs.gbswarehouse.ui.login.LoginScreen
+import net.gbs.gbswarehouse.ui.splash.SplashScreen
+import net.gbs.gbswarehouse.ui.update.UpdateScreen
 import net.gbs.gbswarehouse.ui.issue.issuing_direct_transfer_put_away.details_screen.DirectTransferPutAwayDetailsScreen
 import net.gbs.gbswarehouse.ui.issue.issuing_direct_transfer_put_away.orders_list.DirectTransferPutAwayOrdersScreen
 import net.gbs.gbswarehouse.ui.plc.conveyors.ConveyorsScreen
@@ -193,7 +195,7 @@ fun WarehouseApp () {
     CompositionLocalProvider(LocalNavController provides navController) {
         NavHost(
             navController = navController,
-            startDestination = Screens.LoginScreen.route,
+            startDestination = Screens.SplashScreen.route,
 
             enterTransition = {
                 slideIntoContainer(
@@ -669,6 +671,16 @@ fun WarehouseApp () {
             }
             composable(Screens.LoginScreen.route) {
                 LoginScreen(
+                    navController = navController,
+                )
+            }
+            composable(Screens.SplashScreen.route) {
+                SplashScreen(
+                    navController = navController,
+                )
+            }
+            composable(Screens.UpdateScreen.route) {
+                UpdateScreen(
                     navController = navController,
                 )
             }

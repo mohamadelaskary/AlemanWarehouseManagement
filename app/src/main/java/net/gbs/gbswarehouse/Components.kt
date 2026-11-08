@@ -818,6 +818,73 @@ fun ErrorDialog(accent: Color,message: String,onClose: () -> Unit){
         }
     }
 }
+@Composable
+fun ExitConfirmationDialog(
+    accent: Color,
+    onExit: () -> Unit,
+    onContinueAdding: () -> Unit,
+    onClose: () -> Unit
+){
+    val colors = AppTheme.colors
+    Dialog(onDismissRequest = onClose) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(colors.bg)
+                .border(1.dp, accent.copy(0.28f), RoundedCornerShape(12.dp))
+                .padding(24.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .background(colors.bg)
+                        .border(2.dp, accent, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Warning, modifier = Modifier.size(24.dp), contentDescription = null, tint = accent)
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    stringResource(R.string.unsaved_data_warning),
+                    color = accent,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    FullBtn(
+                        label = stringResource(R.string.continue_adding),
+                        color = colors.muted,
+                        onClick = onContinueAdding,
+                        modifier = Modifier.weight(1f)
+                    )
+                    FullBtn(
+                        label = stringResource(R.string.exit),
+                        color = accent,
+                        onClick = onExit,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                Icon(imageVector = Icons.Default.Close, contentDescription = null, tint = colors.muted)
+            }
+        }
+    }
+}
 // ── InfoCell ──────────────────────────────────────────────────────────────────
 @Composable
 fun InfoCell(

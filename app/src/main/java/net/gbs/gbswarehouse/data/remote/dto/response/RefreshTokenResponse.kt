@@ -4,6 +4,7 @@ data class RefreshTokenResponse (
     val success : Boolean,
     val accessToken: String,
     val refreshToken: String,
+    val appVersion: AppVersionDto? = null
 )
 
 

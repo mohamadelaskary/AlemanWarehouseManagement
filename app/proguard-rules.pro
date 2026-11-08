@@ -19,3 +19,10 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Retrofit API services
+-keep class net.gbs.gbswarehouse.data.remote.api.** { *; }
+
+# DTOs and models for Gson serialization/deserialization
+-keep class net.gbs.gbswarehouse.data.remote.dto.** { *; }
+-keep class net.gbs.gbswarehouse.domain.model.** { *; }

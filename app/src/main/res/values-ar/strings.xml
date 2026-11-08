@@ -350,7 +350,7 @@
     <string name="select_shift">اختر الوردية</string>
     <string name="enter_destination">ادخل الوجهة</string>
     <string name="destination">الوجهة</string>
-    <string name="please_enter_destination">Please enter destination!</string>
+    <string name="please_enter_destination">من فضلك أدخل الوجهة!</string>
     <string name="material_description">وصف الصنف</string>
     <string name="transfers">التحويلات</string>
     <string name="purchases">المشتروات</string>
@@ -362,10 +362,10 @@
     <string name="plc_sensor">الحساس</string>
     <string name="plc_remote">عن بُعد</string>
     <string name="plc_online">متصل</string>
-    <string name="target_quantity">الكمية المستهدفة</string>
+    <string name="target_quantity">The target quantity</string>
     <string name="fault_name">العطل</string>
     <string name="issuing_plant">المصنع المرسل</string>
-    <string name="issuing_plant_code">ود المصنع المرسل</string>
+    <string name="issuing_plant_code">كود المصنع المرسل</string>
     <string name="all_orders">جميع الطلبات</string>
     <string name="finished_goods_feed">منتج تام (علف)</string>
     <string name="transfer_orders">تحويلات مخزنية</string>
@@ -391,7 +391,7 @@
     <string name="quality_decision_optional">قرار الجودة (اختياري)</string>
     <string name="select_quality_decision">اختر قرار الجودة</string>
     <string name="purchasing_officer_optional">مسئول المشتريات (اختياري)</string>
-    <string name="enter_purchasing_officer_name">أدخل اسم مسئول المشتريات...</string>
+    <string name="enter_purchasing_officer_name">أدخل اسم مسئول المشتريات…</string>
     <string name="finished_good_from_production_feed">منتج تام من الانتاج (علف)</string>
     <string name="finished_good_from_production_plastic">منتج تام من الانتاج (بلاستيك)</string>
     <string name="not_authorized">عذراً، أنت غير مرخص للوصول إلى هذه الشاشة</string>
@@ -403,6 +403,12 @@
     <string name="loading_group">مجموعة التحميل</string>
     <string name="enter_loading_group">اختر مجموعة التحميل</string>
     <string name="cont_no_optional">رقم العقد (اختياري)</string>
-    <string name="loading_vendor_optional">مورد النقل</string>
-
+    <string name="loading_vendor_optional">مورد النقل (اختياري)</string>
+    <string name="unsaved_data_warning">يوجد بيانات غير محفوظة، هل تريد الخروج حقاً؟</string>
+    <string name="exit">خروج</string>
+    <string name="continue_adding">متابعة الإضافة</string>
+    <string name="checking_for_application_updates">جاري التحقق من وجود تحديثات للتطبيق…</string>
+    <string name="loading_gbs_warehouse">جاري تحميل نظام جي بي إس للمخازن…</string>
+    <string name="application_update_available">Application Update Available</string>
+    <string name="download_update">Download Update</string>
 </resources>

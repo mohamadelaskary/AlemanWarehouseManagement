@@ -3,6 +3,7 @@ package net.gbs.gbswarehouse.data.remote.repository
 import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.core.network.safeApiCall
 import net.gbs.gbswarehouse.core.session.SessionManager
+import net.gbs.gbswarehouse.core.update.AppUpdateManager
 import net.gbs.gbswarehouse.data.local.LoginManager
 import net.gbs.gbswarehouse.data.local.TokenManager
 import net.gbs.gbswarehouse.data.remote.api.AuthenticationApiService
@@ -17,6 +18,7 @@ class AuthenticationRepositoryImpl @Inject constructor(
     private val tokenManager: TokenManager,
     private val sessionManager: SessionManager,
     private val loginManager: LoginManager,
+    private val appUpdateManager: AppUpdateManager
 ) : AuthenticationRepository  {
     override suspend fun login(
         userName: String,
@@ -40,6 +42,11 @@ class AuthenticationRepositoryImpl @Inject constructor(
                 userPlantCodes = result.data.data.plantCodes ?: result.data.data.companyCodes ?: emptyList(),
                 permissions = result.data.data.permissions?.toPermissions() ?: Permissions.default()
             )
+
+            try {
+                appUpdateManager.processVersionDto(result.data.appVersion)
+            } catch (_: Exception) {
+            }
         }
 
         return result

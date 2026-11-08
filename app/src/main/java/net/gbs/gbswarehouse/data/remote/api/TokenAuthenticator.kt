@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.gbs.gbswarehouse.core.session.SessionManager
+import net.gbs.gbswarehouse.core.update.AppUpdateManager
 import net.gbs.gbswarehouse.data.local.TokenManager
 import net.gbs.gbswarehouse.data.remote.dto.request.RefreshTokenBody
 import okhttp3.Authenticator
@@ -18,7 +19,8 @@ import javax.inject.Singleton
 class TokenAuthenticator @Inject constructor(
     private val tokenManager: TokenManager,
     private val sessionManager: SessionManager,
-    private val refreshTokenApi : AuthenticationApiService
+    private val refreshTokenApi : AuthenticationApiService,
+    private val appUpdateManager: AppUpdateManager
 ) : Authenticator {
 
     private val mutex = Mutex()
@@ -87,6 +89,11 @@ class TokenAuthenticator @Inject constructor(
                     accessToken = body.accessToken,
                     refreshToken = body.refreshToken
                 )
+
+                try {
+                    appUpdateManager.processVersionDto(body.appVersion)
+                } catch (_: Exception) {
+                }
 
                 response.request
                     .newBuilder()

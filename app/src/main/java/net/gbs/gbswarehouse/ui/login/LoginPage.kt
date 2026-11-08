@@ -40,6 +40,7 @@ import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SettingsButton
 import net.gbs.gbswarehouse.ThemeToggleButton
+import net.gbs.gbswarehouse.core.update.UpdateState
 
 @Composable
 fun LoginScreen(
@@ -221,9 +222,11 @@ fun LoginScreen(
                     LoginApiState.Loading -> {
                     }
                     is LoginApiState.Success -> {
-                        LaunchedEffect(Unit) {
-                            navController.navigate(Screens.Home.route){
-                                popUpTo(Screens.LoginScreen.route){
+                        val updateState by viewModel.appUpdateManager.updateState.collectAsState()
+                        LaunchedEffect(updateState) {
+                            val route = if (updateState is UpdateState.UpdateAvailable) Screens.UpdateScreen.route else Screens.Home.route
+                            navController.navigate(route) {
+                                popUpTo(Screens.LoginScreen.route) {
                                     inclusive = true
                                 }
                             }

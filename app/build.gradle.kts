@@ -1,8 +1,41 @@
+import java.util.Properties
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.time.LocalDate
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+}
+
+val versionPropertiesFile = file("version.properties")
+val versionProperties = Properties()
+
+if (versionPropertiesFile.exists()) {
+    versionProperties.load(FileInputStream(versionPropertiesFile))
+} else {
+    versionProperties.setProperty("VERSION_CODE", "1")
+    versionProperties.setProperty("VERSION_NAME", "1.0")
+    versionProperties.store(FileOutputStream(versionPropertiesFile), "Version properties")
+}
+
+var versionCodeValue = versionProperties.getProperty("VERSION_CODE", "1").toInt()
+val versionNameValue = versionProperties.getProperty("VERSION_NAME", "1.0")
+
+val taskNames = gradle.startParameter.taskNames
+val isReleaseFileCreatingBuild = taskNames.any { taskName ->
+    taskName.contains("assembleRelease", ignoreCase = true) ||
+    taskName.contains("bundleRelease", ignoreCase = true) ||
+    taskName.contains("packageRelease", ignoreCase = true)
+}
+
+if (isReleaseFileCreatingBuild) {
+    versionCodeValue++
+    versionProperties.setProperty("VERSION_CODE", versionCodeValue.toString())
+    versionProperties.store(FileOutputStream(versionPropertiesFile), "Updated on release build")
+    println("Auto-incremented release versionCode to: $versionCodeValue")
 }
 
 android {
@@ -17,27 +50,38 @@ android {
         applicationId = "net.gbs.gbswarehouse"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = versionCodeValue
+        versionName = versionNameValue
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
         compose = true
+    }
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        val currentDate = LocalDate.now().toString()
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("Version Number $versionCodeValue Build Date $currentDate.apk")
+        }
     }
 }
 
@@ -87,5 +131,4 @@ dependencies {
     implementation(project(":honeywellscanner"))
 //    implementation(files("../honeywellscanner/libs/DataCollection.aar"))
     implementation("com.composables:icons-lucide:1.1.0")
-
 }

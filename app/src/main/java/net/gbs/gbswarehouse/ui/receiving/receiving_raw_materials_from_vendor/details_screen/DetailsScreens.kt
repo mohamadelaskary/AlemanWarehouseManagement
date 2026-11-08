@@ -112,6 +112,30 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
     val dims = AppTheme.dims
     val accent = colors.green
     var showMatDlg by remember { mutableStateOf(false) }
+    var showExitDialog by remember { mutableStateOf(false) }
+    val onBackPressed = {
+        if (state.addedItems.isNotEmpty()) {
+            showExitDialog = true
+        } else {
+            navController.popBackStack()
+            Unit
+        }
+    }
+    androidx.activity.compose.BackHandler {
+        onBackPressed()
+    }
+
+    if (showExitDialog) {
+        net.gbs.gbswarehouse.ExitConfirmationDialog(
+            accent = accent,
+            onExit = {
+                showExitDialog = false
+                navController.popBackStack()
+            },
+            onContinueAdding = { showExitDialog = false },
+            onClose = { showExitDialog = false }
+        )
+    }
 
     LaunchedEffect(orderId) {
         viewModel.onEvent(ReceivingRawMaterialsFromVendorDetailsEvent.LoadOrder(orderId))
@@ -145,9 +169,7 @@ fun ReceivingRawMaterialsFromVendorDetailsScreen(
     Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
             TopBar(title = stringResource(R.string.receiving), subtitle = stringResource(R.string.raw_materials_from_vendor),
-                accent = accent, onBack = {
-                    navController.popBackStack()
-                })
+                accent = accent, onBack = onBackPressed)
 
             when (val status = state.getDataStatus) {
                 is RawMaterialsPurchaseOrderGetDataStatus.LOADING -> {

@@ -405,4 +405,11 @@
     <string name="loading_group">مجموعة التحميل</string>
     <string name="enter_loading_group">Enter loading group</string>
     <string name="cont_no_optional">Contract Number (Optional)</string>
+    <string name="unsaved_data_warning">There is unsaved data, do you really want to exit?</string>
+    <string name="exit">Exit</string>
+    <string name="continue_adding">Continue adding</string>
+    <string name="checking_for_application_updates">Checking for application updates...</string>
+    <string name="loading_gbs_warehouse">Loading GBS Warehouse...</string>
+    <string name="application_update_available">Application Update Available</string>
+    <string name="download_update">Download Update</string>
 </resources>

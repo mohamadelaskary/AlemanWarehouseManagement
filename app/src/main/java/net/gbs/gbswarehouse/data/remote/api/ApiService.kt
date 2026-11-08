@@ -371,4 +371,7 @@ interface ApiService {
     @GET("api/Conveyors/GetLoadingRunsReport")
     suspend fun getLoadingRunsReport(): Response<MobileResponse<List<LoadingRunDto>>>
 
+    @GET("api/AccountHH/AppVersion")
+    suspend fun getAppVersion(): Response<com.google.gson.JsonObject>
+
 }

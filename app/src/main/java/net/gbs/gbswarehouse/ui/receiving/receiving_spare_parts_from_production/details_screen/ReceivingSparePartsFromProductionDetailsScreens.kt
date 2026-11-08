@@ -113,13 +113,38 @@ fun ReceivingSparePartsFromProductionDetailsScreen(
         }
     }
 
+    var showExitDialog by remember { mutableStateOf(false) }
+    val onBackPressed = {
+        if (state.addedItems.isNotEmpty()) {
+            showExitDialog = true
+        } else {
+            navController.popBackStack()
+            Unit
+        }
+    }
+    androidx.activity.compose.BackHandler {
+        onBackPressed()
+    }
+
+    if (showExitDialog) {
+        net.gbs.gbswarehouse.ExitConfirmationDialog(
+            accent = accent,
+            onExit = {
+                showExitDialog = false
+                navController.popBackStack()
+            },
+            onContinueAdding = { showExitDialog = false },
+            onClose = { showExitDialog = false }
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(modifier = Modifier.fillMaxSize()) {
             TopBar(
                 title = stringResource(R.string.receiving),
                 subtitle = stringResource(R.string.return_spare_parts_to_warehouse),
                 accent = accent,
-                onBack = { navController.popBackStack() }
+                onBack = onBackPressed
             )
 
             LazyColumn(
