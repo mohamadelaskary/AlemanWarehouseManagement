@@ -25,6 +25,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import net.gbs.gbswarehouse.core.loading.LoadingNavigation
 import net.gbs.gbswarehouse.core.session.SessionManager
 import net.gbs.gbswarehouse.core.session.SessionState
+import net.gbs.gbswarehouse.core.update.AppUpdateManager
+import net.gbs.gbswarehouse.core.update.UpdateState
 import net.gbs.gbswarehouse.ui.HomeScreen.HomeScreen
 import net.gbs.gbswarehouse.ui.OpTypeScreen
 import net.gbs.gbswarehouse.ui.SubMenu
@@ -126,6 +128,15 @@ fun WarehouseApp () {
     val sessionState by appViewModel.sessionManager
         .sessionState
         .collectAsState()
+
+    val updateState by appViewModel.appUpdateManager.updateState.collectAsState()
+    LaunchedEffect(updateState) {
+        if (updateState is UpdateState.UpdateAvailable) {
+            navController.navigate(Screens.UpdateScreen.route) {
+                launchSingleTop = true
+            }
+        }
+    }
     LaunchedEffect(Unit) {
         when(sessionState){
 
@@ -753,5 +764,6 @@ fun WarehouseApp () {
 }
 @HiltViewModel
 class AppViewModel @Inject constructor(
-    val sessionManager: SessionManager
+    val sessionManager: SessionManager,
+    val appUpdateManager: AppUpdateManager
 ) : ViewModel()

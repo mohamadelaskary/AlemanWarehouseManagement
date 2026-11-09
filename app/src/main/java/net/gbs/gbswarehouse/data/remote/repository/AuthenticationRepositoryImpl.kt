@@ -44,8 +44,10 @@ class AuthenticationRepositoryImpl @Inject constructor(
             )
 
             try {
-                appUpdateManager.processVersionDto(result.data.appVersion)
-            } catch (_: Exception) {
+                android.util.Log.d("AuthenticationRepository", "Processing appVersion from login: ${result.data.data.appVersion}")
+                appUpdateManager.processVersionDto(result.data.data.appVersion)
+            } catch (e: Exception) {
+                android.util.Log.e("AuthenticationRepository", "Error processing appVersion: ${e.message}", e)
             }
         }
 

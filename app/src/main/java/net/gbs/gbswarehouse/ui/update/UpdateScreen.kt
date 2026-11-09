@@ -10,8 +10,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.R
+import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.core.update.UpdateState
 
 @Composable
@@ -23,6 +27,21 @@ fun UpdateScreen(
     val appVersion = viewModel.appUpdateManager.getLatestAppVersion()
     val context = LocalContext.current
     val activity = context as? Activity
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, activity) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (activity != null) {
+                    viewModel.checkPermissionAndResumeInstallation(activity)
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -49,10 +68,20 @@ fun UpdateScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Latest Version: ${appVersion.latestVersionName ?: "N/A"} (Code: ${appVersion.latestVersionCode})", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            text = stringResource(
+                                R.string.latest_version,
+                                appVersion.latestVersionName ?: "N/A",
+                                appVersion.latestVersionCode
+                            ),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "Release Notes:", style = MaterialTheme.typography.titleMedium)
-                        Text(text = appVersion.releaseNotes ?: "No release notes provided.", style = MaterialTheme.typography.bodyMedium)
+                        Text(text = stringResource(R.string.release_notes), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = appVersion.releaseNotes ?: stringResource(R.string.no_release_notes),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             }
@@ -61,12 +90,12 @@ fun UpdateScreen(
 
             when (state) {
                 is UpdateState.UpdateAvailable, is UpdateState.Idle, is UpdateState.NoUpdate -> {
-                    Button(
-                        onClick = { viewModel.startDownload() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(text = stringResource(R.string.download_update))
+                    LaunchedEffect(Unit) {
+                        viewModel.startDownload()
                     }
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = stringResource(R.string.preparing_download), style = MaterialTheme.typography.bodyMedium)
                 }
                 is UpdateState.Downloading -> {
                     val downloadState = state as UpdateState.Downloading
@@ -86,41 +115,69 @@ fun UpdateScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Downloaded: ${downloadState.downloadedBytes / 1024 / 1024} MB / ${downloadState.totalBytes / 1024 / 1024} MB",
+                        text = stringResource(
+                            R.string.downloaded_progress,
+                            (downloadState.downloadedBytes / 1024 / 1024).toInt(),
+                            (downloadState.totalBytes / 1024 / 1024).toInt()
+                        ),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
                 is UpdateState.Validating -> {
                     CircularProgressIndicator()
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Validating APK checksum (SHA-256)...", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = stringResource(R.string.validating_checksum), style = MaterialTheme.typography.bodyMedium)
                 }
                 is UpdateState.DownloadCompleted -> {
-                    Button(
-                        onClick = { if (activity != null) viewModel.installApk(activity) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(text = "Install Update")
+                    LaunchedEffect(state) {
+                        if (activity != null) {
+                            viewModel.installApk(activity)
+                        }
                     }
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = stringResource(R.string.download_complete_launching), style = MaterialTheme.typography.bodyMedium)
                 }
                 is UpdateState.Installing -> {
-                    Text(text = "Launching installer...", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = stringResource(R.string.launching_installer), style = MaterialTheme.typography.bodyLarge)
                 }
                 is UpdateState.Error -> {
                     val errorMsg = (state as UpdateState.Error).message
-                    Text(text = "Error: $errorMsg", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = stringResource(R.string.error_prefix, errorMsg),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
+
                     Button(
-                        onClick = { viewModel.startDownload() },
+                        onClick = {
+                            if (activity != null) {
+                                viewModel.installApk(activity)
+                            } else {
+                                viewModel.startDownload()
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(text = "Retry Download")
+                        Text(text = stringResource(R.string.retry_installation))
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            navController.navigate(Screens.LoginScreen.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = stringResource(R.string.back_to_login))
                     }
                 }
                 is UpdateState.Checking -> {
                     CircularProgressIndicator()
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Checking for updates...", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = stringResource(R.string.checking_for_updates), style = MaterialTheme.typography.bodyLarge)
                 }
             }
         }

@@ -29,6 +29,10 @@ class UpdateViewModel @Inject constructor(
 
     val updateState: StateFlow<UpdateState> = appUpdateManager.updateState
 
+    init {
+        startDownload()
+    }
+
     fun getResolvedDownloadUrl(): String {
         val appVersion = appUpdateManager.getLatestAppVersion() ?: return "N/A"
         val rawUrl = appVersion.downloadUrl ?: return "N/A"
@@ -54,6 +58,10 @@ class UpdateViewModel @Inject constructor(
     fun startDownload() {
         val appVersion = appUpdateManager.getLatestAppVersion() ?: return
         val url = appVersion.downloadUrl ?: return
+
+        if (updateState.value is UpdateState.Downloading || updateState.value is UpdateState.DownloadCompleted || updateState.value is UpdateState.Installing) {
+            return
+        }
 
         viewModelScope.launch {
             appUpdateManager.updateState(UpdateState.Downloading(0f, 0L, appVersion.fileSize ?: 0L))
@@ -83,12 +91,31 @@ class UpdateViewModel @Inject constructor(
             else -> return
         }
 
-        if (!apkInstaller.canInstallPackages(context)) {
+        if (!apkInstaller.canInstallPackages(activity)) {
             apkInstaller.openInstallPermissionSettings(activity)
+            appUpdateManager.updateState(UpdateState.Error("Please enable 'Install unknown apps' permission in settings, then return and retry."))
             return
         }
 
         appUpdateManager.updateState(UpdateState.Installing)
-        apkInstaller.installApk(context, file)
+        val success = apkInstaller.installApk(activity, file)
+        if (!success) {
+            appUpdateManager.updateState(UpdateState.Error("Failed to launch APK installer"))
+        }
+    }
+
+    fun checkPermissionAndResumeInstallation(activity: Activity) {
+        val state = updateState.value
+        val file = when (state) {
+            is UpdateState.DownloadCompleted -> state.file
+            is UpdateState.Error -> appUpdateManager.getDownloadedFile()
+            else -> null
+        }
+
+        if (file != null && file.exists() && apkInstaller.canInstallPackages(activity)) {
+            val appVersion = appUpdateManager.getLatestAppVersion() ?: return
+            appUpdateManager.updateState(UpdateState.DownloadCompleted(file, appVersion))
+            installApk(activity)
+        }
     }
 }

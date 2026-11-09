@@ -409,6 +409,19 @@
     <string name="continue_adding">متابعة الإضافة</string>
     <string name="checking_for_application_updates">جاري التحقق من وجود تحديثات للتطبيق…</string>
     <string name="loading_gbs_warehouse">جاري تحميل نظام جي بي إس للمخازن…</string>
-    <string name="application_update_available">Application Update Available</string>
-    <string name="download_update">Download Update</string>
+    <string name="application_update_available">تحديث التطبيق متوفر</string>
+    <string name="download_update">تحميل التحديث</string>
+    <string name="latest_version">الإصدار الأحدث: %1$s (الكود: %2$d)</string>
+    <string name="release_notes">ملاحظات الإصدار:</string>
+    <string name="no_release_notes">لا توجد ملاحظات إصدار.</string>
+    <string name="preparing_download">جاري تجهيز التحميل...</string>
+    <string name="downloaded_progress">تم تحميل: %1$d ميجابايت / %2$d ميجابايت</string>
+    <string name="validating_checksum">جاري التحقق من سلامة الملف (SHA-256)...</string>
+    <string name="download_complete_launching">تم التحميل بنجاح. جاري فتح مثبت التطبيق...</string>
+    <string name="launching_installer">جاري فتح المثبت...</string>
+    <string name="error_prefix">خطأ: %1$s</string>
+    <string name="retry_installation">إعادة محاولة التثبيت</string>
+    <string name="back_to_login">العودة لتسجيل الدخول</string>
+    <string name="checking_for_updates">جاري التحقق من التحديثات...</string>
+    <string name="error_in_connection">خطأ في الاتصال</string>
 </resources>

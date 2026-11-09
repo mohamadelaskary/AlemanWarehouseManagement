@@ -134,9 +134,9 @@ class IssuingDirectTransferViewModel @Inject constructor(
                     loadProductionWarehouses(result.data.plantCode)
                 }
                 is NetworkResult.BusinessError -> _state.update { it.copy(binFromError = Message.Real(result.message)) }
-                is NetworkResult.HttpError -> _state.update { it.copy(binFromError = Message.Real(result.message)) }
-                is NetworkResult.NetworkError -> _state.update { it.copy(binFromError = Message.Real(result.message)) }
-                is NetworkResult.UnknownError -> _state.update { it.copy(binFromError = Message.Real(result.message)) }
+                is NetworkResult.HttpError -> _state.update { it.copy(binFromError = Message.res(R.string.error_in_connection)) }
+                is NetworkResult.NetworkError -> _state.update { it.copy(binFromError = Message.res(R.string.error_in_connection)) }
+                is NetworkResult.UnknownError -> _state.update { it.copy(binFromError = Message.res(R.string.error_in_connection)) }
                 else -> {}
             }
             _state.update { it.copy(isBinFromLoading = false) }
@@ -177,9 +177,9 @@ class IssuingDirectTransferViewModel @Inject constructor(
                     }
                 }
                 is NetworkResult.BusinessError -> _state.update { it.copy(matErrorMessage = Message.Real(result.message)) }
-                is NetworkResult.HttpError -> _state.update { it.copy(matErrorMessage = Message.Real(result.message)) }
-                is NetworkResult.NetworkError -> _state.update { it.copy(matErrorMessage = Message.Real(result.message)) }
-                is NetworkResult.UnknownError -> _state.update { it.copy(matErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.HttpError -> _state.update { it.copy(matErrorMessage = Message.res(R.string.error_in_connection)) }
+                is NetworkResult.NetworkError -> _state.update { it.copy(matErrorMessage = Message.res(R.string.error_in_connection)) }
+                is NetworkResult.UnknownError -> _state.update { it.copy(matErrorMessage = Message.res(R.string.error_in_connection)) }
                 else -> {}
             }
             _state.update { it.copy(isStockLoading = false) }
@@ -403,9 +403,9 @@ class IssuingDirectTransferViewModel @Inject constructor(
                     _state.update { it.copy(addedLines = emptyList(), savingSuccessMessage = Message.real(result.message)) }
                 }
                 is NetworkResult.BusinessError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
-                is NetworkResult.HttpError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
-                is NetworkResult.NetworkError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
-                is NetworkResult.UnknownError -> _state.update { it.copy(savingErrorMessage = Message.Real(result.message)) }
+                is NetworkResult.HttpError -> _state.update { it.copy(savingErrorMessage = Message.res(R.string.error_in_connection)) }
+                is NetworkResult.NetworkError -> _state.update { it.copy(savingErrorMessage = Message.res(R.string.error_in_connection)) }
+                is NetworkResult.UnknownError -> _state.update { it.copy(savingErrorMessage = Message.res(R.string.error_in_connection)) }
                 else -> {}
             }
             _state.update { it.copy(isSaving = false) }

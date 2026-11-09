@@ -7,8 +7,11 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.core.update.AppUpdateManager
@@ -25,17 +28,21 @@ sealed interface SplashNavigationEvent {
 class SplashViewModel @Inject constructor(
     private val appVersionRepository: AppVersionRepository,
     val appUpdateManager: AppUpdateManager,
-    @ApplicationContext private val context: Context
+    @ApplicationContext val context : Context
 ) : ViewModel() {
     private val tag = "SplashViewModel"
 
     private val _navigationEvent = MutableSharedFlow<SplashNavigationEvent>()
     val navigationEvent: SharedFlow<SplashNavigationEvent> = _navigationEvent.asSharedFlow()
 
+    private val _checkFinished = MutableStateFlow(false)
+    val checkFinished: StateFlow<Boolean> = _checkFinished.asStateFlow()
+
+    private val _entranceCompleted = MutableStateFlow(false)
+    val entranceCompleted: StateFlow<Boolean> = _entranceCompleted.asStateFlow()
+
     private var hasCheckedVersion = false
     private var updatePending = false
-    private var checkFinished = false
-    private var videoCompleted = false
 
     init {
         checkVersion()
@@ -52,32 +59,34 @@ class SplashViewModel @Inject constructor(
             Log.d(tag, "checkVersion(): checkForUpdate() result = $result")
 
             if (result is NetworkResult.Success) {
-                val appVersion = result.data
-                val installedCode = appVersionRepository.getInstalledVersionCode()
-                val isUpdate = appUpdateManager.processVersion(appVersion, installedCode, context.packageName)
-
-                if (isUpdate) {
-                    Log.d(tag, "checkVersion(): Update available!")
-                    updatePending = true
-                }
+//                 Update check on splash bypassed to allow debugging and testing update flow from login screen
+                 val appVersion = result.data
+                 val installedCode = appVersionRepository.getInstalledVersionCode()
+                 val isUpdate = appUpdateManager.processVersion(appVersion, installedCode, context.packageName)
+                 if (isUpdate) {
+                     updatePending = true
+                 }
+            } else {
+                appUpdateManager.updateState(UpdateState.NoUpdate)
             }
 
-            checkFinished = true
+            _checkFinished.value = true
             tryNavigateIfNeeded()
         }
     }
 
-    fun onVideoCompleted() {
-        Log.d(tag, "onVideoCompleted()")
-        videoCompleted = true
+    fun onEntranceAnimationCompleted() {
+        Log.d(tag, "onEntranceAnimationCompleted()")
+        _entranceCompleted.value = true
         viewModelScope.launch {
             tryNavigateIfNeeded()
         }
     }
 
     private suspend fun tryNavigateIfNeeded() {
-        if (videoCompleted && checkFinished) {
-            Log.d(tag, "tryNavigateIfNeeded(): updatePending=$updatePending")
+        if (_entranceCompleted.value && _checkFinished.value) {
+            Log.d(tag, "tryNavigateIfNeeded(): updatePending=$updatePending, waiting 600ms before navigating...")
+            kotlinx.coroutines.delay(600L)
             if (updatePending) {
                 _navigationEvent.emit(SplashNavigationEvent.NavigateToUpdate)
             } else {

@@ -80,6 +80,7 @@ import net.gbs.gbswarehouse.ui.theme.AppColors
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.gbswarehouse.ui.theme.DANGER
 import net.gbs.gbswarehouse.ui.theme.GREEN
+import net.gbs.gbswarehouse.ui.theme.ORANGE
 import net.gbs.honeywellscanner.ScannerEffect
 
 @Composable
@@ -92,7 +93,7 @@ fun IssueSparePartsForMaintenanceDetailsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val dims = AppTheme.dims
     val colors = AppTheme.colors
-    val accent = YELLOW
+    val accent = ORANGE
 
     ScannerEffect(onScan = viewModel::onBarcodeScanned)
     LaunchedEffect(true){

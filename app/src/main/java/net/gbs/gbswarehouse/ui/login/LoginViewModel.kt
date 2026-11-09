@@ -74,15 +74,18 @@ class LoginViewModel @Inject constructor(
                 is NetworkResult.Success<*> -> {
                     val response = result.data as LoginResponse
                     try {
-                        appUpdateManager.processVersionDto(response.appVersion)
-                    } catch (_: Exception) {}
+                        android.util.Log.d("LoginViewModel", "Processing appVersion from login response: ${response.data.appVersion}")
+                        appUpdateManager.processVersionDto(response.data.appVersion)
+                    } catch (e: Exception) {
+                        android.util.Log.e("LoginViewModel", "Error processing appVersion: ${e.message}", e)
+                    }
                     _uiState.value = _uiState.value.copy(loginApiState = Success(response.data.toUser(),Message.real(response.responseStatus.statusMessage)))
                 }
 
                 is NetworkResult.BusinessError -> _uiState.value = _uiState.value.copy(loginApiState = Error(Message.real(result.message)))
-                is NetworkResult.HttpError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(Message.real(result.message)))
-                is NetworkResult.NetworkError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(Message.real(result.message)))
-                is NetworkResult.UnknownError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(Message.real(result.message)))
+                is NetworkResult.HttpError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(Message.res(R.string.error_in_connection)))
+                is NetworkResult.NetworkError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(Message.res(R.string.error_in_connection)))
+                is NetworkResult.UnknownError ->  _uiState.value = _uiState.value.copy(loginApiState = Error(Message.res(R.string.error_in_connection)))
                 NetworkResult.Loading -> {}
             }
 

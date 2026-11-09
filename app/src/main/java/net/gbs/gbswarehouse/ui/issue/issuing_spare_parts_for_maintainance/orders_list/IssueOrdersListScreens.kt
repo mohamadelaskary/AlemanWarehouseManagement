@@ -40,6 +40,7 @@ import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationOrder
 import net.gbs.gbswarehouse.ui.issue.ReservationLineItemInfoCard
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 import net.gbs.gbswarehouse.ui.theme.MUTED
+import net.gbs.gbswarehouse.ui.theme.ORANGE
 import net.gbs.gbswarehouse.ui.theme.TEXT
 
 @Composable
@@ -49,7 +50,7 @@ fun IssuingSparePartsForMaintenanceScreen(
     val viewModel: IssueOrdersListViewModel = hiltViewModel()
     val orders = viewModel.filteredOrders
     val colors = AppTheme.colors
-    val accent = YELLOW
+    val accent = ORANGE
 
 
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {

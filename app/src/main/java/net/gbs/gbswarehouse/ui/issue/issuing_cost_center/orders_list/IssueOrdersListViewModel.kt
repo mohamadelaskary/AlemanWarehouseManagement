@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.core.network.NetworkResult
 import net.gbs.gbswarehouse.domain.model.Message
 import net.gbs.gbswarehouse.domain.model.SparePartsReturnReservationOrder
@@ -35,10 +36,10 @@ class IssueOrdersListViewModel @Inject constructor(
                     orders = result.data ?: emptyList()
                 }
                 is NetworkResult.BusinessError -> errorMessage = Message.Real(result.message)
-                is NetworkResult.HttpError -> errorMessage = Message.Real(result.message)
-                is NetworkResult.NetworkError -> errorMessage = Message.Real(result.message)
-                is NetworkResult.UnknownError -> errorMessage = Message.Real(result.message)
-                else -> errorMessage = Message.Real("Unknown error")
+                is NetworkResult.HttpError -> errorMessage = Message.res(R.string.error_in_connection)
+                is NetworkResult.NetworkError -> errorMessage = Message.res(R.string.error_in_connection)
+                is NetworkResult.UnknownError -> errorMessage = Message.res(R.string.error_in_connection)
+                else -> errorMessage = Message.res(R.string.error_in_connection)
             }
             isLoading = false
         }

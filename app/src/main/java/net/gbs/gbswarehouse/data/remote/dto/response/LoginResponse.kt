@@ -1,9 +1,10 @@
 package net.gbs.gbswarehouse.data.remote.dto.response
 
+import com.google.gson.annotations.SerializedName
+
 data class LoginResponse (
     override val responseStatus: ResponseStatus,
-    val data: UserDto,
-    val appVersion: AppVersionDto? = null
+    val data: UserDto
 ) : BaseResponse
 
 data class UserDto(
@@ -14,7 +15,9 @@ data class UserDto(
     val companyCodes: List<String>?,
     val accessToken: String?,
     val refreshToken: String?,
-    val permissions: PermissionsDto?
+    val permissions: PermissionsDto?,
+    @SerializedName("appVersion", alternate = ["AppVersion", "appversion", "Appversion"])
+    val appVersion: AppVersionDto? = null
 )
 
 data class PermissionsDto(

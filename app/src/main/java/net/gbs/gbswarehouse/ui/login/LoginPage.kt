@@ -222,12 +222,18 @@ fun LoginScreen(
                     LoginApiState.Loading -> {
                     }
                     is LoginApiState.Success -> {
-                        val updateState by viewModel.appUpdateManager.updateState.collectAsState()
-                        LaunchedEffect(updateState) {
-                            val route = if (updateState is UpdateState.UpdateAvailable) Screens.UpdateScreen.route else Screens.Home.route
-                            navController.navigate(route) {
-                                popUpTo(Screens.LoginScreen.route) {
-                                    inclusive = true
+                        LaunchedEffect(Unit) {
+                            if (viewModel.appUpdateManager.updateState.value is UpdateState.UpdateAvailable) {
+                                navController.navigate(Screens.UpdateScreen.route) {
+                                    popUpTo(Screens.LoginScreen.route) {
+                                        inclusive = true
+                                    }
+                                }
+                            } else {
+                                navController.navigate(Screens.Home.route) {
+                                    popUpTo(Screens.LoginScreen.route) {
+                                        inclusive = true
+                                    }
                                 }
                             }
                         }

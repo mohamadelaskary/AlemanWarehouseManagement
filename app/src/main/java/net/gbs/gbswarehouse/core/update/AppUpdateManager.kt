@@ -31,6 +31,7 @@ class AppUpdateManager @Inject constructor(
     val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
 
     private var currentAppVersion: AppVersionDto? = null
+    private var downloadedFile: File? = null
 
     fun updateState(state: UpdateState) {
         _updateState.value = state
@@ -38,12 +39,15 @@ class AppUpdateManager @Inject constructor(
             currentAppVersion = state.appVersion
         } else if (state is UpdateState.DownloadCompleted) {
             currentAppVersion = state.appVersion
+            downloadedFile = state.file
         }
     }
 
     fun getLatestAppVersion(): AppVersionDto? = currentAppVersion
+    fun getDownloadedFile(): File? = downloadedFile
 
     fun processVersionDto(appVersion: AppVersionDto?): Boolean {
+        Log.d("AppUpdateManager", "processVersionDto called with appVersion=$appVersion")
         if (appVersion == null) return false
         val installedCode = try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
@@ -56,6 +60,7 @@ class AppUpdateManager @Inject constructor(
         } catch (_: Exception) {
             1
         }
+        Log.d("AppUpdateManager", "packageManager installedCode = $installedCode")
         return processVersion(appVersion, installedCode, context.packageName)
     }
 
@@ -67,6 +72,8 @@ class AppUpdateManager @Inject constructor(
             return false
         }
 
+        Log.d("AppUpdateManager", "processVersion: installed=$installedVersionCode, latest=${appVersion.latestVersionCode}, remotePackage=${appVersion.packageName}, localPackage=$packageName")
+
         if (!appVersion.packageName.isNullOrBlank() && appVersion.packageName != packageName) {
             Log.w("AppUpdateManager", "Package name mismatch: remote=${appVersion.packageName}, local=$packageName")
             return false
@@ -74,10 +81,12 @@ class AppUpdateManager @Inject constructor(
 
         if (installedVersionCode < appVersion.latestVersionCode) {
             Log.d("AppUpdateManager", "Update available: installed=$installedVersionCode, latest=${appVersion.latestVersionCode}")
+            _updateState.value = UpdateState.Idle
             _updateState.value = UpdateState.UpdateAvailable(appVersion)
             currentAppVersion = appVersion
             return true
         } else {
+            Log.d("AppUpdateManager", "No update needed: installed=$installedVersionCode >= latest=${appVersion.latestVersionCode}")
             if (_updateState.value is UpdateState.Idle || _updateState.value is UpdateState.Checking) {
                 _updateState.value = UpdateState.NoUpdate
             }
