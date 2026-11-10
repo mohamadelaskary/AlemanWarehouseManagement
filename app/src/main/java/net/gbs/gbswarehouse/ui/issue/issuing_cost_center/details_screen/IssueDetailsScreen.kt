@@ -282,7 +282,7 @@ fun IssueCostCenterDetailsScreen(
                     .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(
-                    "تأكيد الصرف", accent, { viewModel.onEvent(IssueDetailsEvent.OnIssueAll) },
+                    stringResource(R.string.save), accent, { viewModel.onEvent(IssueDetailsEvent.OnIssueAll) },
                     saving = state.isSaving
                 )
             }

@@ -311,7 +311,7 @@ fun IssueSalesOrdersDetailsScreen(
                     .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
                 FullBtn(
-                    state.successMessage?.text ?: stringResource(R.string.success_save),
+                    state.successMessage?.text ?: stringResource(R.string.save),
                     accent,
                     { viewModel.onEvent(IssueDetailsEvent.OnSave) },
                     saving = state.isSaving
