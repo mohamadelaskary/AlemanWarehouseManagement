@@ -36,7 +36,7 @@ class TokenAuthenticator @Inject constructor(
 
             tokenManager.clear()
 
-            // TODO Notify Session Expired
+            sessionManager.sessionExpired()
 
             return null
         }

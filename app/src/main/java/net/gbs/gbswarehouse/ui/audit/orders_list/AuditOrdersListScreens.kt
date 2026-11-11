@@ -3,60 +3,54 @@ package net.gbs.gbswarehouse.ui.audit.orders_list
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import net.gbs.gbswarehouse.BLUE
-import net.gbs.gbswarehouse.Order
 import net.gbs.gbswarehouse.Pill
+import net.gbs.gbswarehouse.R
 import net.gbs.gbswarehouse.Screens
 import net.gbs.gbswarehouse.SearchBox
 import net.gbs.gbswarehouse.TopBar
+import net.gbs.gbswarehouse.domain.model.InventoryOrder
 import net.gbs.gbswarehouse.ui.theme.AppTheme
 
 @Composable
 fun AuditOrdersScreen(
     navController: NavController,
 ) {
-    val viewModel: AuditOrdersListViewModel = viewModel()
+    val viewModel: AuditOrdersListViewModel = hiltViewModel()
     val orders = viewModel.filteredOrders
     val colors = AppTheme.colors
     val accent = BLUE
 
     Column(modifier = Modifier.fillMaxSize().background(colors.bg)) {
-        TopBar(title = "الجرد", accent = accent,
-            onBack = { navController.popBackStack() })
+        TopBar(
+            title = stringResource(R.string.audit),
+            subtitle = stringResource(R.string.inventory_orders),
+            accent = accent,
+            onBack = { navController.popBackStack() }
+        )
 
         // Search
         SearchBox(
             value = viewModel.orderSearch,
             onValueChange = { viewModel.orderSearch = it },
-            placeholder = "بحث بالرقم أو الاسم...",
+            placeholder = stringResource(R.string.search_audit_orders),
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
         )
 
@@ -65,29 +59,38 @@ fun AuditOrdersScreen(
             modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("${orders.size} نتيجة", color = colors.muted, fontSize = 11.sp)
-            Text("AUDIT" ?: "", color = accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+            Text("${orders.size} ${stringResource(R.string.operations)}", color = colors.muted, fontSize = 11.sp)
+            Text("AUDIT", color = accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         }
 
-        if (orders.isEmpty()) {
+        if (viewModel.isLoading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = accent)
+            }
+        } else if (viewModel.errorMessage != null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(viewModel.errorMessage!!.text, color = Color.Red, fontSize = 14.sp)
+            }
+        } else if (orders.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("📂", fontSize = 36.sp)
                     Spacer(Modifier.height(10.dp))
-                    Text("لا توجد نتائج", color = colors.muted, fontSize = 13.sp)
+                    Text(stringResource(R.string.no_results), color = colors.muted, fontSize = 13.sp)
                 }
             }
         } else {
             LazyColumn(contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 20.dp)) {
-                itemsIndexed(orders) { index, ord ->
-                    AuditOrderCard(order = ord, accent = accent,
+                itemsIndexed(orders) { _, ord ->
+                    AuditOrderCard(
+                        order = ord,
+                        accent = accent,
                         onClick = {
-                           // vm.navigate(Screens.DETAIL, order = ord)
                             navController.navigate(
-                                Screens.AuditDetailsScreen.createRoute(ord.id)
+                                Screens.AuditDetailsScreen.createRoute(ord.inventoryOrderId.toString())
                             )
-                        },
-                        isMaterialsShowed = viewModel.showMaterials && viewModel.currentClickedOrderIndex == index,)
+                        }
+                    )
                     Spacer(Modifier.height(8.dp))
                 }
             }
@@ -95,9 +98,8 @@ fun AuditOrdersScreen(
     }
 }
 
-
 @Composable
-fun AuditOrderCard(order: Order, accent: Color, onClick: () -> Unit,isMaterialsShowed : Boolean = false) {
+fun AuditOrderCard(order: InventoryOrder, accent: Color, onClick: () -> Unit) {
     var hovered by remember { mutableStateOf(false) }
     val colors = AppTheme.colors
     Column(
@@ -109,13 +111,23 @@ fun AuditOrderCard(order: Order, accent: Color, onClick: () -> Unit,isMaterialsS
             .clickable { onClick(); hovered = false }
             .padding(14.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text("#${order.id}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Pill(order.status, order.statusColor,)
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("#${order.orderNumber}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+            Pill(order.status ?: "InProgress", Color.Blue)
         }
         Spacer(Modifier.height(6.dp))
-        Text(order.info, color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)
-
+        if (!order.description.isNullOrEmpty()) {
+            Text(order.description, color = colors.text, fontSize = 12.sp, lineHeight = 18.sp)
+            Spacer(Modifier.height(6.dp))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("${stringResource(R.string.warehouse)}: ${order.warehouseCode ?: "-"}", color = colors.muted, fontSize = 11.sp)
+            Text("${stringResource(R.string.plant)}: ${order.plantCode ?: "-"}", color = colors.muted, fontSize = 11.sp)
+            Text("${order.scannedItemCount ?: 0} / ${order.assignedItemCount ?: 0}", color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        }
     }
 }

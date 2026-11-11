@@ -424,4 +424,15 @@
     <string name="back_to_login">العودة لتسجيل الدخول</string>
     <string name="checking_for_updates">جاري التحقق من التحديثات...</string>
     <string name="error_in_connection">خطأ في الاتصال</string>
+    <string name="inventory_orders">أوامر الجرد</string>
+    <string name="warehouse_code">كود المخزن</string>
+    <string name="assigned_items">الأصناف المعينة</string>
+    <string name="scanned_items">الأصناف المسجلة</string>
+    <string name="scan_inventory_item">مسح صنف الجرد</string>
+    <string name="search_audit_orders">بحث برقم الأمر، الوصف، المخزن أو الفرع...</string>
+    <string name="assigned_date">تاريخ التعيين</string>
+    <string name="scanned_at">وقت المسح</string>
+    <string name="counted_qty">الكمية المعدودة</string>
+    <string name="already_scanned">تم مسحه مسبقاً</string>
+    <string name="description">الوصف</string>
 </resources>

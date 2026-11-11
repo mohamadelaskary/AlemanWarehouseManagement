@@ -6,9 +6,11 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import net.gbs.gbswarehouse.data.fake.LoadingRepositoryImpl
 import net.gbs.gbswarehouse.data.fake.PlcDataSourceImpl
+import net.gbs.gbswarehouse.data.remote.repository.AuditRepositoryImpl
 import net.gbs.gbswarehouse.data.remote.repository.AuthenticationRepositoryImpl
 import net.gbs.gbswarehouse.data.remote.repository.IssuingRepositoryImpl
 import net.gbs.gbswarehouse.data.remote.repository.ReceivingRepositoryImpl
+import net.gbs.gbswarehouse.domain.repository.AuditRepository
 import net.gbs.gbswarehouse.domain.repository.AuthenticationRepository
 import net.gbs.gbswarehouse.domain.repository.IssuingRepository
 import net.gbs.gbswarehouse.domain.repository.LoadingRepository
@@ -25,6 +27,12 @@ abstract class RepositoryModule {
     abstract fun bindReceivingRepository(
         repository: ReceivingRepositoryImpl
     ): ReceivingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuditRepository(
+        repository: AuditRepositoryImpl
+    ): AuditRepository
 
     @Binds
     @Singleton

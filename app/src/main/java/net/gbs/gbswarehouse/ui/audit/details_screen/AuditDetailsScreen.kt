@@ -1,294 +1,236 @@
 package net.gbs.gbswarehouse.ui.audit.details_screen
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import net.gbs.gbswarehouse.ui.MaterialImageButton
 import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
-import net.gbs.gbswarehouse.BLUE
-
-import net.gbs.gbswarehouse.Bin
-import net.gbs.gbswarehouse.Field
-import net.gbs.gbswarehouse.FullBtn
-import net.gbs.gbswarehouse.InfoCell
-import net.gbs.gbswarehouse.MarginTenDp
-import net.gbs.gbswarehouse.Material
-import net.gbs.gbswarehouse.ORDERS
-import net.gbs.gbswarehouse.OutlineBtn
-import net.gbs.gbswarehouse.SearchBox
-import net.gbs.gbswarehouse.Section
-import net.gbs.gbswarehouse.BottomSheetDialog
-import net.gbs.gbswarehouse.SuccessCard
-import net.gbs.gbswarehouse.TopBar
-import net.gbs.gbswarehouse.ValuationTypeSpinner
-import net.gbs.gbswarehouse.domain.model.ValuationType
+import net.gbs.gbswarehouse.*
+import net.gbs.gbswarehouse.domain.model.InventoryAssignment
+import net.gbs.gbswarehouse.domain.model.InventoryOrder
+import net.gbs.gbswarehouse.domain.model.StorageBinLocation
+import net.gbs.gbswarehouse.ui.MaterialImageButton
 import net.gbs.gbswarehouse.ui.theme.AppTheme
-import net.gbs.gbswarehouse.valuationTypes
-import kotlin.collections.find
 
 @Composable
 fun AuditDetailsScreen(
     navController: NavController,
     orderId: String
-){
-    val viewModel: AuditDetailsViewModel = viewModel()
-    val ord = ORDERS["AUDIT"]?.find { it.id == orderId }!!
+) {
+    val viewModel: AuditDetailsViewModel = hiltViewModel()
     val colors = AppTheme.colors
     val dims = AppTheme.dims
     val accent = BLUE
-    val doneLabel = "الكمية المصروفة"
+    val context = LocalContext.current
 
-    LaunchedEffect(viewModel.saved) {
-        if (viewModel.saved) {
-            delay(1000)
-            navController.popBackStack()
+    LaunchedEffect(orderId) {
+        viewModel.initOrder(orderId.toIntOrNull() ?: 1)
+    }
+
+    val successText = viewModel.successMessage?.text
+    LaunchedEffect(successText) {
+        if (!successText.isNullOrEmpty()) {
+            Toast.makeText(context, successText, Toast.LENGTH_SHORT).show()
+            viewModel.successMessage = null
         }
     }
 
     Box(modifier = Modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
-            TopBar(title = "جرد",
-                accent = accent, onBack = {
-                    //  viewModel.back()
-                    navController.popBackStack()
-                })
+            TopBar(
+                title = stringResource(net.gbs.gbswarehouse.R.string.audit),
+                subtitle = stringResource(net.gbs.gbswarehouse.R.string.order_data),
+                accent = accent,
+                onBack = { navController.popBackStack() }
+            )
 
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = dims.padding, end = dims.padding,
+                    start = dims.padding,
+                    end = dims.padding,
                     top = 10.dp,
-                    bottom = if (viewModel.showFixedSave) dims.bottomBarHeight else 20.dp
+                    bottom = dims.bottomBarHeight + 20.dp
                 )
             ) {
-
-                // ── Order Info Card (non-blind) ────────────────────────────
-                item {
-                    Section(label = "بيانات الأمر", accent = accent) {
-                        val fields = listOf(
-                            Triple("رقم أمر الجرد", ord.id, null),
-                            Triple("وصف أمر الجرد",       ord.info,   null),
-                            Triple("التاريخ",     ord.date,   null),
-                        )
-                        // 2-column grid
-                        for (i in fields.indices step 2) {
-                            Row(Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                val f1 = fields[i]
-                                val f2 = if (i + 1 < fields.size) fields[i + 1] else null
-                                // if "الجهة" span full width
-                                if (f1.first == "وصف أمر الجرد") {
-                                    InfoCell(f1.first, f1.second, f1.third ?: colors.text,
-                                        modifier = Modifier.weight(1f))
-                                } else {
-                                    InfoCell(
-                                        f1.first, f1.second, f1.third ?: colors.text,
-                                        modifier = Modifier.weight(1f)
-                                    )
+                // Order Info Card
+                viewModel.order?.let { ord ->
+                    item {
+                        Section(label = stringResource(net.gbs.gbswarehouse.R.string.order_data), accent = accent) {
+                            val fields = listOf(
+                                Triple(stringResource(net.gbs.gbswarehouse.R.string.order_number), ord.orderNumber, null),
+                                Triple(stringResource(net.gbs.gbswarehouse.R.string.description), ord.description ?: "-", null),
+                                Triple(stringResource(net.gbs.gbswarehouse.R.string.warehouse), ord.warehouseCode ?: "-", null),
+                                Triple(stringResource(net.gbs.gbswarehouse.R.string.plant), ord.plantCode ?: "-", null),
+                                Triple(stringResource(net.gbs.gbswarehouse.R.string.status), ord.status ?: "-", null),
+                                Triple(stringResource(net.gbs.gbswarehouse.R.string.scanned_items), "${ord.scannedItemCount ?: 0} / ${ord.assignedItemCount ?: 0}", accent)
+                            )
+                            for (i in fields.indices step 2) {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    val f1 = fields[i]
+                                    val f2 = if (i + 1 < fields.size) fields[i + 1] else null
+                                    InfoCell(f1.first, f1.second, f1.third ?: colors.text, modifier = Modifier.weight(1f))
                                     if (f2 != null) {
-                                        InfoCell(
-                                            f2.first, f2.second, f2.third ?: colors.text,
-                                            modifier = Modifier.weight(1f)
-                                        )
+                                        InfoCell(f2.first, f2.second, f2.third ?: colors.text, modifier = Modifier.weight(1f))
                                     }
                                 }
                             }
                         }
+                        Spacer(Modifier.height(10.dp))
                     }
                 }
 
-//                item {
-//                    Field(
-//                        label = "اسم المستلم",
-//                        hint = "ادخل اسم المستلم  (اختياري)",
-//                        value = viewModel.receiverName,
-//                        onValueChange = { viewModel.receiverName = it },
-//                        isNumber = false,
-//                        center = false,
-//                        ltr = false,
-//                        withLabel = true,
-//                        modifier = Modifier.weight(1f)
-//                    )
-//                    MarginTenDp()
-//                }
-//                item {
-//                    DropdownSpinner(
-//                        hint = "اختر سبب الصرف الجزئي (اختياري)",
-//                        items = usageReasons,
-//                        selectedItem = viewModel.selectedUsageReason,
-//                        onItemSelected = {viewModel.selectedUsageReason = it },
-//                        itemLabel = {it.name},
-//                        modifier = Modifier.weight(1f),
-//
-//                        )
-//                    MarginTenDp()
-//                }
-
+                // Bin Section
                 item {
-                    Section(label = "بيانات موقع الصرف", accent = accent) {
-                        Row(Modifier.fillMaxWidth(),
+                    Section(label = stringResource(net.gbs.gbswarehouse.R.string.bin), accent = accent) {
+                        Row(
+                            Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             BinCodeInput(
                                 value = viewModel.binInput,
-                                onValueChange = { viewModel.binInput = it },
+                                onValueChange = {
+                                    viewModel.binInput = it
+                                    if (it.isNotBlank()) {
+                                        viewModel.scanOrEnterBin(it)
+                                    }
+                                },
                                 modifier = Modifier.weight(1f)
                             )
-                            OutlineBtn("اختر Bin", accent) { viewModel.binDlg = true }
                         }
                         if (viewModel.selBin != null) {
                             Spacer(Modifier.height(8.dp))
-                            SelectedBinCard(
+                            SelectedBinLocationCard(
                                 bin = viewModel.selBin!!,
                                 accent = accent,
-                                qty = viewModel.qty,
-                                onQtyChange = { viewModel.qty = it },
                                 onClear = { viewModel.clearBin() }
                             )
                         }
                     }
+                    Spacer(Modifier.height(10.dp))
                 }
 
+                // Material Section
                 item {
-                    Section(label = "بيانات الصنف", accent = accent) {
-                        Row(Modifier.fillMaxWidth(),
+                    Section(label = stringResource(net.gbs.gbswarehouse.R.string.item_data), accent = accent) {
+                        Row(
+                            Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             MatCodeInput(
                                 value = viewModel.matInput,
-                                onValueChange = { viewModel.matInput = it },
+                                onValueChange = {
+                                    viewModel.matInput = it
+                                    if (it.isNotBlank()) {
+                                        viewModel.onBarcodeScanned(it)
+                                    }
+                                },
                                 modifier = Modifier.weight(1f)
                             )
-                            OutlineBtn("اختر مادة", accent) { viewModel.matDlg = true }
+                            OutlineBtn(stringResource(net.gbs.gbswarehouse.R.string.select_item), accent) {
+                                viewModel.matDlg = true
+                            }
                         }
-                        if (viewModel.selMat != null) {
+                        if (viewModel.selAssignment != null) {
                             Spacer(Modifier.height(8.dp))
-                            PutAwaySelectedMaterialCard(
-                                mat = viewModel.selMat!!,
+                            SelectedAssignmentCard(
+                                assignment = viewModel.selAssignment!!,
                                 accent = accent,
-                                isQuality = false,
-                                isIssue = true,
-                                doneLabel = doneLabel,
-                                smpQty = viewModel.smpQty,
-                                onSmpQtyChange = { viewModel.smpQty = it },
                                 qty = viewModel.qty,
                                 onQtyChange = { viewModel.qty = it },
-                                saved = viewModel.saved,
-                                saving = viewModel.saving,
-                                onAccept = { viewModel.doSave("accept") },
-                                onReject = { viewModel.doSave("reject") },
-                                onClear = { viewModel.clearMaterial() },
-                                onValuationTypeChange = {viewModel.selectedValuationType = it}
+                                onClear = { viewModel.clearMaterial() }
                             )
                         }
                     }
                 }
-
-
-
-
-
-
-                // ── Success Card ──────────────────────────────────────────
-                if (viewModel.saved) {
-                    item { SuccessCard(kind = viewModel.saveKind, accent = accent) }
-                }
             }
         }
 
-        // ── Fixed Save Button ─────────────────────────────────────────────
-        if (viewModel.showFixedSave && !viewModel.saved) {
+        // Error Dialog
+        val errorText = (viewModel.saveErrorMessage ?: viewModel.materialErrorMessage ?: viewModel.binErrorMessage)?.text
+        val activeError = viewModel.saveErrorMessage ?: viewModel.materialErrorMessage ?: viewModel.binErrorMessage
+        if (activeError != null && errorText != null) {
+            ErrorDialog(
+                accent = Color.Red,
+                message = errorText,
+                onClose = {
+                    viewModel.saveErrorMessage = null
+                    viewModel.materialErrorMessage = null
+                    viewModel.binErrorMessage = null
+                }
+            )
+        }
+
+        // Fixed Save Button
+        if (viewModel.selAssignment != null && viewModel.selBin != null && viewModel.qty.isNotEmpty() && !viewModel.saved) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .background(
                         Brush.verticalGradient(
-                            0f to Color.Transparent, 0.35f to colors.bg
+                            listOf(Color.Transparent, colors.bg)
                         )
                     )
                     .padding(horizontal = dims.padding, vertical = 12.dp)
             ) {
                 FullBtn(
-                    "حفظ", accent, { viewModel.doSave("save") },
+                    stringResource(net.gbs.gbswarehouse.R.string.save),
+                    accent,
+                    { viewModel.saveScan() },
                     saving = viewModel.saving
                 )
             }
         }
     }
-    // ── Bin Dialog ────────────────────────────────────────────────────────
-    if (viewModel.binDlg) {
-        BottomSheetDialog(title = "اختيار الموقع", onClose = { viewModel.binDlg = false }) {
-            SearchBox(viewModel.binInput, { viewModel.binInput = it }, "بحث عن Bin...",
-                Modifier.padding(horizontal = dims.padding, vertical = 8.dp))
-            LazyColumn(contentPadding = PaddingValues(
-                start = dims.padding, end = dims.padding, bottom = 20.dp
-            )) {
-                itemsIndexed(viewModel.filteredBins) { _, b ->
-                    BinDialogItem(b, viewModel.accent) { viewModel.selectBin(b) }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-    }
 
-    // ── Material Dialog ───────────────────────────────────────────────────
+    // Material Selection Dialog
     if (viewModel.matDlg) {
-        BottomSheetDialog(title = "اختيار الصنف", onClose = { viewModel.matDlg = false }) {
+        BottomSheetDialog(title = stringResource(net.gbs.gbswarehouse.R.string.select_item), onClose = { viewModel.matDlg = false }) {
             SearchBox(
-                viewModel.matSearch, { viewModel.matSearch = it }, "بحث عن صنف...",
+                viewModel.matSearch,
+                { viewModel.searchMaterials(it) },
+                stringResource(net.gbs.gbswarehouse.R.string.search_for_item),
                 Modifier.padding(horizontal = dims.padding, vertical = 8.dp)
             )
             LazyColumn(
                 contentPadding = PaddingValues(
-                    start = dims.padding, end = dims.padding, bottom = 20.dp,
+                    start = dims.padding, end = dims.padding, bottom = 20.dp
                 )
             ) {
-                itemsIndexed(viewModel.filteredMaterials) { _, m ->
-                    MaterialDialogItem(m, viewModel.accent, doneLabel) {
-                        viewModel.selectMaterial(m)
+                itemsIndexed(viewModel.filteredMaterials) { index, assignment ->
+                    if (index == viewModel.filteredMaterials.size - 1 && viewModel.hasMore) {
+                        viewModel.loadMoreAssignments()
+                    }
+                    AssignmentDialogItem(assignment, accent) {
+                        viewModel.selectAssignment(assignment)
                     }
                     Spacer(Modifier.height(6.dp))
                 }
@@ -296,148 +238,29 @@ fun AuditDetailsScreen(
         }
     }
 
-
-}
-
-
-// ── Material Card ─────────────────────────────────────────────────────────────
-@Composable
-fun PutAwaySelectedMaterialCard(
-    mat: Material, accent: Color, isQuality: Boolean, isIssue: Boolean,
-    doneLabel: String, smpQty: String, onSmpQtyChange: (String) -> Unit,
-    qty: String, onQtyChange: (String) -> Unit,
-    saved: Boolean, saving: Boolean,
-    onAccept: () -> Unit, onReject: () -> Unit, onClear: () -> Unit,
-    onValuationTypeChange: (ValuationType) -> Unit
-) {
-    val progress = if (mat.qty > 0) mat.done.toFloat() / mat.qty else 0f
-    val colors = AppTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(accent.copy(0.06f))
-            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
-            .padding(12.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(mat.code, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-                Spacer(Modifier.width(8.dp))
-                if (mat.code.isNotEmpty()) {
-                    MaterialImageButton(materialCode = mat.code, accent = accent)
-                }
-            }
-            Text("✕", color = colors.muted, fontSize = 12.sp,
-                modifier = Modifier.clickable { onClear() }.padding(4.dp))
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-            lineHeight = 18.sp)
-        Spacer(Modifier.height(8.dp))
-        // Stats row
-//        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-//            listOf( doneLabel to mat.done.toString(),"المطلوب" to mat.qty.toString(),
-//                "الوحدة" to mat.unit,).forEach { (l, v) ->
-//                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-//                    Text(l, color = colors.muted, fontSize = 9.sp,
-//                        modifier = Modifier.padding(bottom = 2.dp))
-//                    Text(v, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-//                }
-//            }
-//        }
-//        Spacer(Modifier.height(10.dp))
-        // Progress bar
-//        Column {
-//            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-//                Text("التنفيذ", color = colors.muted, fontSize = 9.sp)
-//                Text("${(progress * 100).toInt()}%", color = accent, fontSize = 9.sp,
-//                    fontWeight = FontWeight.SemiBold)
-//            }
-//            Spacer(Modifier.height(3.dp))
-//            Box(
-//                modifier = Modifier.fillMaxWidth().height(4.dp)
-//                    .clip(RoundedCornerShape(2.dp)).background(colors.dark)
-//            ) {
-//                Box(
-//                    modifier = Modifier.fillMaxHeight()
-//                        .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
-//                        .clip(RoundedCornerShape(2.dp)).background(accent)
-//                )
-//            }
-//        }
-//        Spacer(Modifier.height(10.dp))
-
-        val qLabel =  "الكمية(${mat.unit})"
-        Field(qLabel, "0", qty, onQtyChange, isNumber = true, center = true)
-
-
-    }
-}
-
-// ── Bin Card ──────────────────────────────────────────────────────────────────
-@Composable
-fun SelectedBinCard(bin: Bin, accent: Color, qty: String, onQtyChange: (String) -> Unit,
-                    onClear: () -> Unit) {
-    val colors = AppTheme.colors
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(accent.copy(0.06f))
-            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
-            .padding(12.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text("📍 ${bin.code}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-            Text("✕", color = colors.muted, fontSize = 12.sp,
-                modifier = Modifier.clickable { onClear() }.padding(4.dp))
-        }
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("المنطقة" to bin.zone, "الممر" to bin.aisle,
-                "الرف" to bin.rack).forEach { (l, v) ->
-                Column(
-                    modifier = Modifier.weight(1f)
-                        .clip(RoundedCornerShape(6.dp)).background(colors.dark).padding(horizontal = 6.dp, vertical = 8.dp)
-                ) {
-                    Text(l, color = colors.muted, fontSize = 9.sp)
-                    Text(v, color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    // Bin Selection Dialog
+    if (viewModel.binDlg) {
+        BottomSheetDialog(title = stringResource(net.gbs.gbswarehouse.R.string.select_bin), onClose = { viewModel.binDlg = false }) {
+            SearchBox(
+                viewModel.binInput,
+                { viewModel.binInput = it },
+                stringResource(net.gbs.gbswarehouse.R.string.search_for_bin),
+                Modifier.padding(horizontal = dims.padding, vertical = 8.dp)
+            )
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    start = dims.padding, end = dims.padding, bottom = 20.dp
+                )
+            ) {
+                itemsIndexed(BINS) { _, b ->
+                    BinDialogItem(b, accent) {
+                        viewModel.scanOrEnterBin(b.code)
+                        viewModel.binDlg = false
+                    }
+                    Spacer(Modifier.height(6.dp))
                 }
             }
         }
-//        Spacer(Modifier.height(12.dp))
-//        Field("الكمية المراد تسكينها", "0", qty, onQtyChange, isNumber = true, center = true)
-    }
-}
-
-// ── Material Code Input ───────────────────────────────────────────────────────
-@Composable
-fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(colors.dark)
-            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = true,
-            textStyle = TextStyle(
-                color = colors.text, fontSize = 13.sp,
-                textDirection = TextDirection.Ltr
-            ),
-            cursorBrush = SolidColor(colors.green),
-            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
-            decorationBox = { inner ->
-                if (value.isEmpty()) Text("كود المادة...", color = colors.muted, fontSize = 13.sp)
-                inner()
-            }
-        )
     }
 }
 
@@ -461,16 +284,134 @@ fun BinCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modif
             cursorBrush = SolidColor(colors.yellow),
             modifier = Modifier.weight(1f).padding(vertical = 10.dp),
             decorationBox = { inner ->
-                if (value.isEmpty()) Text("كود البن (Bin Code)...", color = colors.muted, fontSize = 13.sp)
+                if (value.isEmpty()) Text(stringResource(net.gbs.gbswarehouse.R.string.bin_code_hint), color = colors.muted, fontSize = 13.sp)
                 inner()
             }
         )
     }
 }
 
-// ── Dialog items ──────────────────────────────────────────────────────────────
 @Composable
-fun MaterialDialogItem(mat: Material, accent: Color, doneLabel: String, onClick: () -> Unit) {
+fun MatCodeInput(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    val colors = AppTheme.colors
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.dark)
+            .border(1.dp, colors.border2, RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = value, onValueChange = onValueChange, singleLine = true,
+            textStyle = TextStyle(
+                color = colors.text, fontSize = 13.sp,
+                textDirection = TextDirection.Ltr
+            ),
+            cursorBrush = SolidColor(colors.green),
+            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            decorationBox = { inner ->
+                if (value.isEmpty()) Text(stringResource(net.gbs.gbswarehouse.R.string.item_code_hint), color = colors.muted, fontSize = 13.sp)
+                inner()
+            }
+        )
+    }
+}
+
+@Composable
+fun SelectedBinLocationCard(
+    bin: StorageBinLocation,
+    accent: Color,
+    onClear: () -> Unit
+) {
+    val colors = AppTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(accent.copy(0.06f))
+            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
+            .padding(12.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("📍 ${bin.storageBinCode}", color = accent, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+            Text(
+                "✕", color = colors.muted, fontSize = 12.sp,
+                modifier = Modifier.clickable { onClear() }.padding(4.dp)
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(
+                "المنطقة" to bin.sectionCode,
+                "الممر" to bin.roadCode,
+                "المخزن" to bin.warehouseCode
+            ).forEach { (l, v) ->
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(colors.dark)
+                        .padding(horizontal = 6.dp, vertical = 8.dp)
+                ) {
+                    Text(l, color = colors.muted, fontSize = 9.sp)
+                    Text(v, color = colors.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SelectedAssignmentCard(
+    assignment: InventoryAssignment,
+    accent: Color,
+    qty: String,
+    onQtyChange: (String) -> Unit,
+    onClear: () -> Unit
+) {
+    val colors = AppTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(accent.copy(0.06f))
+            .border(1.dp, accent.copy(0.22f), RoundedCornerShape(10.dp))
+            .padding(12.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(assignment.itemCode ?: "", color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.width(8.dp))
+                if (!assignment.itemCode.isNullOrEmpty()) {
+                    MaterialImageButton(materialCode = assignment.itemCode, accent = accent)
+                }
+            }
+            Text(
+                "✕", color = colors.muted, fontSize = 12.sp,
+                modifier = Modifier.clickable { onClear() }.padding(4.dp)
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            assignment.itemName ?: "", color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            lineHeight = 18.sp
+        )
+        Spacer(Modifier.height(8.dp))
+        Field(stringResource(net.gbs.gbswarehouse.R.string.counted_qty), "0", qty, onQtyChange, isNumber = true, center = true)
+    }
+}
+
+@Composable
+fun AssignmentDialogItem(assignment: InventoryAssignment, accent: Color, onClick: () -> Unit) {
     var hovered by remember { mutableStateOf(false) }
     val colors = AppTheme.colors
     Column(
@@ -483,19 +424,14 @@ fun MaterialDialogItem(mat: Material, accent: Color, doneLabel: String, onClick:
             .padding(all = 11.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(mat.code, color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text(mat.unit, color = colors.muted, fontSize = 10.sp)
+            Text(assignment.itemCode ?: "", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text(assignment.warehouseCode ?: "", color = colors.muted, fontSize = 10.sp)
         }
         Spacer(Modifier.height(4.dp))
-        Text(mat.desc, color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-            lineHeight = 18.sp)
-//        Spacer(Modifier.height(6.dp))
-//        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-//            Text("المطلوب: ", color = colors.muted, fontSize = 10.sp).let {}
-//            Text("المطلوب: ${mat.qty}", color = colors.muted, fontSize = 10.sp)
-//            Text("$doneLabel: ${mat.done}",
-//                color = if (mat.done == mat.qty) colors.succ else colors.muted, fontSize = 10.sp)
-//        }
+        Text(
+            assignment.itemName ?: "", color = colors.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+            lineHeight = 18.sp
+        )
     }
 }
 
@@ -514,7 +450,6 @@ fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("📍 ${bin.code}", color = colors.yellow, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-//            Text("متاح", color = colors.succ, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(4.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -528,57 +463,3 @@ fun BinDialogItem(bin: Bin, accent: Color, onClick: () -> Unit) {
         }
     }
 }
-
-// ── Bottom Sheet Dialog ───────────────────────────────────────────────────────
-@Composable
-fun BottomSheetDialog(title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        val colors = AppTheme.colors
-        Box(
-            modifier = Modifier.fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.65f))
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { onClose() },
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(colors.card)
-                    .border(1.dp, colors.border2,
-                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .heightIn(max = 560.dp)
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { /* consume */ }
-            ) {
-                // Dialog Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(
-                            width = 1.dp, color = colors.border,
-                            shape = RoundedCornerShape(0.dp)
-                        )
-                        .padding(horizontal = 14.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("✕", color = colors.muted, fontSize = 18.sp,
-                        modifier = Modifier.clickable { onClose() }.padding(horizontal = 2.dp))
-                    Text(title, color = colors.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-                content()
-            }
-        }
-    }
-}
-
-

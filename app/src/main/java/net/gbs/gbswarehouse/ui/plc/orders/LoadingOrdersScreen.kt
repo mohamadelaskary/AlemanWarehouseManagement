@@ -1,5 +1,6 @@
 package net.gbs.gbswarehouse.ui.plc.orders
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -155,6 +156,7 @@ fun LoadingOrderCard(
 ) {
     val colors = AppTheme.colors
     val fullyLoaded = order.items.all { it.remainingQuantity <= 0 }
+    Log.d("LoadingOrderDetailsScreen", "LoadingOrderDetailsContent: status ${order.status} orderNumber ${order.orderNumber}")
 
     Column(
         modifier = Modifier

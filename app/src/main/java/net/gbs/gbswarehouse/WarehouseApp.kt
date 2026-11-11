@@ -137,7 +137,7 @@ fun WarehouseApp () {
             }
         }
     }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(sessionState) {
         when(sessionState){
 
             SessionState.Expired -> {

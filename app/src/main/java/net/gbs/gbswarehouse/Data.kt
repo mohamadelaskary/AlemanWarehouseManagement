@@ -19,7 +19,7 @@ val GREEN   = Color(0xFF00C896)
 val ORANGE  = Color(0xFFFF6224)
 val YELLOW  = Color(0xFFFFB800)
 val PURPLE  = Color(0xFFA78BFA)
-val BLUE  = Color(0xFF023D95)
+val BLUE  = Color(0xFF0B68F1)
 
 
 val GRAY    = Color(0xFF4A6080)

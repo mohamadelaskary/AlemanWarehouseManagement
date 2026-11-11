@@ -371,6 +371,23 @@ interface ApiService {
     @GET("api/Conveyors/GetLoadingRunsReport")
     suspend fun getLoadingRunsReport(): Response<MobileResponse<List<LoadingRunDto>>>
 
+    @GET("api/InventoryHH/GetMyInventoryOrders")
+    suspend fun getMyInventoryOrders(): Response<MobileResponse<List<InventoryOrderDto>>>
+
+    @GET("api/InventoryHH/GetMyAssignments")
+    suspend fun getMyAssignments(
+        @Query("orderId") orderId: Int,
+        @Query("filter") filter: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("pageSize") pageSize: Int = 50
+    ): Response<MobileResponse<InventoryAssignmentPageDto>>
+
+    @GET("api/InventoryHH/GetBinLocation")
+    suspend fun getBinLocation(@Query("storageBinCode") storageBinCode: String): Response<MobileResponse<StorageBinLocationDto>>
+
+    @POST("api/InventoryHH/ScanInventoryItem")
+    suspend fun scanInventoryItem(@Body body: ScanInventoryItemBodyDto): Response<MobileResponse<ScanInventoryItemResultDto>>
+
     @GET("api/AccountHH/AppVersion")
     suspend fun getAppVersion(): Response<com.google.gson.JsonObject>
 

@@ -425,4 +425,15 @@
     <string name="back_to_login">Back to Login</string>
     <string name="checking_for_updates">Checking for updates...</string>
     <string name="error_in_connection">Error in connection</string>
+    <string name="inventory_orders">Inventory Orders</string>
+    <string name="warehouse_code">Warehouse Code</string>
+    <string name="assigned_items">Assigned Items</string>
+    <string name="scanned_items">Scanned Items</string>
+    <string name="scan_inventory_item">Scan Inventory Item</string>
+    <string name="search_audit_orders">Search by order number, description, warehouse or plant...</string>
+    <string name="assigned_date">Assigned Date</string>
+    <string name="scanned_at">Scanned At</string>
+    <string name="counted_qty">Counted Qty</string>
+    <string name="already_scanned">Already Scanned</string>
+    <string name="description">Description</string>
 </resources>
